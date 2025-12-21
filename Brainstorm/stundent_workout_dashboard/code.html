@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="pt-BR"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Seleção de Treino - Aluno</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        primary: "#3b82f6", 
+                        "primary-dark": "#2563eb",
+                        "background-light": "#f3f4f6", 
+                        "background-dark": "#111827", 
+                        "surface-light": "#ffffff",
+                        "surface-dark": "#1f2937",
+                        "surface-darker": "#161e2e",
+                        "text-light": "#1f2937",
+                        "text-dark": "#f9fafb",
+                        "secondary-text-light": "#6b7280",
+                        "secondary-text-dark": "#9ca3af",
+                        "success": "#10b981",
+                        "warning": "#f59e0b",
+                        "danger": "#ef4444",
+                    },
+                    fontFamily: {
+                        display: ["Inter", "sans-serif"],
+                    },
+                    borderRadius: {
+                        DEFAULT: "0.5rem",
+                        'xl': '1rem',
+                        '2xl': '1.5rem',
+                    },
+                },
+            },
+        };
+    </script>
+<style>
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        body {
+            min-height: max(884px, 100dvh);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="font-display bg-background-light dark:bg-background-dark text-text-light dark:text-text-dark transition-colors duration-200 antialiased pb-24">
+<header class="sticky top-0 z-50 bg-surface-light/95 dark:bg-surface-dark/95 backdrop-blur-sm border-b border-gray-200 dark:border-gray-700 shadow-sm">
+<div class="max-w-md mx-auto px-4 py-4 flex items-center justify-between">
+<button class="p-2 -ml-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 text-secondary-text-light dark:text-secondary-text-dark transition-colors">
+<span class="material-icons-outlined">arrow_back_ios_new</span>
+</button>
+<div class="flex-1 px-4 text-center">
+<h1 class="text-base font-bold text-text-light dark:text-text-dark truncate">Upper Lower 4x na Semana</h1>
+<p class="text-xs text-secondary-text-light dark:text-secondary-text-dark">Rotina atual</p>
+</div>
+<button class="p-2 -mr-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 text-secondary-text-light dark:text-secondary-text-dark transition-colors">
+<span class="material-icons-outlined">info</span>
+</button>
+</div>
+</header>
+<main class="max-w-md mx-auto px-4 py-6 space-y-6">
+<div class="bg-gradient-to-r from-primary to-primary-dark rounded-2xl p-5 text-white shadow-lg relative overflow-hidden">
+<div class="absolute top-0 right-0 p-4 opacity-10">
+<span class="material-icons-round text-9xl transform translate-x-4 -translate-y-4">fitness_center</span>
+</div>
+<div class="relative z-10">
+<h2 class="font-bold text-xl mb-1">Pronto para treinar?</h2>
+<p class="text-blue-100 text-sm mb-4">Escolha seu treino de hoje e mantenha o foco.</p>
+<div class="flex items-center gap-2 bg-white/10 backdrop-blur-md rounded-lg p-2 w-fit">
+<span class="material-icons-round text-sm">local_fire_department</span>
+<span class="text-xs font-medium">3 dias de sequência</span>
+</div>
+</div>
+</div>
+<div class="flex justify-between items-end px-1">
+<h3 class="font-bold text-lg text-text-light dark:text-text-dark">Seus Treinos</h3>
+<span class="text-xs text-secondary-text-light dark:text-secondary-text-dark">4 disponíveis</span>
+</div>
+<div class="space-y-4">
+<div class="relative">
+<div class="absolute -top-3 left-4 bg-success text-white text-[10px] font-bold px-3 py-1 rounded-full shadow-sm z-10 flex items-center gap-1">
+<span class="material-icons-round text-[12px]">recommend</span>
+                    RECOMENDADO
+                </div>
+<button class="w-full text-left bg-surface-light dark:bg-surface-dark rounded-2xl p-4 shadow-md border-2 border-success/30 dark:border-success/30 transition-all hover:shadow-lg hover:border-success active:scale-[0.99] flex flex-row items-center gap-4 group ring-2 ring-success/10 ring-offset-2 ring-offset-background-light dark:ring-offset-background-dark">
+<div class="w-12 h-12 rounded-full bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center text-primary font-bold text-lg border border-blue-100 dark:border-blue-800">
+                        A
+                    </div>
+<div class="flex-1">
+<h4 class="font-bold text-lg text-text-light dark:text-text-dark group-hover:text-primary transition-colors">Upper I</h4>
+<p class="text-sm text-secondary-text-light dark:text-secondary-text-dark mb-1">Peito, Costas e Ombros</p>
+<div class="flex items-center gap-3">
+<span class="inline-flex items-center text-xs text-secondary-text-light dark:text-secondary-text-dark">
+<span class="material-icons-outlined text-[14px] mr-1 text-gray-400">timer</span>
+                                50-70 min
+                            </span>
+<span class="inline-flex items-center text-xs text-secondary-text-light dark:text-secondary-text-dark">
+<span class="material-icons-outlined text-[14px] mr-1 text-gray-400">fitness_center</span>
+                                8 exercícios
+                            </span>
+</div>
+</div>
+<div class="text-success transition-colors">
+<span class="material-icons-round">arrow_forward_ios</span>
+</div>
+</button>
+</div>
+<button class="w-full text-left bg-surface-light dark:bg-surface-dark rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-700 transition-all hover:shadow-md hover:border-primary/30 active:scale-[0.99] flex flex-row items-center gap-4 group">
+<div class="w-12 h-12 rounded-full bg-purple-50 dark:bg-purple-900/30 flex items-center justify-center text-purple-600 font-bold text-lg border border-purple-100 dark:border-purple-800">
+                    B
+                </div>
+<div class="flex-1">
+<h4 class="font-bold text-lg text-text-light dark:text-text-dark group-hover:text-purple-600 transition-colors">Lower I</h4>
+<p class="text-sm text-secondary-text-light dark:text-secondary-text-dark mb-1">Pernas completo (Foco Quad)</p>
+<div class="flex items-center gap-3">
+<span class="inline-flex items-center text-xs text-secondary-text-light dark:text-secondary-text-dark">
+<span class="material-icons-outlined text-[14px] mr-1 text-gray-400">timer</span>
+                            55-75 min
+                        </span>
+<span class="inline-flex items-center text-xs text-secondary-text-light dark:text-secondary-text-dark">
+<span class="material-icons-outlined text-[14px] mr-1 text-gray-400">fitness_center</span>
+                            6 exercícios
+                        </span>
+</div>
+</div>
+<div class="text-gray-300 dark:text-gray-600 group-hover:text-purple-600 transition-colors">
+<span class="material-icons-round">arrow_forward_ios</span>
+</div>
+</button>
+<button class="w-full text-left bg-surface-light dark:bg-surface-dark rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-700 transition-all hover:shadow-md hover:border-primary/30 active:scale-[0.99] flex flex-row items-center gap-4 group">
+<div class="w-12 h-12 rounded-full bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center text-primary font-bold text-lg border border-blue-100 dark:border-blue-800">
+                    C
+                </div>
+<div class="flex-1">
+<h4 class="font-bold text-lg text-text-light dark:text-text-dark group-hover:text-primary transition-colors">Upper II</h4>
+<p class="text-sm text-secondary-text-light dark:text-secondary-text-dark mb-1">Bíceps, Tríceps e Acessórios</p>
+<div class="flex items-center gap-3">
+<span class="inline-flex items-center text-xs text-secondary-text-light dark:text-secondary-text-dark">
+<span class="material-icons-outlined text-[14px] mr-1 text-gray-400">timer</span>
+                            50-65 min
+                        </span>
+<span class="inline-flex items-center text-xs text-secondary-text-light dark:text-secondary-text-dark">
+<span class="material-icons-outlined text-[14px] mr-1 text-gray-400">fitness_center</span>
+                            9 exercícios
+                        </span>
+</div>
+</div>
+<div class="text-gray-300 dark:text-gray-600 group-hover:text-primary transition-colors">
+<span class="material-icons-round">arrow_forward_ios</span>
+</div>
+</button>
+<button class="w-full text-left bg-surface-light dark:bg-surface-dark rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-700 transition-all hover:shadow-md hover:border-primary/30 active:scale-[0.99] flex flex-row items-center gap-4 group">
+<div class="w-12 h-12 rounded-full bg-purple-50 dark:bg-purple-900/30 flex items-center justify-center text-purple-600 font-bold text-lg border border-purple-100 dark:border-purple-800">
+                    D
+                </div>
+<div class="flex-1">
+<h4 class="font-bold text-lg text-text-light dark:text-text-dark group-hover:text-purple-600 transition-colors">Lower II</h4>
+<p class="text-sm text-secondary-text-light dark:text-secondary-text-dark mb-1">Pernas completo (Foco Posterior)</p>
+<div class="flex items-center gap-3">
+<span class="inline-flex items-center text-xs text-secondary-text-light dark:text-secondary-text-dark">
+<span class="material-icons-outlined text-[14px] mr-1 text-gray-400">timer</span>
+                            60-80 min
+                        </span>
+<span class="inline-flex items-center text-xs text-secondary-text-light dark:text-secondary-text-dark">
+<span class="material-icons-outlined text-[14px] mr-1 text-gray-400">fitness_center</span>
+                            7 exercícios
+                        </span>
+</div>
+</div>
+<div class="text-gray-300 dark:text-gray-600 group-hover:text-purple-600 transition-colors">
+<span class="material-icons-round">arrow_forward_ios</span>
+</div>
+</button>
+</div>
+</main>
+<nav class="fixed bottom-0 left-0 right-0 bg-surface-light dark:bg-surface-dark border-t border-gray-200 dark:border-gray-800 pb-safe pt-2 px-6 pb-6 z-50">
+<div class="flex justify-between items-center max-w-md mx-auto">
+<button class="flex flex-col items-center gap-1 text-gray-400 dark:text-gray-500 hover:text-primary dark:hover:text-primary transition-colors">
+<span class="material-icons-outlined">home</span>
+<span class="text-[10px] font-medium">Home</span>
+</button>
+<button class="flex flex-col items-center gap-1 text-primary">
+<span class="material-icons-round">fitness_center</span>
+<span class="text-[10px] font-medium">Treino</span>
+</button>
+<button class="flex flex-col items-center gap-1 text-gray-400 dark:text-gray-500 hover:text-primary dark:hover:text-primary transition-colors">
+<span class="material-icons-outlined">history</span>
+<span class="text-[10px] font-medium">Histórico</span>
+</button>
+<button class="flex flex-col items-center gap-1 text-gray-400 dark:text-gray-500 hover:text-primary dark:hover:text-primary transition-colors">
+<span class="material-icons-outlined">person_outline</span>
+<span class="text-[10px] font-medium">Perfil</span>
+</button>
+</div>
+</nav>
+
+</body></html>

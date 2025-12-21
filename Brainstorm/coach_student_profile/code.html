@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Coach Student Profile</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#3b82f6", // Blue-500
+                        "background-light": "#f8fafc", // Slate-50 (White-ish)
+                        "background-dark": "#0f172a", // Slate-900
+                        "surface-dark": "#1e293b", // Slate-800
+                        "surface-highlight": "#1e293b", // Slate-800 for cards
+                    },
+                    fontFamily: {
+                        "display": ["Manrope", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "1rem",
+                        "lg": "2rem",
+                        "xl": "1.5rem",
+                        "2xl": "2rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>.no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display text-gray-900 dark:text-white overflow-x-hidden selection:bg-primary selection:text-white">
+<div class="relative flex flex-col min-h-screen w-full pb-24">
+<header class="sticky top-0 z-50 bg-background-light/90 dark:bg-background-dark/90 backdrop-blur-md px-4 py-3 flex items-center justify-between border-b border-gray-200 dark:border-white/5">
+<button class="flex items-center justify-center w-10 h-10 rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-colors">
+<span class="material-symbols-outlined text-gray-900 dark:text-white">arrow_back_ios_new</span>
+</button>
+<h1 class="text-lg font-bold leading-tight tracking-tight">Perfil do Aluno</h1>
+<button class="flex items-center justify-center w-10 h-10 rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-colors">
+<span class="material-symbols-outlined text-gray-900 dark:text-white">edit</span>
+</button>
+</header>
+<section class="flex flex-col items-center pt-6 pb-2 px-4">
+<div class="relative group cursor-pointer">
+<div class="w-32 h-32 rounded-full bg-surface-highlight dark:bg-surface-highlight p-1 shadow-xl shadow-primary/10">
+<div class="w-full h-full rounded-full bg-cover bg-center" data-alt="Portrait of a fit young man looking at camera smiling" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuA4lErFte7aK1yshIXT8DsrHk_EhDDC115yxVGzcyy8pTxwLuHibUwrF-ZGW6elvjLsD1rS9DJxaG_RMPPKR5Lwt4Sz7PcdX1sm8WXPBTw-4TfOK3LHGb6cIWx8_m7newlW1HTl9sDVGlgcoY6lAWMNm9QVLZtfvLIDk4fOYPosoDq2aCTqA8Xi89TE8_teuMAUIcG2MDYhdtdnDPh6E3lgjPmy1M5-rxyCryitDaY7jx6U1u872dngB3u5m6ehC7OVCewhwY6XuQ4');">
+</div>
+</div>
+<div class="absolute bottom-1 right-1 bg-background-light dark:bg-background-dark rounded-full p-1">
+<div class="bg-primary rounded-full p-1.5 border-2 border-background-light dark:border-background-dark">
+<span class="material-symbols-outlined text-white dark:text-background-dark text-[16px] font-bold block leading-none">check</span>
+</div>
+</div>
+</div>
+<div class="mt-4 text-center">
+<h2 class="text-2xl font-bold text-gray-900 dark:text-white">João Silva</h2>
+<div class="flex items-center justify-center gap-2 mt-1">
+<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/20 text-primary text-xs font-bold uppercase tracking-wider">
+<span class="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
+                        Aluno Ativo
+                    </span>
+</div>
+</div>
+</section>
+<section class="px-4 py-4">
+<a class="flex items-center justify-center w-full bg-primary hover:bg-primary/90 text-white font-bold h-14 rounded-full gap-2 transition-transform active:scale-[0.98] shadow-lg shadow-primary/20" href="#">
+<span class="material-symbols-outlined fill-1">chat</span>
+<span>Mensagem via WhatsApp</span>
+</a>
+</section>
+<section class="px-4 py-2">
+<h3 class="text-gray-900 dark:text-white text-lg font-bold mb-3 px-1">Informações Pessoais</h3>
+<div class="grid grid-cols-2 gap-3">
+<div class="flex flex-col gap-1 rounded-xl p-4 bg-white dark:bg-surface-highlight border border-gray-100 dark:border-white/5 shadow-sm">
+<div class="flex items-center gap-2 mb-1">
+<span class="material-symbols-outlined text-primary text-[20px]">cake</span>
+<p class="text-gray-500 dark:text-gray-300 text-sm font-medium">Idade</p>
+</div>
+<p class="text-gray-900 dark:text-white text-2xl font-bold">28 <span class="text-sm font-normal text-gray-400">anos</span></p>
+</div>
+<div class="flex flex-col gap-1 rounded-xl p-4 bg-white dark:bg-surface-highlight border border-gray-100 dark:border-white/5 shadow-sm">
+<div class="flex items-center gap-2 mb-1">
+<span class="material-symbols-outlined text-primary text-[20px]">height</span>
+<p class="text-gray-500 dark:text-gray-300 text-sm font-medium">Altura</p>
+</div>
+<p class="text-gray-900 dark:text-white text-2xl font-bold">182 <span class="text-sm font-normal text-gray-400">cm</span></p>
+</div>
+<div class="col-span-2 flex items-center justify-between rounded-xl p-4 bg-white dark:bg-surface-highlight border border-gray-100 dark:border-white/5 shadow-sm">
+<div>
+<div class="flex items-center gap-2 mb-1">
+<span class="material-symbols-outlined text-primary text-[20px]">monitor_weight</span>
+<p class="text-gray-500 dark:text-gray-300 text-sm font-medium">Último Peso</p>
+</div>
+<p class="text-gray-900 dark:text-white text-3xl font-bold">85.5 <span class="text-sm font-normal text-gray-400">kg</span></p>
+</div>
+<div class="flex flex-col items-end">
+<div class="flex items-center text-primary bg-primary/10 px-2 py-1 rounded-lg">
+<span class="material-symbols-outlined text-sm">trending_up</span>
+<span class="text-xs font-bold ml-1">+0.5kg</span>
+</div>
+<p class="text-xs text-gray-400 mt-1">vs. mês anterior</p>
+</div>
+</div>
+<div class="flex flex-col gap-1 rounded-xl p-4 bg-white dark:bg-surface-highlight border border-gray-100 dark:border-white/5 shadow-sm">
+<div class="flex items-center gap-2 mb-1">
+<span class="material-symbols-outlined text-primary text-[20px]">local_fire_department</span>
+<p class="text-gray-500 dark:text-gray-300 text-sm font-medium">TMB</p>
+</div>
+<p class="text-gray-900 dark:text-white text-xl font-bold">1900 <span class="text-sm font-normal text-gray-400">kcal</span></p>
+</div>
+<div class="flex flex-col gap-1 rounded-xl p-4 bg-white dark:bg-surface-highlight border border-gray-100 dark:border-white/5 shadow-sm">
+<div class="flex items-center gap-2 mb-1">
+<span class="material-symbols-outlined text-primary text-[20px]">bolt</span>
+<p class="text-gray-500 dark:text-gray-300 text-sm font-medium">Manutenção</p>
+</div>
+<p class="text-gray-900 dark:text-white text-xl font-bold">2400 <span class="text-sm font-normal text-gray-400">kcal</span></p>
+</div>
+</div>
+</section>
+<div class="grid grid-cols-1 gap-6 px-4 py-4">
+<section>
+<h3 class="text-gray-900 dark:text-white text-lg font-bold mb-3 px-1">Situação Financeira</h3>
+<div class="flex items-center justify-between p-4 rounded-xl bg-white dark:bg-surface-highlight border border-gray-100 dark:border-white/5">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined">payments</span>
+</div>
+<div>
+<p class="text-gray-900 dark:text-white font-bold text-base">Plano Premium</p>
+<p class="text-gray-500 dark:text-gray-400 text-sm">Vence em 15 Out</p>
+</div>
+</div>
+<div class="px-3 py-1 rounded-full bg-primary/20 text-primary text-xs font-bold border border-primary/20">
+                        EM DIA
+                    </div>
+</div>
+</section>
+<section>
+<div class="flex items-center justify-between mb-3 px-1">
+<h3 class="text-gray-900 dark:text-white text-lg font-bold">Treinos Atribuídos</h3>
+<button class="text-primary text-sm font-bold">Ver todas</button>
+</div>
+<div class="flex flex-col gap-3">
+<div class="group relative overflow-hidden p-4 rounded-xl bg-white dark:bg-surface-highlight border border-gray-100 dark:border-white/5 flex items-center justify-between">
+<div class="absolute left-0 top-0 h-full w-1 bg-primary"></div>
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-lg bg-background-light dark:bg-background-dark flex items-center justify-center text-gray-900 dark:text-white font-bold text-lg border border-gray-100 dark:border-white/5">
+                                A
+                            </div>
+<div>
+<h4 class="text-gray-900 dark:text-white font-bold leading-tight">Hipertrofia - Superiores</h4>
+<p class="text-gray-500 dark:text-gray-400 text-sm mt-0.5">4x por semana • Foco em força</p>
+</div>
+</div>
+<span class="material-symbols-outlined text-gray-400">chevron_right</span>
+</div>
+<div class="group relative overflow-hidden p-4 rounded-xl bg-white dark:bg-surface-highlight border border-gray-100 dark:border-white/5 flex items-center justify-between">
+<div class="absolute left-0 top-0 h-full w-1 bg-primary/50"></div>
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-lg bg-background-light dark:bg-background-dark flex items-center justify-center text-gray-900 dark:text-white font-bold text-lg border border-gray-100 dark:border-white/5">
+                               B
+                           </div>
+<div>
+<h4 class="text-gray-900 dark:text-white font-bold leading-tight">Hipertrofia - Inferiores</h4>
+<p class="text-gray-500 dark:text-gray-400 text-sm mt-0.5">2x por semana • Perna completa</p>
+</div>
+</div>
+<span class="material-symbols-outlined text-gray-400">chevron_right</span>
+</div>
+</div>
+</section>
+</div>
+<section class="px-4 py-2">
+<h3 class="text-gray-900 dark:text-white text-lg font-bold mb-3 px-1">Histórico de Progresso</h3>
+<div class="rounded-xl bg-white dark:bg-surface-highlight border border-gray-100 dark:border-white/5 p-5">
+<div class="flex items-end justify-between mb-6">
+<div>
+<p class="text-gray-500 dark:text-gray-400 text-sm font-medium">Volume Total semanal</p>
+<p class="text-2xl font-bold text-gray-900 dark:text-white mt-1">Evolução 30 dias</p>
+</div>
+<div class="bg-primary/10 text-primary px-3 py-1 rounded-lg text-sm font-bold flex items-center gap-1">
+<span class="material-symbols-outlined text-sm">trending_up</span>
+                        +12.5%
+                    </div>
+</div>
+<div class="relative h-32 w-full flex items-end justify-between gap-2 px-2">
+<div class="absolute inset-0 flex flex-col justify-between pointer-events-none opacity-20">
+<div class="w-full h-px bg-gray-400 border-dashed"></div>
+<div class="w-full h-px bg-gray-400 border-dashed"></div>
+<div class="w-full h-px bg-gray-400 border-dashed"></div>
+</div>
+<div class="w-full bg-primary/20 hover:bg-primary/40 rounded-t-sm h-[45%] transition-all relative group" title="Week 1">
+<div class="absolute -top-8 left-1/2 -translate-x-1/2 bg-surface-highlight text-white text-xs p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10">42.500kg</div>
+</div>
+<div class="w-full bg-primary/30 hover:bg-primary/50 rounded-t-sm h-[55%] transition-all relative group" title="Week 2">
+<div class="absolute -top-8 left-1/2 -translate-x-1/2 bg-surface-highlight text-white text-xs p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10">44.100kg</div>
+</div>
+<div class="w-full bg-primary/50 hover:bg-primary/70 rounded-t-sm h-[50%] transition-all relative group" title="Week 3">
+<div class="absolute -top-8 left-1/2 -translate-x-1/2 bg-surface-highlight text-white text-xs p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10">43.800kg</div>
+</div>
+<div class="w-full bg-primary/80 hover:bg-primary rounded-t-sm h-[70%] transition-all relative group" title="Week 4">
+<div class="absolute -top-8 left-1/2 -translate-x-1/2 bg-surface-highlight text-white text-xs p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10">46.500kg</div>
+</div>
+<div class="w-full bg-primary hover:bg-primary rounded-t-sm h-[85%] transition-all relative group" title="Current">
+<div class="absolute -top-8 left-1/2 -translate-x-1/2 bg-surface-highlight text-white text-xs p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10">48.200kg</div>
+</div>
+</div>
+<div class="flex justify-between text-xs text-gray-500 mt-2 px-1">
+<span>Sem 1</span>
+<span>Sem 2</span>
+<span>Sem 3</span>
+<span>Sem 4</span>
+<span>Atual</span>
+</div>
+</div>
+</section>
+<section class="px-4 py-4 pb-8">
+<h3 class="text-gray-900 dark:text-white text-lg font-bold mb-3 px-1">Observações do Coach</h3>
+<div class="bg-white dark:bg-surface-highlight rounded-xl p-4 border border-gray-100 dark:border-white/5">
+<textarea class="w-full bg-transparent border-none text-gray-900 dark:text-white text-sm focus:ring-0 placeholder:text-gray-500 min-h-[100px] resize-none" placeholder="Adicione notas sobre o progresso ou comportamento do aluno..."></textarea>
+<div class="flex justify-end border-t border-gray-200 dark:border-white/10 pt-3 mt-2">
+<button class="text-xs font-bold text-primary uppercase tracking-wide hover:text-white transition-colors">Salvar Nota</button>
+</div>
+</div>
+</section>
+</div>
+<nav class="fixed bottom-0 left-0 w-full bg-background-light/95 dark:bg-surface-highlight/95 backdrop-blur-lg border-t border-gray-200 dark:border-white/5 pb-5 pt-3 px-6 z-50">
+<ul class="flex justify-between items-end">
+<li class="flex flex-col items-center gap-1 group cursor-pointer">
+<span class="material-symbols-outlined text-gray-400 group-hover:text-primary transition-colors text-[24px]">home</span>
+<span class="text-[10px] font-medium text-gray-400 group-hover:text-primary transition-colors">Home</span>
+</li>
+<li class="flex flex-col items-center gap-1 group cursor-pointer">
+<span class="material-symbols-outlined text-gray-400 group-hover:text-primary transition-colors text-[24px]">fitness_center</span>
+<span class="text-[10px] font-medium text-gray-400 group-hover:text-primary transition-colors">Treinos</span>
+</li>
+<li class="flex flex-col items-center gap-1 group cursor-pointer">
+<div class="bg-primary/20 rounded-full px-4 py-1 mb-1">
+<span class="material-symbols-outlined text-primary text-[24px]">groups</span>
+</div>
+<span class="text-[10px] font-bold text-primary">Alunos</span>
+</li>
+<li class="flex flex-col items-center gap-1 group cursor-pointer">
+<span class="material-symbols-outlined text-gray-400 group-hover:text-primary transition-colors text-[24px]">person</span>
+<span class="text-[10px] font-medium text-gray-400 group-hover:text-primary transition-colors">Perfil</span>
+</li>
+<li class="flex flex-col items-center gap-1 group cursor-pointer">
+<span class="material-symbols-outlined text-gray-400 group-hover:text-primary transition-colors text-[24px]">card_membership</span>
+<span class="text-[10px] font-medium text-gray-400 group-hover:text-primary transition-colors">Assinatura</span>
+</li>
+</ul>
+</nav>
+
+</body></html>
