@@ -1,66 +1,215 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import BottomNav from '../../components/BottomNav';
-import { Link } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
+import { supabase } from '../../lib/supabaseClient';
 
 const StudentProfileView: React.FC = () => {
+    const { id } = useParams<{ id: string }>();
+    const [profile, setProfile] = useState<any>(null);
+    const [studentData, setStudentData] = useState<any>(null);
+    const [loading, setLoading] = useState(true);
+
+    // Expiration Modal
+    const [isEditingExpiration, setIsEditingExpiration] = useState(false);
+    const [newExpirationDate, setNewExpirationDate] = useState('');
+    const [savingExpiration, setSavingExpiration] = useState(false);
+
+    useEffect(() => {
+        if (id) {
+            fetchStudentDetails();
+        }
+    }, [id]);
+
+    const fetchStudentDetails = async () => {
+        try {
+            setLoading(true);
+            const { data: pData, error: pError } = await supabase
+                .from('profiles')
+                .select('*')
+                .eq('id', id!)
+                .single();
+            if (pError) throw pError;
+            setProfile(pData);
+
+            const { data: sData, error: sError } = await supabase
+                .from('students_data')
+                .select('*')
+                .eq('id', id!)
+                .single();
+            if (sError) throw sError;
+            setStudentData(sData);
+
+            if (sData?.consultancy_expires_at) {
+                setNewExpirationDate(sData.consultancy_expires_at.split('T')[0]);
+            }
+        } catch (error) {
+            console.error('Error fetching details:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleUpdateExpiration = async () => {
+        try {
+            setSavingExpiration(true);
+            const { error } = await supabase.rpc('approve_student', {
+                student_uuid: id,
+                expiration_date: new Date(newExpirationDate).toISOString()
+            });
+
+            if (error) throw error;
+
+            setStudentData({ ...studentData, consultancy_expires_at: new Date(newExpirationDate).toISOString() });
+            setIsEditingExpiration(false);
+        } catch (error) {
+            console.error('Error updating expiration:', error);
+            alert('Erro ao atualizar validade.');
+        } finally {
+            setSavingExpiration(false);
+        }
+    };
+
+    const formatAge = (birthDate: string) => {
+        if (!birthDate) return '--';
+        const ageDifMs = Date.now() - new Date(birthDate).getTime();
+        const ageDate = new Date(ageDifMs);
+        return Math.abs(ageDate.getUTCFullYear() - 1970);
+    };
+
+    if (loading) return (
+        <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-900">
+            <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+        </div>
+    );
+
+    const isExpired = studentData?.consultancy_expires_at && new Date(studentData.consultancy_expires_at) < new Date();
+
     return (
-        <div className="bg-background-light dark:bg-background-dark font-display text-gray-900 dark:text-white overflow-x-hidden selection:bg-primary selection:text-white pb-24 min-h-screen">
-            <header className="sticky top-0 z-50 bg-background-light/90 dark:bg-background-dark/90 backdrop-blur-md px-4 py-3 flex items-center justify-between border-b border-gray-200 dark:border-white/5">
-                <Link to="/coach/students" className="flex items-center justify-center w-10 h-10 rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-colors">
-                    <span className="material-symbols-outlined text-gray-900 dark:text-white">arrow_back_ios_new</span>
+        <div className="bg-slate-50 dark:bg-slate-900 font-display text-slate-900 dark:text-white pb-24 min-h-screen">
+            <header className="sticky top-0 z-50 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md px-4 py-3 flex items-center justify-between border-b border-slate-200 dark:border-white/5">
+                <Link to="/coach/students" className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                    <span className="material-symbols-rounded text-slate-700 dark:text-slate-200">arrow_back_ios_new</span>
                 </Link>
-                <h1 className="text-lg font-bold leading-tight tracking-tight">Perfil do Aluno</h1>
-                <button className="flex items-center justify-center w-10 h-10 rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-colors">
-                    <span className="material-symbols-outlined text-gray-900 dark:text-white">edit</span>
+                <h1 className="text-lg font-bold">Perfil do Aluno</h1>
+                <button className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors opacity-0 pointer-events-none">
+                    <span className="material-symbols-rounded">edit</span>
                 </button>
             </header>
-            <section className="flex flex-col items-center pt-6 pb-2 px-4">
-                <div className="relative group cursor-pointer">
-                    <div className="w-32 h-32 rounded-full bg-surface-highlight dark:bg-surface-highlight p-1 shadow-xl shadow-primary/10">
-                        <div className="w-full h-full rounded-full bg-cover bg-center" style={{ backgroundImage: "url('https://lh3.googleusercontent.com/aida-public/AB6AXuA4lErFte7aK1yshIXT8DsrHk_EhDDC115yxVGzcyy8pTxwLuHibUwrF-ZGW6elvjLsD1rS9DJxaG_RMPPKR5Lwt4Sz7PcdX1sm8WXPBTw-4TfOK3LHGb6cIWx8_m7newlW1HTl9sDVGlgcoY6lAWMNm9QVLZtfvLIDk4fOYPosoDq2aCTqA8Xi89TE8_teuMAUIcG2MDYhdtdnDPh6E3lgjPmy1M5-rxyCryitDaY7jx6U1u872dngB3u5m6ehC7OVCewhwY6XuQ4')" }}></div>
-                    </div>
-                    <div className="absolute bottom-1 right-1 bg-background-light dark:bg-background-dark rounded-full p-1">
-                        <div className="bg-primary rounded-full p-1.5 border-2 border-background-light dark:border-background-dark">
-                            <span className="material-symbols-outlined text-white dark:text-background-dark text-[16px] font-bold block leading-none">check</span>
-                        </div>
+
+            <section className="flex flex-col items-center pt-8 pb-4 px-4">
+                <div className="relative">
+                    <div className="w-32 h-32 rounded-full p-1 shadow-xl shadow-primary/10 bg-white dark:bg-slate-800">
+                        <img
+                            src={profile?.avatar_url || `https://ui-avatars.com/api/?name=${profile?.full_name}`}
+                            alt={profile?.full_name}
+                            className="w-full h-full rounded-full object-cover"
+                        />
                     </div>
                 </div>
                 <div className="mt-4 text-center">
-                    <h2 className="text-2xl font-bold text-gray-900 dark:text-white">João Silva</h2>
-                    <div className="flex items-center justify-center gap-2 mt-1">
-                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/20 text-primary text-xs font-bold uppercase tracking-wider">
-                            <span className="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
-                            Aluno Ativo
-                        </span>
+                    <h2 className="text-2xl font-bold text-slate-900 dark:text-white">{profile?.full_name}</h2>
+                    <div className="flex flex-col items-center gap-2 mt-2">
+                        {isExpired ? (
+                            <button
+                                onClick={() => setIsEditingExpiration(true)}
+                                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 text-xs font-bold uppercase tracking-wider hover:bg-red-200 transition-colors"
+                            >
+                                <span className="w-2 h-2 rounded-full bg-red-500"></span>
+                                Plano Vencido (Editar)
+                            </button>
+                        ) : (
+                            <button
+                                onClick={() => setIsEditingExpiration(true)}
+                                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 text-xs font-bold uppercase tracking-wider hover:bg-emerald-200 transition-colors"
+                            >
+                                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                                Ativo até {new Date(studentData?.consultancy_expires_at).toLocaleDateString()}
+                            </button>
+                        )}
                     </div>
                 </div>
             </section>
+
             <section className="px-4 py-4">
-                <a className="flex items-center justify-center w-full bg-primary hover:bg-primary/90 text-white font-bold h-14 rounded-full gap-2 transition-transform active:scale-[0.98] shadow-lg shadow-primary/20" href="#">
-                    <span className="material-symbols-outlined fill-1">chat</span>
-                    <span>Mensagem via WhatsApp</span>
-                </a>
+                {profile?.phone && (
+                    <a
+                        className="flex items-center justify-center w-full bg-[#25D366] hover:bg-[#20bd5a] text-white font-bold h-12 rounded-xl gap-2 transition-transform active:scale-[0.98] shadow-lg shadow-green-500/20"
+                        href={`https://wa.me/${profile.phone.replace(/\D/g, '')}`}
+                    >
+                        <span className="material-symbols-rounded text-[20px]">chat</span>
+                        <span>Mensagem via WhatsApp</span>
+                    </a>
+                )}
             </section>
+
             <section className="px-4 py-2">
-                <h3 className="text-gray-900 dark:text-white text-lg font-bold mb-3 px-1">Informações Pessoais</h3>
+                <h3 className="text-slate-900 dark:text-white text-lg font-bold mb-3 px-1">Informações Pessoais</h3>
                 <div className="grid grid-cols-2 gap-3">
-                    <div className="flex flex-col gap-1 rounded-xl p-4 bg-white dark:bg-surface-highlight border border-gray-100 dark:border-white/5 shadow-sm">
+                    <div className="flex flex-col gap-1 rounded-xl p-4 bg-white dark:bg-slate-800 border border-slate-100 dark:border-white/5 shadow-sm">
                         <div className="flex items-center gap-2 mb-1">
-                            <span className="material-symbols-outlined text-primary text-[20px]">cake</span>
-                            <p className="text-gray-500 dark:text-gray-300 text-sm font-medium">Idade</p>
+                            <span className="material-symbols-rounded text-primary text-[20px]">cake</span>
+                            <p className="text-slate-500 dark:text-slate-400 text-sm font-medium">Idade</p>
                         </div>
-                        <p className="text-gray-900 dark:text-white text-2xl font-bold">28 <span className="text-sm font-normal text-gray-400">anos</span></p>
+                        <p className="text-slate-900 dark:text-white text-2xl font-bold">
+                            {formatAge(studentData?.birth_date)} <span className="text-sm font-normal text-slate-400">anos</span>
+                        </p>
                     </div>
-                    <div className="flex flex-col gap-1 rounded-xl p-4 bg-white dark:bg-surface-highlight border border-gray-100 dark:border-white/5 shadow-sm">
+                    <div className="flex flex-col gap-1 rounded-xl p-4 bg-white dark:bg-slate-800 border border-slate-100 dark:border-white/5 shadow-sm">
                         <div className="flex items-center gap-2 mb-1">
-                            <span className="material-symbols-outlined text-primary text-[20px]">height</span>
-                            <p className="text-gray-500 dark:text-gray-300 text-sm font-medium">Altura</p>
+                            <span className="material-symbols-rounded text-primary text-[20px]">height</span>
+                            <p className="text-slate-500 dark:text-slate-400 text-sm font-medium">Altura</p>
                         </div>
-                        <p className="text-gray-900 dark:text-white text-2xl font-bold">182 <span className="text-sm font-normal text-gray-400">cm</span></p>
+                        <p className="text-slate-900 dark:text-white text-2xl font-bold">
+                            {studentData?.height_cm || '--'} <span className="text-sm font-normal text-slate-400">cm</span>
+                        </p>
+                    </div>
+                    <div className="flex flex-col gap-1 rounded-xl p-4 bg-white dark:bg-slate-800 border border-slate-100 dark:border-white/5 shadow-sm col-span-2">
+                        <div className="flex items-center gap-2 mb-1">
+                            <span className="material-symbols-rounded text-primary text-[20px]">flag</span>
+                            <p className="text-slate-500 dark:text-slate-400 text-sm font-medium">Objetivo</p>
+                        </div>
+                        <p className="text-slate-900 dark:text-white text-lg font-medium">
+                            {studentData?.goal || 'Não definido'}
+                        </p>
                     </div>
                 </div>
             </section>
-            {/* ... other sections from HTML ... */}
+
+            {/* Edit Expiration Modal */}
+            {isEditingExpiration && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-5 bg-black/50 backdrop-blur-sm animate-fade-in">
+                    <div className="bg-white dark:bg-slate-800 w-full max-w-sm rounded-[2rem] p-6 shadow-2xl animate-scale-up">
+                        <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-2 text-center">Alterar Validade</h2>
+                        <p className="text-slate-500 dark:text-slate-400 text-sm text-center mb-6">
+                            Defina uma nova data de vencimento para o plano deste aluno.
+                        </p>
+
+                        <input
+                            type="date"
+                            value={newExpirationDate}
+                            onChange={(e) => setNewExpirationDate(e.target.value)}
+                            className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-slate-900 dark:text-white font-bold focus:outline-none focus:ring-2 focus:ring-primary/50 mb-6"
+                        />
+
+                        <div className="flex gap-3">
+                            <button
+                                onClick={() => setIsEditingExpiration(false)}
+                                className="flex-1 py-3 rounded-xl font-bold text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+                            >
+                                Cancelar
+                            </button>
+                            <button
+                                onClick={handleUpdateExpiration}
+                                disabled={savingExpiration}
+                                className="flex-1 bg-primary text-white py-3 rounded-xl font-bold shadow-lg shadow-primary/25 active:scale-[0.98] transition-transform flex items-center justify-center gap-2 disabled:opacity-50"
+                            >
+                                {savingExpiration ? 'Salvando...' : 'Salvar'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             <BottomNav role="coach" />
         </div>
     );

@@ -40,48 +40,65 @@ const CoachDashboard: React.FC = () => {
             setLoading(true);
 
             // 1. Fetch Students Stats
-            // Using students_data to count students linked to this coach
-            // Assuming 'active' status comes from the profile status linked to the student
             const { data: studentsData, error: studentsError } = await supabase
                 .from('students_data')
-                .select('id, profiles:id (status, full_name)')
+                .select('id, consultancy_expires_at, profiles:id (status)')
                 .eq('coach_id', user!.id);
 
             if (studentsError) throw studentsError;
 
+            // Helper to determine status based on Expiration Date (Matches Students.tsx logic exactly)
+            const getStudentState = (student: any) => {
+                const status = student.profiles?.status;
+                const expiresAt = student.consultancy_expires_at;
+
+                if (status === 'pending') return 'pending';
+
+                if (status === 'active') {
+                    if (expiresAt) {
+                        const now = new Date();
+                        const exp = new Date(expiresAt);
+                        if (exp < now) return 'expired'; // Treat as inactive
+                    }
+                    return 'active';
+                }
+
+                return 'inactive';
+            };
+
             let active = 0;
             let inactive = 0;
+            let pending = 0;
 
             studentsData?.forEach((student: any) => {
-                if (student.profiles?.status === 'active') {
-                    active++;
-                } else {
-                    inactive++;
-                }
+                const state = getStudentState(student);
+                if (state === 'active') active++;
+                else if (state === 'pending') pending++;
+                else inactive++; // inactive or expired
             });
 
-            const total = active + inactive;
-            const percentage = total > 0 ? Math.round((active / total) * 100) : 0;
+            // Total = All managed students
+            const total = studentsData?.length || 0;
+
+            // For the Percentage Ring: ACTIVE / (ACTIVE + INACTIVE) * 100
+            // We usually exclude Pending from the "Activity Score" because they haven't started yet.
+            const totalForPercentage = active + inactive;
+            const percentage = totalForPercentage > 0 ? Math.round((active / totalForPercentage) * 100) : 0;
 
             setStats({
                 totalStudents: total,
                 activeStudents: active,
-                inactiveStudents: inactive,
+                inactiveStudents: inactive, // Dashboard currently shows "Inativos" (Red)
                 activePercentage: percentage
             });
 
             // 2. Fetch Recent Feedbacks Count (Unread or from last 3 days)
-            // For now, let's count logs from last 7 days as "Recent Activity"
             const sevenDaysAgo = new Date();
             sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
             const { count: feedbackCount, error: feedbackError } = await supabase
                 .from('workout_logs')
                 .select('id', { count: 'exact', head: true })
-                // We need to filter logs by students of this coach. 
-                // Since Supabase filter on foreign tables deep check can be tricky without direct join, 
-                // we'll rely on our RLS policy 'Coach see logs' which already filters this!
-                // So we just need to select logs created recently.
                 .gte('created_at', sevenDaysAgo.toISOString());
 
             if (!feedbackError) {
@@ -89,7 +106,6 @@ const CoachDashboard: React.FC = () => {
             }
 
             // 3. Fetch Expiring Plans (Updates)
-            // Count students where consultancy_expires_at is within next 5 days
             const fiveDaysFromNow = new Date();
             fiveDaysFromNow.setDate(fiveDaysFromNow.getDate() + 5);
 

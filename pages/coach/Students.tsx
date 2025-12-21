@@ -1,28 +1,19 @@
 import React, { useEffect, useState } from 'react';
 import MainLayout from '../../layouts/MainLayout';
-import { Link } from 'react-router-dom';
-import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabaseClient';
+import { useAuth } from '../../contexts/AuthContext';
+import { Link } from 'react-router-dom';
 
-type StudentStatus = 'active' | 'pending' | 'inactive';
-
-interface StudentProfile {
-    id: string;
-    full_name: string;
-    avatar_url: string | null;
-    status: string;
-    phone: string | null;
-    students_data: {
-        consultancy_expires_at: string | null;
-    }[];
-}
-
-const Students: React.FC = () => {
+const CoachStudents: React.FC = () => {
     const { user } = useAuth();
+    const [students, setStudents] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
-    const [students, setStudents] = useState<StudentProfile[]>([]);
-    const [activeTab, setActiveTab] = useState<StudentStatus | 'all'>('all');
-    const [stats, setStats] = useState({ total: 0, active: 0, inactive: 0, pending: 0 });
+    const [selectedTab, setSelectedTab] = useState<'all' | 'active' | 'pending' | 'inactive'>('all');
+
+    // Approval Modal State
+    const [approvingStudent, setApprovingStudent] = useState<any | null>(null);
+    const [expirationDate, setExpirationDate] = useState<string>('');
+    const [approvalLoading, setApprovalLoading] = useState(false);
 
     useEffect(() => {
         if (user) {
@@ -33,27 +24,23 @@ const Students: React.FC = () => {
     const fetchStudents = async () => {
         try {
             setLoading(true);
-            // Fetch profiles linked to this coach via students_data
             const { data, error } = await supabase
                 .from('students_data')
                 .select(`
                     id,
+                    consultancy_expires_at,
                     profiles:id (
-                        id, full_name, avatar_url, status, phone
-                    ),
-                    consultancy_expires_at
+                        id,
+                        full_name,
+                        avatar_url,
+                        status,
+                        phone
+                    )
                 `)
                 .eq('coach_id', user!.id);
 
             if (error) throw error;
-
-            const formattedStudents = data.map((item: any) => ({
-                ...item.profiles,
-                students_data: [{ consultancy_expires_at: item.consultancy_expires_at }]
-            }));
-
-            setStudents(formattedStudents);
-            calculateStats(formattedStudents);
+            setStudents(data || []);
         } catch (error) {
             console.error('Error fetching students:', error);
         } finally {
@@ -61,48 +48,91 @@ const Students: React.FC = () => {
         }
     };
 
-    const calculateStats = (data: StudentProfile[]) => {
-        const active = data.filter(s => s.status === 'active').length;
-        const inactive = data.filter(s => s.status === 'inactive' || s.status === 'banned').length;
-        const pending = data.filter(s => s.status === 'pending').length;
-        setStats({ total: data.length, active, inactive, pending });
+    const handleOpenApproval = (student: any) => {
+        setApprovingStudent(student);
+        // Default to +30 days
+        const nextMonth = new Date();
+        nextMonth.setDate(nextMonth.getDate() + 30);
+        setExpirationDate(nextMonth.toISOString().split('T')[0]);
     };
 
-    const handleApprove = async (studentId: string) => {
+    const handleConfirmApproval = async () => {
+        if (!approvingStudent || !expirationDate) return;
+
         try {
-            const { error } = await supabase
-                .from('profiles')
-                .update({ status: 'active' })
-                .eq('id', studentId);
+            setApprovalLoading(true);
+
+            // Call RPC Function
+            const { data, error } = await supabase.rpc('approve_student', {
+                student_uuid: approvingStudent.id,
+                expiration_date: new Date(expirationDate).toISOString()
+            });
 
             if (error) throw error;
 
-            // Update local state
-            const updatedStudents = students.map(s =>
-                s.id === studentId ? { ...s, status: 'active' } : s
-            );
-            setStudents(updatedStudents);
-            calculateStats(updatedStudents);
+            // Close Modal & UI Update
+            setApprovingStudent(null);
+
+            // Optimistic Update
+            setStudents(prev => prev.map(s => {
+                if (s.id === approvingStudent.id) {
+                    return {
+                        ...s,
+                        consultancy_expires_at: new Date(expirationDate).toISOString(),
+                        profiles: {
+                            ...s.profiles,
+                            status: 'active'
+                        }
+                    };
+                }
+                return s;
+            }));
+
         } catch (error) {
             console.error('Error approving student:', error);
-            alert('Erro ao aprovar aluno.');
+            alert('Falha ao aprovar aluno. Verifique as permissões.');
+        } finally {
+            setApprovalLoading(false);
         }
+    };
+
+    // Helper to determine status based on Expiration Date
+    const getStudentState = (student: any) => {
+        const status = student.profiles.status;
+        const expiresAt = student.consultancy_expires_at;
+
+        if (status === 'pending') return 'pending';
+
+        // Active but might be expired
+        if (status === 'active') {
+            if (expiresAt) {
+                const now = new Date();
+                const exp = new Date(expiresAt);
+                if (exp < now) return 'expired'; // Treat as inactive
+            }
+            return 'active';
+        }
+
+        return 'inactive';
     };
 
     const filteredStudents = students.filter(student => {
-        if (activeTab === 'all') return true;
-        if (activeTab === 'inactive' && (student.status === 'rejected' || student.status === 'banned')) return true;
-        return student.status === activeTab;
+        const state = getStudentState(student);
+        const effectiveStatus = state === 'expired' ? 'inactive' : state;
+
+        if (selectedTab === 'all') return true;
+        if (selectedTab === 'active') return effectiveStatus === 'active';
+        if (selectedTab === 'pending') return effectiveStatus === 'pending';
+        if (selectedTab === 'inactive') return effectiveStatus === 'inactive';
+        return true;
     });
 
-    const getStatusColor = (status: string) => {
-        switch (status) {
-            case 'active': return 'bg-green-500';
-            case 'pending': return 'bg-amber-500';
-            case 'inactive': return 'bg-slate-400';
-            default: return 'bg-red-500';
-        }
-    };
+    const activeCount = students.filter(s => getStudentState(s) === 'active').length;
+    const pendingCount = students.filter(s => getStudentState(s) === 'pending').length;
+    const inactiveCount = students.filter(s => {
+        const state = getStudentState(s);
+        return state === 'inactive' || state === 'expired';
+    }).length;
 
     const formatDaysRemaining = (dateString: string | null) => {
         if (!dateString) return 'Sem plano ativo';
@@ -113,75 +143,59 @@ const Students: React.FC = () => {
 
     return (
         <MainLayout className="pb-24">
-            <header className="bg-white dark:bg-slate-800 shadow-sm sticky top-0 z-10 px-4 py-3 flex items-center justify-between border-b border-slate-100 dark:border-slate-700">
-                <div className="flex items-center gap-3">
-                    <Link to="/coach/dashboard" className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
-                        <span className="material-symbols-rounded text-slate-600 dark:text-slate-300">arrow_back</span>
-                    </Link>
-                    <h1 className="text-xl font-bold text-slate-900 dark:text-white">Seus Alunos</h1>
-                </div>
-                <button className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
-                    <span className="material-symbols-rounded text-slate-600 dark:text-slate-300">search</span>
-                </button>
+            <header className="px-5 py-6">
+                <h1 className="text-2xl font-bold text-slate-900 dark:text-white font-display mb-1">Meus Alunos</h1>
+                <p className="text-slate-500 dark:text-slate-400 text-sm">Gerencie quem treina com você</p>
             </header>
 
-            <main className="flex-1 px-4 py-6 overflow-y-auto">
-                {/* Stats Card */}
-                <div className="bg-primary rounded-xl p-5 mb-6 text-white shadow-lg relative overflow-hidden">
-                    <div className="absolute right-0 top-0 w-32 h-32 bg-white opacity-10 rounded-full translate-x-8 -translate-y-8 blur-2xl pointer-events-none"></div>
-                    <div className="relative z-10">
-                        <p className="text-blue-100 text-sm font-medium mb-1">Total de Alunos</p>
-                        <div className="flex items-end gap-2">
-                            <h2 className="text-3xl font-bold">{stats.total}</h2>
-                            {stats.pending > 0 && (
-                                <span className="mb-1 text-sm bg-amber-400 text-amber-900 px-2 py-0.5 rounded font-bold animate-pulse">
-                                    {stats.pending} Pendentes
-                                </span>
-                            )}
+            <main className="px-5 space-y-6">
+                {/* Stats */}
+                <div className="grid grid-cols-3 gap-3">
+                    <div className="bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-soft">
+                        <span className="text-2xl font-bold text-slate-900 dark:text-white block">{students.length}</span>
+                        <span className="text-[10px] text-slate-500 uppercase font-semibold">Total</span>
+                    </div>
+
+                    {pendingCount > 0 ? (
+                        <div className="bg-amber-500 p-4 rounded-2xl shadow-lg shadow-amber-500/30 text-white animate-pulse">
+                            <span className="text-2xl font-bold block">{pendingCount}</span>
+                            <span className="text-[10px] uppercase font-semibold text-amber-100">Pendentes</span>
                         </div>
-                        <div className="flex gap-4 mt-4">
-                            <div className="flex items-center gap-1.5">
-                                <span className="w-2 h-2 bg-green-400 rounded-full"></span>
-                                <span className="text-sm font-medium">{stats.active} Ativos</span>
-                            </div>
-                            <div className="flex items-center gap-1.5">
-                                <span className="w-2 h-2 bg-slate-300 rounded-full"></span>
-                                <span className="text-sm font-medium">{stats.inactive} Inativos</span>
-                            </div>
+                    ) : (
+                        <div className="bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-soft">
+                            <span className="text-2xl font-bold text-emerald-500 block">{activeCount}</span>
+                            <span className="text-[10px] text-slate-500 uppercase font-semibold">Ativos</span>
                         </div>
+                    )}
+
+                    <div className={`p-4 rounded-2xl shadow-soft ${inactiveCount > 0 ? 'bg-red-50 dark:bg-red-900/20' : 'bg-white dark:bg-slate-800'}`}>
+                        <span className={`text-2xl font-bold block ${inactiveCount > 0 ? 'text-red-500' : 'text-slate-400'}`}>{inactiveCount}</span>
+                        <span className={`text-[10px] uppercase font-semibold ${inactiveCount > 0 ? 'text-red-400' : 'text-slate-500'}`}>Inativos</span>
                     </div>
                 </div>
 
                 {/* Actions */}
-                <div className="grid grid-cols-2 gap-4 mb-6">
-                    <Link to="/coach/invite" className="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-soft flex flex-col items-center justify-center gap-2 border border-slate-100 dark:border-slate-700 active:scale-95 transition-transform">
-                        <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center text-primary">
-                            <span className="material-symbols-rounded">person_add</span>
-                        </div>
-                        <span className="text-sm font-medium text-slate-700 dark:text-slate-200">Adicionar</span>
-                    </Link>
-                    <Link to="/coach/invite" className="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-soft flex flex-col items-center justify-center gap-2 border border-slate-100 dark:border-slate-700 active:scale-95 transition-transform">
-                        <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900/30 rounded-full flex items-center justify-center text-purple-600 dark:text-purple-400">
-                            <span className="material-symbols-rounded">link</span>
-                        </div>
-                        <span className="text-sm font-medium text-slate-700 dark:text-slate-200">Link</span>
+                <div className="flex items-center gap-3">
+                    <Link to="/coach/invite" className="flex-1 bg-primary text-white py-3.5 px-4 rounded-xl font-bold text-sm shadow-lg shadow-primary/25 active:scale-[0.98] transition-transform flex items-center justify-center gap-2">
+                        <span className="material-symbols-rounded">person_add</span>
+                        Convidar Aluno
                     </Link>
                 </div>
 
-                {/* Filters */}
-                <div className="flex gap-2 mb-4 overflow-x-auto pb-2 scrollbar-hide">
+                {/* Tabs */}
+                <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">
                     {[
                         { id: 'all', label: 'Todos' },
                         { id: 'active', label: 'Ativos' },
-                        { id: 'pending', label: 'Pendentes' },
+                        { id: 'pending', label: `Pendentes ${pendingCount > 0 ? `(${pendingCount})` : ''}` },
                         { id: 'inactive', label: 'Inativos' }
-                    ].map((tab) => (
+                    ].map(tab => (
                         <button
                             key={tab.id}
-                            onClick={() => setActiveTab(tab.id as any)}
-                            className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${activeTab === tab.id
-                                    ? 'bg-primary text-white shadow-sm'
-                                    : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700'
+                            onClick={() => setSelectedTab(tab.id as any)}
+                            className={`whitespace-nowrap px-4 py-2 rounded-full text-sm font-bold transition-colors ${selectedTab === tab.id
+                                    ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900'
+                                    : 'bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-100 dark:border-slate-700'
                                 }`}
                         >
                             {tab.label}
@@ -190,66 +204,146 @@ const Students: React.FC = () => {
                 </div>
 
                 {/* List */}
-                <div className="space-y-3">
+                <div className="space-y-4">
                     {loading ? (
-                        <div className="text-center py-10 text-slate-400">Carregando...</div>
-                    ) : filteredStudents.length === 0 ? (
                         <div className="text-center py-10">
-                            <p className="text-slate-500">Nenhum aluno encontrado.</p>
+                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
+                            <p className="text-slate-400 text-sm">Carregando...</p>
+                        </div>
+                    ) : filteredStudents.length === 0 ? (
+                        <div className="text-center py-12 bg-white dark:bg-slate-800 rounded-3xl border border-dashed border-slate-200 dark:border-slate-700">
+                            <span className="material-symbols-rounded text-4xl text-slate-300 mb-2">group_off</span>
+                            <p className="text-slate-500 dark:text-slate-400 font-medium">Nenhum aluno nesta lista.</p>
                         </div>
                     ) : (
-                        filteredStudents.map(student => (
-                            <div key={student.id} className="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-soft border border-slate-100 dark:border-slate-700 transition-all">
-                                <Link to={`/coach/student/${student.id}`} className="flex items-center gap-4 mb-3">
-                                    <div className="relative">
-                                        {student.avatar_url ? (
-                                            <img alt="Avatar" className="w-12 h-12 rounded-full object-cover" src={student.avatar_url} />
-                                        ) : (
-                                            <div className="w-12 h-12 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-slate-400 font-bold text-lg">
-                                                {student.full_name?.charAt(0) || '?'}
-                                            </div>
-                                        )}
-                                        <span className={`absolute bottom-0 right-0 w-3 h-3 border-2 border-white dark:border-slate-800 rounded-full ${getStatusColor(student.status)}`}></span>
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                        <h3 className="text-base font-semibold text-slate-900 dark:text-white truncate">{student.full_name}</h3>
-                                        <p className="text-sm text-slate-500 dark:text-slate-400 truncate">
-                                            {student.status === 'pending' ? 'Solicitado hoje' : formatDaysRemaining(student.students_data[0]?.consultancy_expires_at)}
-                                        </p>
-                                    </div>
-                                    <div className="flex flex-col items-end gap-1">
-                                        <span className="material-symbols-rounded text-slate-300 text-xl">chevron_right</span>
-                                    </div>
-                                </Link>
+                        filteredStudents.map((student) => {
+                            const state = getStudentState(student);
+                            const isPending = state === 'pending';
+                            const whatsappLink = student.profiles.phone
+                                ? `https://wa.me/${student.profiles.phone.replace(/\D/g, '')}`
+                                : null;
 
-                                {student.status === 'pending' && (
-                                    <div className="flex gap-2 pt-2 border-t border-slate-100 dark:border-slate-700">
-                                        {student.phone && (
-                                            <a
-                                                href={`https://wa.me/${student.phone.replace(/\D/g, '')}`}
-                                                target="_blank"
-                                                rel="noreferrer"
-                                                className="flex-1 py-2 rounded-lg bg-[#25D366]/10 text-[#25D366] font-bold text-sm flex items-center justify-center gap-1 hover:bg-[#25D366]/20 transition-colors"
-                                            >
-                                                <span className="material-symbols-rounded text-lg">chat</span>
-                                                WhatsApp
-                                            </a>
-                                        )}
-                                        <button
-                                            onClick={() => handleApprove(student.id)}
-                                            className="flex-1 py-2 rounded-lg bg-primary text-white font-bold text-sm hover:bg-primary-dark transition-colors shadow-sm"
-                                        >
-                                            Aprovar
-                                        </button>
+                            return (
+                                <div key={student.id} className="bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-soft border border-slate-100 dark:border-slate-700 flex items-center gap-4">
+                                    <img
+                                        src={student.profiles.avatar_url || `https://ui-avatars.com/api/?name=${student.profiles.full_name}&background=random`}
+                                        alt={student.profiles.full_name}
+                                        className="w-12 h-12 rounded-full object-cover bg-slate-100"
+                                    />
+
+                                    <div className="flex-1 min-w-0">
+                                        <h3 className="font-bold text-slate-900 dark:text-white truncate">{student.profiles.full_name}</h3>
+                                        <div className="flex flex-col mt-0.5">
+                                            <div className="flex items-center gap-2">
+                                                <span className={`w-2 h-2 rounded-full ${state === 'active' ? 'bg-emerald-500' :
+                                                        state === 'pending' ? 'bg-amber-500' : 'bg-red-500'
+                                                    }`}></span>
+                                                <span className="text-xs text-slate-500 capitalize">{
+                                                    state === 'active' ? 'Ativo' :
+                                                        state === 'pending' ? 'Pendente' :
+                                                            state === 'expired' ? 'Vencido' : 'Inativo'
+                                                }</span>
+                                            </div>
+                                            {!isPending && (
+                                                <span className={`text-xs mt-1 ${state === 'expired' ? 'text-red-500 font-bold' : 'text-slate-400'}`}>
+                                                    {formatDaysRemaining(student.consultancy_expires_at)}
+                                                </span>
+                                            )}
+                                        </div>
                                     </div>
-                                )}
-                            </div>
-                        ))
+
+                                    {/* Actions for Pending Students */}
+                                    {isPending && (
+                                        <div className="flex items-center gap-2">
+                                            {whatsappLink && (
+                                                <a href={whatsappLink} target="_blank" rel="noreferrer" className="w-10 h-10 rounded-xl bg-slate-50 dark:bg-slate-700 flex items-center justify-center text-emerald-600 dark:text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 transition-colors">
+                                                    <span className="material-symbols-rounded">chat</span>
+                                                </a>
+                                            )}
+                                            <button
+                                                onClick={() => handleOpenApproval(student)}
+                                                className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center text-white shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-transform"
+                                                title="Aprovar Aluno"
+                                            >
+                                                <span className="material-symbols-rounded">check</span>
+                                            </button>
+                                        </div>
+                                    )}
+
+                                    {/* For Active/Inactive Students (Link to Profile) */}
+                                    {!isPending && (
+                                        <Link to={`/coach/student/${student.id}`} className="w-10 h-10 rounded-xl border border-slate-200 dark:border-slate-600 flex items-center justify-center text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
+                                            <span className="material-symbols-rounded">arrow_forward</span>
+                                        </Link>
+                                    )}
+                                </div>
+                            );
+                        })
                     )}
                 </div>
             </main>
+
+            {/* Approval Modal */}
+            {approvingStudent && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-5 bg-black/50 backdrop-blur-sm animate-fade-in">
+                    <div className="bg-white dark:bg-slate-800 w-full max-w-sm rounded-[2rem] p-6 shadow-2xl animate-scale-up">
+                        <div className="text-center mb-6">
+                            <div className="w-16 h-16 rounded-full bg-slate-100 dark:bg-slate-700 mx-auto mb-4 flex items-center justify-center">
+                                <img
+                                    src={approvingStudent.profiles.avatar_url || `https://ui-avatars.com/api/?name=${approvingStudent.profiles.full_name}`}
+                                    alt=""
+                                    className="w-full h-full rounded-full object-cover"
+                                />
+                            </div>
+                            <h2 className="text-xl font-bold text-slate-900 dark:text-white">Aprovar Aluno</h2>
+                            <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">
+                                Defina a validade do plano para <br />
+                                <strong className="text-slate-800 dark:text-slate-200">{approvingStudent.profiles.full_name}</strong>
+                            </p>
+                        </div>
+
+                        <div className="space-y-4 mb-6">
+                            <div>
+                                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Vencimento do Plano</label>
+                                <input
+                                    type="date"
+                                    value={expirationDate}
+                                    onChange={(e) => setExpirationDate(e.target.value)}
+                                    className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-slate-900 dark:text-white font-bold focus:outline-none focus:ring-2 focus:ring-primary/50"
+                                />
+                                <p className="text-xs text-slate-400 mt-2 text-center">
+                                    O acesso será bloqueado após esta data.
+                                </p>
+                            </div>
+                        </div>
+
+                        <div className="flex gap-3">
+                            <button
+                                onClick={() => setApprovingStudent(null)}
+                                className="flex-1 py-3 rounded-xl font-bold text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+                            >
+                                Cancelar
+                            </button>
+                            <button
+                                onClick={handleConfirmApproval}
+                                disabled={approvalLoading}
+                                className="flex-1 bg-primary text-white py-3 rounded-xl font-bold shadow-lg shadow-primary/25 active:scale-[0.98] transition-transform flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                {approvalLoading ? (
+                                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                                ) : (
+                                    <>
+                                        <span className="material-symbols-rounded">check_circle</span>
+                                        Confirmar
+                                    </>
+                                )}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </MainLayout>
     );
 };
 
-export default Students;
+export default CoachStudents;

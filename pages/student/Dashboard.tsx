@@ -10,6 +10,8 @@ const StudentDashboard: React.FC = () => {
     const [profile, setProfile] = useState<any>(null);
     const [coach, setCoach] = useState<any>(null);
     const [routine, setRoutine] = useState<any>(null);
+    const [studentData, setStudentData] = useState<any>(null);
+    const [workoutCount, setWorkoutCount] = useState(0);
 
     useEffect(() => {
         if (user) {
@@ -21,7 +23,7 @@ const StudentDashboard: React.FC = () => {
         try {
             setLoading(true);
 
-            // 1. Fetch Profile + Coach Stats (Mocked or Real)
+            // 1. Fetch Profile
             const { data: profileData } = await supabase
                 .from('profiles')
                 .select('*')
@@ -29,21 +31,26 @@ const StudentDashboard: React.FC = () => {
                 .single();
             setProfile(profileData);
 
-            if (profileData?.status === 'pending') {
-                const { data: studentData } = await supabase
-                    .from('students_data')
-                    .select('coach_id')
-                    .eq('id', user!.id)
-                    .single();
+            // 2. Fetch Student Data (Coach & Expiration)
+            const { data: sData } = await supabase
+                .from('students_data')
+                .select('*')
+                .eq('id', user!.id)
+                .single();
+            setStudentData(sData);
 
-                if (studentData?.coach_id) {
-                    const { data: coachData } = await supabase
-                        .from('profiles')
-                        .select('full_name, avatar_url, phone')
-                        .eq('id', studentData.coach_id)
-                        .single();
-                    setCoach(coachData);
-                }
+            // Fetch Coach Info if exists
+            if (sData?.coach_id) {
+                const { data: coachData } = await supabase
+                    .from('profiles')
+                    .select('full_name, avatar_url, phone')
+                    .eq('id', sData.coach_id)
+                    .single();
+                setCoach(coachData);
+            }
+
+            // PENDING CHECK
+            if (profileData?.status === 'pending') {
                 setLoading(false);
                 return;
             }
@@ -55,8 +62,14 @@ const StudentDashboard: React.FC = () => {
                 .eq('student_id', user!.id)
                 .eq('is_active', true)
                 .single();
-
             setRoutine(assignment);
+
+            // Fetch Workout Count
+            const { count } = await supabase
+                .from('workout_logs')
+                .select('*', { count: 'exact', head: true })
+                .eq('student_id', user!.id);
+            setWorkoutCount(count || 0);
 
         } catch (error) {
             console.error('Error fetching student data:', error);
@@ -64,6 +77,17 @@ const StudentDashboard: React.FC = () => {
             setLoading(false);
         }
     };
+
+    const calculateDaysRemaining = () => {
+        if (!studentData?.consultancy_expires_at) return null;
+        const expires = new Date(studentData.consultancy_expires_at);
+        const now = new Date();
+        const diffTime = expires.getTime() - now.getTime();
+        return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    };
+
+    const daysRemaining = calculateDaysRemaining();
+    const isExpired = daysRemaining !== null && daysRemaining < 0;
 
     if (loading) return (
         <MainLayout className="bg-slate-50 dark:bg-slate-900">
@@ -73,6 +97,7 @@ const StudentDashboard: React.FC = () => {
         </MainLayout>
     );
 
+    // PENDING SCREEN
     if (profile?.status === 'pending') {
         return (
             <MainLayout className="bg-slate-50 dark:bg-slate-900">
@@ -103,11 +128,43 @@ const StudentDashboard: React.FC = () => {
         );
     }
 
-    // Active Dashboard
+    // EXPIRED SCREEN
+    if (isExpired) {
+        return (
+            <MainLayout className="bg-slate-50 dark:bg-slate-900">
+                <div className="flex flex-col items-center justify-center min-h-[80vh] px-6 text-center space-y-6">
+                    <div className="w-24 h-24 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center">
+                        <span className="material-symbols-rounded text-5xl text-red-500">event_busy</span>
+                    </div>
+                    <div>
+                        <h1 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Plano Vencido</h1>
+                        <p className="text-slate-500 dark:text-slate-400">
+                            Sua consultoria encerrou em <strong>{new Date(studentData.consultancy_expires_at).toLocaleDateString()}</strong>.
+                            <br />Entre em contato com <strong>{coach?.full_name || 'seu coach'}</strong> para renovar.
+                        </p>
+                    </div>
+
+                    {coach?.phone && (
+                        <a
+                            href={`https://wa.me/${coach.phone.replace(/\D/g, '')}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="flex items-center gap-2 px-6 py-3 bg-[#25D366] text-white font-bold rounded-xl shadow-lg hover:shadow-xl hover:bg-[#20bd5a] transition-all transform active:scale-95"
+                        >
+                            <span className="material-symbols-rounded">chat</span>
+                            Renovar Agora
+                        </a>
+                    )}
+                </div>
+            </MainLayout>
+        );
+    }
+
+    // ACTIVE DASHBOARD
     return (
         <MainLayout className="pb-28 bg-slate-50 dark:bg-slate-900">
             {/* Rich Header */}
-            <header className="bg-white dark:bg-slate-800 rounded-b-[2.5rem] px-6 pt-12 pb-8 shadow-soft relative z-10">
+            <header className="bg-white dark:bg-slate-800 rounded-b-[2.5rem] px-6 pt-12 pb-8 shadow-soft relative z-10 transition-colors duration-300">
                 <div className="flex items-center justify-between mb-6">
                     <div className="flex items-center gap-3">
                         <div className="relative">
@@ -134,23 +191,29 @@ const StudentDashboard: React.FC = () => {
                 </div>
 
                 {/* Plan Status Overview */}
-                <div className="flex items-center justify-between bg-slate-50 dark:bg-slate-700/30 rounded-2xl p-4 border border-slate-100 dark:border-slate-700/50">
-                    <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full border-[3px] border-primary/20 border-t-primary flex items-center justify-center rotate-45">
-                            <div className="w-full h-full flex items-center justify-center -rotate-45">
-                                <span className="text-[10px] font-bold text-primary">75%</span>
+                {daysRemaining !== null ? (
+                    <div className="flex items-center justify-between bg-slate-50 dark:bg-slate-700/30 rounded-2xl p-4 border border-slate-100 dark:border-slate-700/50">
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-full border-[3px] border-primary/20 border-t-primary flex items-center justify-center rotate-45">
+                                <span className="material-symbols-rounded text-primary -rotate-45">fitness_center</span>
+                            </div>
+                            <div>
+                                <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Plano Atual</p>
+                                <p className="text-sm font-bold text-slate-900 dark:text-white">Consultoria Pro</p>
                             </div>
                         </div>
-                        <div>
-                            <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Plano Atual</p>
-                            <p className="text-sm font-bold text-slate-900 dark:text-white">Consultoria Pro</p>
+                        <div className="text-right">
+                            <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Expira em</p>
+                            <p className={`text-sm font-bold ${daysRemaining < 7 ? 'text-red-500' : 'text-primary'}`}>
+                                {daysRemaining} dias
+                            </p>
                         </div>
                     </div>
-                    <div className="text-right">
-                        <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Expira em</p>
-                        <p className="text-sm font-bold text-primary">25 dias</p>
+                ) : (
+                    <div className="flex items-center justify-between bg-slate-50 dark:bg-slate-700/30 rounded-2xl p-4 border border-slate-100 dark:border-slate-700/50">
+                        <p className="text-slate-500 text-sm">Sem plano ativo</p>
                     </div>
-                </div>
+                )}
             </header>
 
             <main className="px-6 -mt-4 space-y-6 relative z-20">
@@ -166,8 +229,8 @@ const StudentDashboard: React.FC = () => {
                                 <div className="relative z-10 flex justify-between items-start">
                                     <div>
                                         <div className="flex items-center gap-2 mb-2">
-                                            <span className="px-2 py-0.5 bg-white/20 backdrop-blur-md rounded-lg text-[10px] font-bold uppercase tracking-wide border border-white/10">Treino A</span>
-                                            <span className="px-2 py-0.5 bg-green-500/20 text-green-100 backdrop-blur-md rounded-lg text-[10px] font-bold uppercase tracking-wide border border-green-400/20">Hoje</span>
+                                            <span className="px-2 py-0.5 bg-white/20 backdrop-blur-md rounded-lg text-[10px] font-bold uppercase tracking-wide border border-white/10">Treino Atual</span>
+                                            <span className="px-2 py-0.5 bg-green-500/20 text-green-100 backdrop-blur-md rounded-lg text-[10px] font-bold uppercase tracking-wide border border-green-400/20">Ativo</span>
                                         </div>
                                         <h2 className="text-2xl font-bold font-display leading-tight">{routine.routines.name}</h2>
                                     </div>
@@ -175,15 +238,8 @@ const StudentDashboard: React.FC = () => {
                                         <span className="material-symbols-rounded font-bold arrow-forward">arrow_forward</span>
                                     </div>
                                 </div>
-
                                 <div className="relative z-10">
-                                    <div className="flex items-center justify-between text-sm font-medium text-blue-50 mb-2">
-                                        <span>Progresso Semanal</span>
-                                        <span>2/4</span>
-                                    </div>
-                                    <div className="w-full bg-black/20 rounded-full h-1.5 overflow-hidden">
-                                        <div className="bg-white h-full w-[50%] rounded-full shadow-[0_0_10px_rgba(255,255,255,0.5)]"></div>
-                                    </div>
+                                    <p className="text-blue-100 text-sm">Toque para ver seus treinos</p>
                                 </div>
                             </div>
                         ) : (
@@ -204,7 +260,6 @@ const StudentDashboard: React.FC = () => {
                 <div>
                     <div className="flex items-center justify-between mb-4 px-1">
                         <h3 className="font-display font-bold text-lg text-slate-900 dark:text-white">Acesso Rápido</h3>
-                        <button className="text-primary text-sm font-bold">Ver tudo</button>
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
@@ -213,7 +268,7 @@ const StudentDashboard: React.FC = () => {
                                 <span className="material-symbols-rounded text-2xl">history</span>
                             </div>
                             <span className="font-bold text-lg text-slate-900 dark:text-white block mb-0.5">Histórico</span>
-                            <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">32 treinos feitos</span>
+                            <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">{workoutCount} treinos feitos</span>
                         </Link>
 
                         <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl shadow-soft border border-slate-100 dark:border-slate-700 active:scale-[0.98] transition-all opacity-60 cursor-not-allowed">
