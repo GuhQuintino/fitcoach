@@ -22,7 +22,15 @@ const BottomNav: React.FC = () => {
         { path: '/student/profile', icon: 'person', label: 'Perfil' },
     ];
 
-    const links = role === 'coach' ? coachLinks : (role === 'student' ? studentLinks : []);
+    const adminLinks = [
+        { path: '/coach/dashboard', icon: 'home', label: 'Home' },
+        { path: '/coach/students', icon: 'groups', label: 'Alunos' },
+        { path: '/coach/exercises', icon: 'dataset', label: 'Exercícios' }, // Admin focus: Global DB
+        { path: '/coach/feedbacks', icon: 'chat', label: 'Feedbacks' },
+        { path: '/coach/profile', icon: 'person', label: 'Perfil' },
+    ];
+
+    const links = role === 'admin' ? adminLinks : (role === 'coach' ? coachLinks : (role === 'student' ? studentLinks : []));
 
     if (!role || links.length === 0) return null;
 

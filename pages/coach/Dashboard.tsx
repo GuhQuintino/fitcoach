@@ -9,6 +9,7 @@ interface DashboardStats {
     totalStudents: number;
     activeStudents: number;
     inactiveStudents: number;
+    pendingStudents: number;
     activePercentage: number;
 }
 
@@ -19,10 +20,11 @@ const CoachDashboard: React.FC = () => {
         totalStudents: 0,
         activeStudents: 0,
         inactiveStudents: 0,
+        pendingStudents: 0,
         activePercentage: 0
     });
     const [recentFeedbacksCount, setRecentFeedbacksCount] = useState(0);
-    const [expiringPlansCount, setExpiringPlansCount] = useState(0);
+    const [updatesCount, setUpdatesCount] = useState(0);
 
     // Get Greeting
     const hour = new Date().getHours();
@@ -69,12 +71,35 @@ const CoachDashboard: React.FC = () => {
             let active = 0;
             let inactive = 0;
             let pending = 0;
+            let expiringSoon = 0;
+            let activeStudentIds: string[] = [];
+
+            const fiveDaysFromNow = new Date();
+            fiveDaysFromNow.setDate(fiveDaysFromNow.getDate() + 5);
+            const now = new Date();
 
             studentsData?.forEach((student: any) => {
                 const state = getStudentState(student);
-                if (state === 'active') active++;
+                if (state === 'active') {
+                    active++;
+                    activeStudentIds.push(student.id);
+
+                    // Check if expiring soon
+                    if (student.consultancy_expires_at) {
+                        const exp = new Date(student.consultancy_expires_at);
+                        if (exp <= fiveDaysFromNow && exp >= now) {
+                            expiringSoon++;
+                        }
+                    }
+                }
                 else if (state === 'pending') pending++;
-                else inactive++; // inactive or expired
+                else {
+                    inactive++;
+                    // If expired, it counts as an update alert? 
+                    // User said: "2 alunos precisam ter uma revisão... ou sem treino ou plano vencendo".
+                    // Expired students usually need renewal.
+                    if (state === 'expired') expiringSoon++;
+                }
             });
 
             // Total = All managed students
@@ -88,7 +113,8 @@ const CoachDashboard: React.FC = () => {
             setStats({
                 totalStudents: total,
                 activeStudents: active,
-                inactiveStudents: inactive, // Dashboard currently shows "Inativos" (Red)
+                inactiveStudents: inactive,
+                pendingStudents: pending,
                 activePercentage: percentage
             });
 
@@ -105,20 +131,23 @@ const CoachDashboard: React.FC = () => {
                 setRecentFeedbacksCount(feedbackCount || 0);
             }
 
-            // 3. Fetch Expiring Plans (Updates)
-            const fiveDaysFromNow = new Date();
-            fiveDaysFromNow.setDate(fiveDaysFromNow.getDate() + 5);
+            // 3. Updates Count (Expiring/Expired + Active without Assignments)
+            let missingRoutineCount = 0;
+            if (activeStudentIds.length > 0) {
+                const { data: assignments, error: assignmentsError } = await supabase
+                    .from('student_assignments')
+                    .select('student_id')
+                    .eq('is_active', true)
+                    .in('student_id', activeStudentIds);
 
-            const { count: expiringCount, error: expiringError } = await supabase
-                .from('students_data')
-                .select('id', { count: 'exact', head: true })
-                .eq('coach_id', user!.id)
-                .gte('consultancy_expires_at', new Date().toISOString()) // Not already expired
-                .lte('consultancy_expires_at', fiveDaysFromNow.toISOString()); // Expiring soon
-
-            if (!expiringError) {
-                setExpiringPlansCount(expiringCount || 0);
+                if (!assignmentsError && assignments) {
+                    const withRoutine = new Set(assignments.map((a: any) => a.student_id));
+                    missingRoutineCount = activeStudentIds.filter(id => !withRoutine.has(id)).length;
+                }
             }
+
+            setUpdatesCount(expiringSoon + missingRoutineCount);
+
 
         } catch (error) {
             console.error('Error fetching dashboard data:', error);
@@ -137,7 +166,7 @@ const CoachDashboard: React.FC = () => {
             {/* Clean Header */}
             <header className="bg-white dark:bg-slate-800 pt-12 pb-8 px-6 border-b border-slate-100 dark:border-slate-700">
                 <div className="flex justify-between items-start mb-6">
-                    <div className="flex items-center gap-4">
+                    <Link to="/coach/profile" className="flex items-center gap-4 group cursor-pointer transition-opacity hover:opacity-80">
                         <div className="w-14 h-14 rounded-2xl overflow-hidden flex-shrink-0 shadow-soft border-2 border-slate-100 dark:border-slate-600">
                             {user?.user_metadata?.avatar_url ? (
                                 <img
@@ -157,7 +186,7 @@ const CoachDashboard: React.FC = () => {
                                 {greeting}, {coachName}
                             </h1>
                         </div>
-                    </div>
+                    </Link>
                     <ThemeToggle />
                 </div>
 
@@ -172,13 +201,17 @@ const CoachDashboard: React.FC = () => {
                             <p className="text-white/70 text-sm mb-4">Visão geral</p>
                             <div className="flex flex-col gap-2">
                                 <span className="text-xs font-semibold uppercase tracking-wider text-white/50">Status atual</span>
-                                <div className="flex items-center gap-2">
+                                <div className="flex items-center gap-2 flex-wrap">
                                     <div className="flex items-center gap-1.5 bg-white/20 px-3 py-1 rounded-full">
                                         <div className="w-2 h-2 rounded-full bg-green-400"></div>
                                         <span className="text-xs font-semibold">{stats.activeStudents} Ativos</span>
                                     </div>
                                     <div className="flex items-center gap-1.5 bg-white/20 px-3 py-1 rounded-full">
                                         <div className="w-2 h-2 rounded-full bg-amber-400"></div>
+                                        <span className="text-xs font-semibold">{stats.pendingStudents} Pendentes</span>
+                                    </div>
+                                    <div className="flex items-center gap-1.5 bg-white/20 px-3 py-1 rounded-full">
+                                        <div className="w-2 h-2 rounded-full bg-red-400"></div>
                                         <span className="text-xs font-semibold">{stats.inactiveStudents} Inativos</span>
                                     </div>
                                 </div>
@@ -210,7 +243,7 @@ const CoachDashboard: React.FC = () => {
             <main className="flex-1 px-5 pt-6 space-y-5">
                 {/* Quick Actions */}
                 <div className="grid grid-cols-2 gap-4">
-                    <button className="bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-soft border border-slate-100 dark:border-slate-700 flex flex-col items-center justify-center gap-3 group active:scale-95 transition-all h-28 relative card-hover">
+                    <Link to="/coach/feedbacks" className="bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-soft border border-slate-100 dark:border-slate-700 flex flex-col items-center justify-center gap-3 group active:scale-95 transition-all h-28 relative card-hover">
                         <div className="relative p-3 bg-sky-50 dark:bg-sky-900/30 text-primary rounded-xl group-hover:scale-110 transition-transform">
                             <span className="material-symbols-rounded text-2xl">chat_bubble</span>
                             {recentFeedbacksCount > 0 && (
@@ -220,18 +253,18 @@ const CoachDashboard: React.FC = () => {
                             )}
                         </div>
                         <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">Feedbacks</span>
-                    </button>
-                    <button className="bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-soft border border-slate-100 dark:border-slate-700 flex flex-col items-center justify-center gap-3 group active:scale-95 transition-all h-28 relative card-hover">
+                    </Link>
+                    <Link to="/coach/updates" className="bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-soft border border-slate-100 dark:border-slate-700 flex flex-col items-center justify-center gap-3 group active:scale-95 transition-all h-28 relative card-hover">
                         <div className="relative p-3 bg-amber-50 dark:bg-amber-900/30 text-warning rounded-xl group-hover:scale-110 transition-transform">
                             <span className="material-symbols-rounded text-2xl">calendar_month</span>
-                            {expiringPlansCount > 0 && (
+                            {updatesCount > 0 && (
                                 <span className="absolute -top-1 -right-1 bg-danger text-white text-[10px] font-bold h-5 w-5 flex items-center justify-center rounded-full border-2 border-white dark:border-slate-800">
-                                    {expiringPlansCount}
+                                    {updatesCount}
                                 </span>
                             )}
                         </div>
                         <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">Atualizações</span>
-                    </button>
+                    </Link>
                 </div>
 
                 {/* Tool Banner (Invite) */}
@@ -258,7 +291,7 @@ const CoachDashboard: React.FC = () => {
                             <span className="text-xs text-slate-500 dark:text-slate-400 font-medium uppercase mt-1 block tracking-wide">Biblioteca</span>
                         </div>
                     </Link>
-                    <button className="bg-white dark:bg-slate-800 p-5 rounded-2xl shadow-soft border border-slate-100 dark:border-slate-700 flex flex-col items-start gap-4 text-left group active:scale-95 transition-all card-hover">
+                    <Link to="/coach/exercises" className="bg-white dark:bg-slate-800 p-5 rounded-2xl shadow-soft border border-slate-100 dark:border-slate-700 flex flex-col items-start gap-4 text-left group active:scale-95 transition-all card-hover">
                         <div className="p-2.5 bg-emerald-50 dark:bg-emerald-900/20 rounded-xl text-success">
                             <span className="material-symbols-rounded text-2xl">play_circle</span>
                         </div>
@@ -266,7 +299,7 @@ const CoachDashboard: React.FC = () => {
                             <span className="font-display text-xl font-bold block text-slate-900 dark:text-white">Exercícios</span>
                             <span className="text-xs text-slate-500 dark:text-slate-400 font-medium uppercase mt-1 block tracking-wide">Biblioteca</span>
                         </div>
-                    </button>
+                    </Link>
                 </div>
             </main>
         </MainLayout>

@@ -19,6 +19,9 @@ import SubscriptionDetails from './pages/coach/SubscriptionDetails';
 import RoutineDetails from './pages/coach/RoutineDetails';
 import CoachProfile from './pages/coach/Profile';
 import InviteStudent from './pages/coach/InviteStudent';
+import Feedbacks from './pages/coach/Feedbacks';
+import Updates from './pages/coach/Updates';
+import Exercises from './pages/coach/Exercises';
 
 // Student Pages
 import StudentDashboard from './pages/student/Dashboard';
@@ -33,7 +36,7 @@ const LoadingScreen = () => (
     </div>
 );
 
-const RequireAuth: React.FC<{ children: React.ReactNode; allowedRole?: 'coach' | 'student' }> = ({ children, allowedRole }) => {
+const RequireAuth: React.FC<{ children: React.ReactNode; allowedRole?: 'coach' | 'student' | 'admin' }> = ({ children, allowedRole }) => {
     const { session, role, loading } = useAuth();
     const location = useLocation();
 
@@ -45,9 +48,10 @@ const RequireAuth: React.FC<{ children: React.ReactNode; allowedRole?: 'coach' |
         return <Navigate to="/login" state={{ from: location }} replace />;
     }
 
-    if (allowedRole && role !== allowedRole) {
+    // Admin tem acesso a tudo (Coach e Student)
+    if (allowedRole && role !== allowedRole && role !== 'admin') {
         // Redirecionar para o dashboard correto se tentar acessar rota não autorizada
-        return <Navigate to={role === 'coach' ? '/coach/dashboard' : '/student/dashboard'} replace />;
+        return <Navigate to={role === 'coach' || role === 'admin' ? '/coach/dashboard' : '/student/dashboard'} replace />;
     }
 
     return <>{children}</>;
@@ -59,7 +63,7 @@ const AuthenticatedRedirect = () => {
     if (loading) return <LoadingScreen />;
 
     if (session) {
-        return <Navigate to={role === 'coach' ? '/coach/dashboard' : '/student/dashboard'} replace />;
+        return <Navigate to={role === 'coach' || role === 'admin' ? '/coach/dashboard' : '/student/dashboard'} replace />;
     }
 
     return <Navigate to="/login" replace />;
@@ -95,6 +99,9 @@ const AppContent = () => {
                             <Route path="routine-details" element={<RoutineDetails />} />
                             <Route path="profile" element={<CoachProfile />} />
                             <Route path="invite" element={<InviteStudent />} />
+                            <Route path="feedbacks" element={<Feedbacks />} />
+                            <Route path="updates" element={<Updates />} />
+                            <Route path="exercises" element={<Exercises />} />
                         </Routes>
                     </RequireAuth>
                 } />
