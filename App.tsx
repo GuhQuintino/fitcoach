@@ -1,43 +1,43 @@
-import React, { useEffect } from 'react';
-import { HashRouter, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
+import React, { useEffect, lazy, Suspense } from 'react';
+import { HashRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { ThemeProvider } from './components/ThemeContext';
-import ThemeToggle from './components/ThemeToggle';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import LoadingScreen from './components/shared/LoadingScreen';
+import { Toaster } from 'react-hot-toast';
 
 // Auth Pages
-import Login from './pages/Login';
-import Register from './pages/Register';
+const Login = lazy(() => import('./pages/Login'));
+const Register = lazy(() => import('./pages/Register'));
+const WaitingApproval = lazy(() => import('./pages/WaitingApproval'));
+const SubscriptionExpired = lazy(() => import('./pages/SubscriptionExpired'));
+
+// Admin Pages
+const AdminDashboard = lazy(() => import('./pages/admin/Dashboard'));
 
 // Coach Pages
-import CoachDashboard from './pages/coach/Dashboard';
-import Library from './pages/coach/Library';
-import Editor from './pages/coach/Editor';
-import Students from './pages/coach/Students';
-import StudentProfileView from './pages/coach/StudentProfileView';
-import Plans from './pages/coach/Plans';
-import SubscriptionDetails from './pages/coach/SubscriptionDetails';
-import RoutineDetails from './pages/coach/RoutineDetails';
-import CoachProfile from './pages/coach/Profile';
-import InviteStudent from './pages/coach/InviteStudent';
-import Feedbacks from './pages/coach/Feedbacks';
-import Updates from './pages/coach/Updates';
-import Exercises from './pages/coach/Exercises';
+const CoachDashboard = lazy(() => import('./pages/coach/Dashboard'));
+const Library = lazy(() => import('./pages/coach/Library'));
+const Editor = lazy(() => import('./pages/coach/Editor'));
+const Students = lazy(() => import('./pages/coach/Students'));
+const StudentProfileView = lazy(() => import('./pages/coach/StudentProfileView'));
+const Plans = lazy(() => import('./pages/coach/Plans'));
+const SubscriptionDetails = lazy(() => import('./pages/coach/SubscriptionDetails'));
+const RoutineDetails = lazy(() => import('./pages/coach/RoutineDetails'));
+const CoachProfile = lazy(() => import('./pages/coach/Profile'));
+const InviteStudent = lazy(() => import('./pages/coach/InviteStudent'));
+const Feedbacks = lazy(() => import('./pages/coach/Feedbacks'));
+const Updates = lazy(() => import('./pages/coach/Updates'));
+const Exercises = lazy(() => import('./pages/coach/Exercises'));
 
 // Student Pages
-import StudentDashboard from './pages/student/Dashboard';
-import Selection from './pages/student/Selection';
-import WorkoutExecution from './pages/student/WorkoutExecution';
-import History from './pages/student/History';
-import StudentProfile from './pages/student/Profile';
+const StudentDashboard = lazy(() => import('./pages/student/Dashboard'));
+const Selection = lazy(() => import('./pages/student/Selection'));
+const WorkoutExecution = lazy(() => import('./pages/student/WorkoutExecution'));
+const History = lazy(() => import('./pages/student/History'));
+const StudentProfile = lazy(() => import('./pages/student/Profile'));
 
-const LoadingScreen = () => (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-900">
-        <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-    </div>
-);
-
-const RequireAuth: React.FC<{ children: React.ReactNode; allowedRole?: 'coach' | 'student' | 'admin' }> = ({ children, allowedRole }) => {
-    const { session, role, loading } = useAuth();
+const RequireAuth: React.FC<{ children: React.ReactNode; allowedRole?: 'coach' | 'student' | 'admin'; skipExpirationCheck?: boolean }> = ({ children, allowedRole, skipExpirationCheck }) => {
+    const { session, role, loading, status, expiresAt, coachExpiresAt } = useAuth();
     const location = useLocation();
 
     if (loading) {
@@ -48,22 +48,58 @@ const RequireAuth: React.FC<{ children: React.ReactNode; allowedRole?: 'coach' |
         return <Navigate to="/login" state={{ from: location }} replace />;
     }
 
+    if (status === 'pending' && role !== 'admin') {
+        return <Navigate to="/waiting-approval" replace />;
+    }
+
+    if (!skipExpirationCheck && expiresAt && role !== 'admin') {
+        const graceDate = new Date(expiresAt);
+        graceDate.setDate(graceDate.getDate() + 1); // 1 day grace period
+        if (new Date() > graceDate) {
+            return <Navigate to="/subscription-expired" replace />;
+        }
+    }
+
+    // Cascading Lock: Check if Coach is expired
+    if (!skipExpirationCheck && role === 'student' && coachExpiresAt) {
+        const coachGraceDate = new Date(coachExpiresAt);
+        coachGraceDate.setDate(coachGraceDate.getDate() + 1);
+        if (new Date() > coachGraceDate) {
+            return <Navigate to="/subscription-expired" replace state={{ coachExpired: true }} />;
+        }
+    }
+
     // Admin tem acesso a tudo (Coach e Student)
     if (allowedRole && role !== allowedRole && role !== 'admin') {
         // Redirecionar para o dashboard correto se tentar acessar rota não autorizada
-        return <Navigate to={role === 'coach' || role === 'admin' ? '/coach/dashboard' : '/student/dashboard'} replace />;
+        return <Navigate to={role === 'coach' ? '/coach/dashboard' : '/student/dashboard'} replace />;
     }
 
     return <>{children}</>;
 };
 
 const AuthenticatedRedirect = () => {
-    const { session, role, loading } = useAuth();
+    const { session, role, status, expiresAt, coachExpiresAt, loading } = useAuth();
 
     if (loading) return <LoadingScreen />;
 
     if (session) {
-        return <Navigate to={role === 'coach' || role === 'admin' ? '/coach/dashboard' : '/student/dashboard'} replace />;
+        if (role === 'admin') return <Navigate to="/admin/dashboard" replace />;
+        if (status === 'pending') return <Navigate to="/waiting-approval" replace />;
+
+        if (expiresAt) {
+            const graceDate = new Date(expiresAt);
+            graceDate.setDate(graceDate.getDate() + 1);
+            if (new Date() > graceDate) return <Navigate to="/subscription-expired" replace />;
+        }
+
+        if (role === 'student' && coachExpiresAt) {
+            const coachGraceDate = new Date(coachExpiresAt);
+            coachGraceDate.setDate(coachGraceDate.getDate() + 1);
+            if (new Date() > coachGraceDate) return <Navigate to="/subscription-expired" replace state={{ coachExpired: true }} />;
+        }
+
+        return <Navigate to={role === 'coach' ? '/coach/dashboard' : '/student/dashboard'} replace />;
     }
 
     return <Navigate to="/login" replace />;
@@ -71,16 +107,21 @@ const AuthenticatedRedirect = () => {
 
 const AppContent = () => {
     return (
-        <div className="max-w-md mx-auto bg-slate-50 dark:bg-slate-900 min-h-screen shadow-2xl overflow-hidden relative transition-colors duration-300">
-            {/* Theme Toggle Global (Opcional, pode ser removido das páginas individuais se quiser um global) */}
-            {/* <div className="absolute top-4 right-4 z-50 pointer-events-auto">
-                <ThemeToggle />
-            </div> */}
-
+        <Suspense fallback={<LoadingScreen />}>
             <Routes>
                 {/* Public Routes */}
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />
+                <Route path="/waiting-approval" element={
+                    <RequireAuth>
+                        <WaitingApproval />
+                    </RequireAuth>
+                } />
+                <Route path="/subscription-expired" element={
+                    <RequireAuth skipExpirationCheck>
+                        <SubscriptionExpired />
+                    </RequireAuth>
+                } />
 
                 {/* Root Redirect */}
                 <Route path="/" element={<AuthenticatedRedirect />} />
@@ -119,9 +160,18 @@ const AppContent = () => {
                     </RequireAuth>
                 } />
 
+                {/* Admin Routes */}
+                <Route path="/admin/*" element={
+                    <RequireAuth allowedRole="admin">
+                        <Routes>
+                            <Route path="dashboard" element={<AdminDashboard />} />
+                        </Routes>
+                    </RequireAuth>
+                } />
+
                 <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
-        </div>
+        </Suspense>
     );
 }
 
@@ -130,6 +180,7 @@ const App = () => {
         <ThemeProvider>
             <AuthProvider>
                 <HashRouter>
+                    <Toaster position="top-right" />
                     <AppContent />
                 </HashRouter>
             </AuthProvider>

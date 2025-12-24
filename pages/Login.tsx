@@ -6,6 +6,7 @@ const Login: React.FC = () => {
     const [loading, setLoading] = useState(false);
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const navigate = useNavigate();
 
@@ -23,107 +24,111 @@ const Login: React.FC = () => {
             if (error) throw error;
             navigate('/');
         } catch (error: any) {
-            setError(error.message || 'Erro ao fazer login');
+            setError(error.message === 'Invalid login credentials' ? 'Email ou senha incorretos' : error.message || 'Erro ao fazer login');
         } finally {
             setLoading(false);
         }
     };
 
-    const handleSocialLogin = async (provider: 'google' | 'apple') => {
-        try {
-            const { error } = await supabase.auth.signInWithOAuth({
-                provider,
-            });
-            if (error) throw error;
-        } catch (error: any) {
-            setError(error.message || `Erro com login social ${provider}`);
-        }
-    };
-
     return (
-        <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-gradient-subtle">
-            <div className="w-full max-w-sm bg-white dark:bg-slate-800 p-8 rounded-3xl shadow-card border border-slate-100 dark:border-slate-700 animate-slide-up">
-                <div className="text-center mb-8">
-                    <div className="w-12 h-12 bg-primary rounded-xl flex items-center justify-center mx-auto mb-4 shadow-glow">
-                        <span className="material-symbols-rounded text-white text-2xl">fitness_center</span>
+        <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-slate-50 dark:bg-slate-900 overflow-hidden relative">
+            {/* Background Decorative Elements */}
+            <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-primary/5 rounded-full blur-[100px] animate-pulse"></div>
+            <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-emerald-500/5 rounded-full blur-[100px] animate-pulse" style={{ animationDelay: '1s' }}></div>
+
+            <div className="w-full max-w-sm bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl p-8 rounded-[2.5rem] shadow-2xl border border-white dark:border-slate-700 animate-slide-up relative">
+                <div className="text-center mb-10">
+                    <div className="w-16 h-16 bg-gradient-to-br from-primary to-emerald-500 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-xl transform hover:rotate-12 transition-transform duration-300">
+                        <span className="material-symbols-rounded text-white text-3xl font-bold">fitness_center</span>
                     </div>
-                    <h1 className="font-display text-2xl font-bold text-slate-900 dark:text-white">Bem-vindo de volta</h1>
-                    <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">Entre na sua conta para continuar</p>
+                    <h1 className="font-display text-3xl font-bold text-slate-900 dark:text-white mb-2 leading-tight">
+                        Fitcoach <span className="text-primary">Pro</span>
+                    </h1>
+                    <p className="text-slate-500 dark:text-slate-400 text-sm font-medium">A plataforma definitiva para sua evolução</p>
                 </div>
 
                 {error && (
-                    <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm rounded-xl text-center">
+                    <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-xs font-semibold rounded-2xl text-center border border-red-100 dark:border-red-900/30 animate-shake">
                         {error}
                     </div>
                 )}
 
-                <form onSubmit={handleLogin} className="space-y-4">
-                    <div>
-                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Email</label>
-                        <input
-                            type="email"
-                            required
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all"
-                            placeholder="seu@email.com"
-                        />
+                <form onSubmit={handleLogin} className="space-y-5">
+                    <div className="space-y-1.5">
+                        <label className="block text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest px-1">Email</label>
+                        <div className="relative group">
+                            <span className="material-symbols-rounded absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-primary transition-colors">mail</span>
+                            <input
+                                type="email"
+                                required
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                className="w-full bg-slate-100/50 dark:bg-slate-900/50 border border-transparent dark:border-slate-700/50 rounded-2xl pl-12 pr-4 py-3.5 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary/20 focus:border-primary focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-medium"
+                                placeholder="exemplo@email.com"
+                            />
+                        </div>
                     </div>
-                    <div>
-                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Senha</label>
-                        <input
-                            type="password"
-                            required
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all"
-                            placeholder="••••••••"
-                        />
+                    <div className="space-y-1.5">
+                        <label className="block text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest px-1">Senha</label>
+                        <div className="relative group">
+                            <span className="material-symbols-rounded absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-primary transition-colors">lock</span>
+                            <input
+                                type={showPassword ? "text" : "password"}
+                                required
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                className="w-full bg-slate-100/50 dark:bg-slate-900/50 border border-transparent dark:border-slate-700/50 rounded-2xl pl-12 pr-12 py-3.5 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary/20 focus:border-primary focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-medium"
+                                placeholder="••••••••"
+                            />
+                            <button
+                                type="button"
+                                onClick={() => setShowPassword(!showPassword)}
+                                className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
+                            >
+                                <span className="material-symbols-rounded text-xl">{showPassword ? 'visibility_off' : 'visibility'}</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div className="flex justify-end pt-1">
+                        <button type="button" className="text-xs font-bold text-primary hover:text-primary-dark transition-colors uppercase tracking-wider">Esqueceu a senha?</button>
                     </div>
 
                     <button
                         type="submit"
                         disabled={loading}
-                        className="w-full bg-primary hover:bg-primary-dark text-white font-bold py-3 rounded-xl transition-colors shadow-lg shadow-primary/30 active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed"
+                        className="w-full bg-gradient-to-r from-primary to-emerald-500 hover:from-primary-dark hover:to-emerald-600 text-white font-bold py-4 rounded-2xl transition-all shadow-xl shadow-primary/20 active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed group relative overflow-hidden"
                     >
-                        {loading ? 'Entrando...' : 'Entrar'}
+                        <span className="relative z-10 flex items-center justify-center gap-2 text-lg">
+                            {loading ? (
+                                <>
+                                    <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
+                                    <span>Entrando...</span>
+                                </>
+                            ) : (
+                                <>
+                                    <span>Entrar na conta</span>
+                                    <span className="material-symbols-rounded group-hover:translate-x-1 transition-transform">arrow_forward</span>
+                                </>
+                            )}
+                        </span>
+                        <div className="absolute inset-0 bg-white/20 translate-y-[100%] group-hover:translate-y-0 transition-transform duration-300"></div>
                     </button>
                 </form>
 
-                <div className="my-6 flex items-center gap-4">
-                    <div className="h-px bg-slate-200 dark:bg-slate-700 flex-1"></div>
-                    <span className="text-xs text-slate-400 uppercase font-bold tracking-wider">Ou continue com</span>
-                    <div className="h-px bg-slate-200 dark:bg-slate-700 flex-1"></div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                    <button
-                        type="button"
-                        onClick={() => handleSocialLogin('google')}
-                        className="flex items-center justify-center gap-2 p-3 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-600 transition-colors"
-                    >
-                        <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google" className="w-5 h-5" />
-                        <span className="text-sm font-medium text-slate-700 dark:text-slate-200">Google</span>
-                    </button>
-                    <button
-                        type="button"
-                        onClick={() => handleSocialLogin('apple')}
-                        className="flex items-center justify-center gap-2 p-3 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-600 transition-colors"
-                    >
-                        <img src="https://www.svgrepo.com/show/511330/apple-173.svg" alt="Apple" className="w-5 h-5 dark:invert" />
-                        <span className="text-sm font-medium text-slate-700 dark:text-slate-200">Apple</span>
-                    </button>
-                </div>
-
-                <div className="mt-8 text-center">
-                    <p className="text-sm text-slate-500 dark:text-slate-400">
-                        Não tem uma conta?{' '}
-                        <Link to="/register" className="text-primary font-semibold hover:underline">
-                            Crie agora
+                <div className="mt-10 text-center">
+                    <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">
+                        Novo por aqui?{' '}
+                        <Link to="/register" className="text-primary font-bold hover:text-primary-dark transition-all hover:underline decoration-2 underline-offset-4">
+                            Crie sua conta
                         </Link>
                     </p>
                 </div>
             </div>
+
+            <p className="mt-8 text-xs text-slate-400 dark:text-slate-600 font-bold uppercase tracking-widest">
+                Fitcoach Pro © 2025
+            </p>
         </div>
     );
 };

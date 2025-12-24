@@ -43,7 +43,7 @@ const Updates: React.FC = () => {
             if (studentsError) throw studentsError;
 
             const expiringOrExpired = studentsData?.filter((s: any) => {
-                const status = s.profiles.status;
+                const status = s.profiles?.status;
                 if (status !== 'active') return false;
                 if (!s.consultancy_expires_at) return false;
 
@@ -58,7 +58,7 @@ const Updates: React.FC = () => {
             // We need to check if they have any active assignment in 'student_assignments'
 
             // First get all active student IDs
-            const activeStudentIds = studentsData?.filter((s: any) => s.profiles.status === 'active').map((s: any) => s.id) || [];
+            const activeStudentIds = studentsData?.filter((s: any) => s.profiles?.status === 'active').map((s: any) => s.id) || [];
 
             if (activeStudentIds.length > 0) {
                 const { data: assignments, error: assignmentsError } = await supabase
@@ -71,7 +71,7 @@ const Updates: React.FC = () => {
 
                 const withRoutine = new Set(assignments?.map((a: any) => a.student_id));
                 const withoutRoutine = studentsData?.filter((s: any) =>
-                    s.profiles.status === 'active' && !withRoutine.has(s.id)
+                    s.profiles?.status === 'active' && !withRoutine.has(s.id)
                 ) || [];
 
                 setNoRoutineStudents(withoutRoutine);
@@ -129,12 +129,12 @@ const Updates: React.FC = () => {
                                     <div key={student.id} className="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-soft border border-slate-100 dark:border-slate-700 flex items-center justify-between">
                                         <div className="flex items-center gap-3">
                                             <img
-                                                src={student.profiles.avatar_url || `https://ui-avatars.com/api/?name=${student.profiles.full_name}&background=random`}
+                                                src={student.profiles?.avatar_url || `https://ui-avatars.com/api/?name=${student.profiles?.full_name || 'Aluno'}&background=random`}
                                                 alt=""
                                                 className="w-10 h-10 rounded-full bg-slate-100"
                                             />
                                             <div>
-                                                <h3 className="font-bold text-slate-900 dark:text-white text-sm">{student.profiles.full_name}</h3>
+                                                <h3 className="font-bold text-slate-900 dark:text-white text-sm">{student.profiles?.full_name || 'Usuário'}</h3>
                                                 <p className={`text-xs font-bold ${isExpired ? 'text-red-500' : 'text-amber-500'}`}>
                                                     {isExpired ? 'VENCIDO' : `Vence em ${days} dias`}
                                                 </p>
@@ -174,12 +174,12 @@ const Updates: React.FC = () => {
                                 <div key={student.id} className="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-soft border border-slate-100 dark:border-slate-700 flex items-center justify-between">
                                     <div className="flex items-center gap-3">
                                         <img
-                                            src={student.profiles.avatar_url || `https://ui-avatars.com/api/?name=${student.profiles.full_name}&background=random`}
+                                            src={student.profiles?.avatar_url || `https://ui-avatars.com/api/?name=${student.profiles?.full_name || 'Aluno'}&background=random`}
                                             alt=""
                                             className="w-10 h-10 rounded-full bg-slate-100"
                                         />
                                         <div>
-                                            <h3 className="font-bold text-slate-900 dark:text-white text-sm">{student.profiles.full_name}</h3>
+                                            <h3 className="font-bold text-slate-900 dark:text-white text-sm">{student.profiles?.full_name || 'Usuário'}</h3>
                                             <p className="text-xs text-red-400">Sem rotina atribuída</p>
                                         </div>
                                     </div>

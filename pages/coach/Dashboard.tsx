@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import ThemeToggle from '../../components/ThemeToggle';
-import MainLayout from '../../layouts/MainLayout';
+
+import MainLayout from '../../components/Layout/MainLayout';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabaseClient';
 
@@ -14,8 +15,7 @@ interface DashboardStats {
 }
 
 const CoachDashboard: React.FC = () => {
-    const { user, role } = useAuth();
-    const [loading, setLoading] = useState(true);
+    const { user, role, expiresAt } = useAuth();
     const [stats, setStats] = useState<DashboardStats>({
         totalStudents: 0,
         activeStudents: 0,
@@ -23,146 +23,108 @@ const CoachDashboard: React.FC = () => {
         pendingStudents: 0,
         activePercentage: 0
     });
+
     const [recentFeedbacksCount, setRecentFeedbacksCount] = useState(0);
     const [updatesCount, setUpdatesCount] = useState(0);
 
-    // Get Greeting
-    const hour = new Date().getHours();
-    const greeting = hour < 12 ? 'Bom dia' : hour < 18 ? 'Boa tarde' : 'Boa noite';
-    const coachName = user?.user_metadata?.full_name?.split(' ')[0] || 'Coach';
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        if (user) {
-            fetchDashboardData();
-        }
+        const fetchDashboardData = async () => {
+            if (!user) return;
+
+            try {
+                // 1. Fetch Students linked to this coach from students_data
+                // Using 'students_data' instead of 'student_assignments' which was causing the bug
+                let query = supabase
+                    .from('students_data')
+                    .select('id')
+                    .eq('coach_id', user.id);
+
+                const { data: students, error: studentsError } = await query;
+
+                if (studentsError) {
+                    console.error('Error fetching students:', studentsError);
+                    return;
+                }
+
+                const studentIds = students?.map(s => s.id) || [];
+                const totalCount = studentIds.length;
+
+                // 2. Fetch Status from Profiles for these students
+                let activeCount = 0;
+                let pendingCount = 0;
+                let inactiveCount = 0;
+
+                if (totalCount > 0) {
+                    const { data: profiles, error: profilesError } = await supabase
+                        .from('profiles')
+                        .select('status')
+                        .in('id', studentIds);
+
+                    if (!profilesError && profiles) {
+                        activeCount = profiles.filter(p => p?.status === 'active').length;
+                        pendingCount = profiles.filter(p => p?.status === 'pending').length;
+                        inactiveCount = profiles.filter(p => p?.status === 'inactive' || p?.status === 'banned').length;
+                    }
+                }
+
+                // 3. Update Stats
+                setStats({
+                    totalStudents: totalCount,
+                    activeStudents: activeCount,
+                    inactiveStudents: inactiveCount,
+                    pendingStudents: pendingCount,
+                    activePercentage: totalCount > 0 ? Math.round((activeCount / totalCount) * 100) : 0
+                });
+
+                if (studentIds.length > 0) {
+                    const { count, error: countError } = await supabase
+                        .from('workout_logs')
+                        .select('*', { count: 'exact', head: true })
+                        .in('student_id', studentIds)
+                        .eq('read_by_coach', false);
+
+                    if (!countError) {
+                        setRecentFeedbacksCount(count || 0);
+                    }
+                }
+
+                setUpdatesCount(0); // Still mock for now
+
+            } catch (error) {
+                console.error('Error fetching dashboard stats:', error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchDashboardData();
     }, [user]);
 
-    const fetchDashboardData = async () => {
-        try {
-            setLoading(true);
-
-            // 1. Fetch Students Stats
-            const { data: studentsData, error: studentsError } = await supabase
-                .from('students_data')
-                .select('id, consultancy_expires_at, profiles:id (status)')
-                .eq('coach_id', user!.id);
-
-            if (studentsError) throw studentsError;
-
-            // Helper to determine status based on Expiration Date (Matches Students.tsx logic exactly)
-            const getStudentState = (student: any) => {
-                const status = student.profiles?.status;
-                const expiresAt = student.consultancy_expires_at;
-
-                if (status === 'pending') return 'pending';
-
-                if (status === 'active') {
-                    if (expiresAt) {
-                        const now = new Date();
-                        const exp = new Date(expiresAt);
-                        if (exp < now) return 'expired'; // Treat as inactive
-                    }
-                    return 'active';
-                }
-
-                return 'inactive';
-            };
-
-            let active = 0;
-            let inactive = 0;
-            let pending = 0;
-            let expiringSoon = 0;
-            let activeStudentIds: string[] = [];
-
-            const fiveDaysFromNow = new Date();
-            fiveDaysFromNow.setDate(fiveDaysFromNow.getDate() + 5);
-            const now = new Date();
-
-            studentsData?.forEach((student: any) => {
-                const state = getStudentState(student);
-                if (state === 'active') {
-                    active++;
-                    activeStudentIds.push(student.id);
-
-                    // Check if expiring soon
-                    if (student.consultancy_expires_at) {
-                        const exp = new Date(student.consultancy_expires_at);
-                        if (exp <= fiveDaysFromNow && exp >= now) {
-                            expiringSoon++;
-                        }
-                    }
-                }
-                else if (state === 'pending') pending++;
-                else {
-                    inactive++;
-                    // If expired, it counts as an update alert? 
-                    // User said: "2 alunos precisam ter uma revisão... ou sem treino ou plano vencendo".
-                    // Expired students usually need renewal.
-                    if (state === 'expired') expiringSoon++;
-                }
-            });
-
-            // Total = All managed students
-            const total = studentsData?.length || 0;
-
-            // For the Percentage Ring: ACTIVE / (ACTIVE + INACTIVE) * 100
-            // We usually exclude Pending from the "Activity Score" because they haven't started yet.
-            const totalForPercentage = active + inactive;
-            const percentage = totalForPercentage > 0 ? Math.round((active / totalForPercentage) * 100) : 0;
-
-            setStats({
-                totalStudents: total,
-                activeStudents: active,
-                inactiveStudents: inactive,
-                pendingStudents: pending,
-                activePercentage: percentage
-            });
-
-            // 2. Fetch Recent Feedbacks Count (Unread or from last 3 days)
-            const sevenDaysAgo = new Date();
-            sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-
-            const { count: feedbackCount, error: feedbackError } = await supabase
-                .from('workout_logs')
-                .select('id', { count: 'exact', head: true })
-                .gte('created_at', sevenDaysAgo.toISOString());
-
-            if (!feedbackError) {
-                setRecentFeedbacksCount(feedbackCount || 0);
-            }
-
-            // 3. Updates Count (Expiring/Expired + Active without Assignments)
-            let missingRoutineCount = 0;
-            if (activeStudentIds.length > 0) {
-                const { data: assignments, error: assignmentsError } = await supabase
-                    .from('student_assignments')
-                    .select('student_id')
-                    .eq('is_active', true)
-                    .in('student_id', activeStudentIds);
-
-                if (!assignmentsError && assignments) {
-                    const withRoutine = new Set(assignments.map((a: any) => a.student_id));
-                    missingRoutineCount = activeStudentIds.filter(id => !withRoutine.has(id)).length;
-                }
-            }
-
-            setUpdatesCount(expiringSoon + missingRoutineCount);
-
-
-        } catch (error) {
-            console.error('Error fetching dashboard data:', error);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    // Calculate Stroke Dash for Progress Ring
-    const radius = 15.5;
+    const radius = 16;
     const circumference = 2 * Math.PI * radius;
     const strokeDashoffset = circumference - (stats.activePercentage / 100) * circumference;
 
+    const [coachName, setCoachName] = useState('Treinador');
+
+    useEffect(() => {
+        if (user?.user_metadata?.name) {
+            setCoachName(user.user_metadata.name.split(' ')[0]);
+        }
+    }, [user]);
+    // ... (rest of the file)
+    const currentHour = new Date().getHours();
+    let greeting = 'Bom dia';
+    if (currentHour >= 12 && currentHour < 18) {
+        greeting = 'Boa tarde';
+    } else if (currentHour >= 18) {
+        greeting = 'Boa noite';
+    }
+
     return (
-        <MainLayout className="pb-24">
+        <MainLayout>
+
             {/* Clean Header */}
             <header className="bg-white dark:bg-slate-800 pt-12 pb-8 px-6 border-b border-slate-100 dark:border-slate-700">
                 <div className="flex justify-between items-start mb-6">
@@ -187,13 +149,29 @@ const CoachDashboard: React.FC = () => {
                             </h1>
                         </div>
                     </Link>
-                    <ThemeToggle />
+                    <div className="flex flex-col items-end gap-2">
+                        <ThemeToggle />
+                        {role === 'coach' && (
+                            <div className="flex items-center gap-2 px-3 py-1 bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800/30 rounded-full">
+                                <span className={`w-2 h-2 rounded-full ${expiresAt && new Date(expiresAt) > new Date() ? 'bg-emerald-500' : 'bg-red-500'}`}></span>
+                                <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400 uppercase tracking-tight">
+                                    {(() => {
+                                        if (!expiresAt) return 'Sem validade';
+                                        const now = new Date();
+                                        const exp = new Date(expiresAt);
+                                        const diff = Math.ceil((exp.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+                                        return diff <= 0 ? 'Expirado' : `${diff} dias restantes`;
+                                    })()}
+                                </span>
+                            </div>
+                        )}
+                    </div>
                 </div>
 
                 {/* Students Overview Card */}
                 <Link
                     to="/coach/students"
-                    className="block bg-gradient-to-br from-primary to-primary-dark rounded-2xl p-5 text-white relative overflow-hidden group card-hover"
+                    className="block bg-slate-900 rounded-2xl p-5 text-white relative overflow-hidden group card-hover shadow-lg shadow-slate-200/50 dark:shadow-none"
                 >
                     <div className="relative z-10 flex justify-between items-center">
                         <div>
@@ -242,9 +220,10 @@ const CoachDashboard: React.FC = () => {
 
             <main className="flex-1 px-5 pt-6 space-y-5">
                 {/* Quick Actions */}
-                <div className="grid grid-cols-2 gap-4">
-                    <Link to="/coach/feedbacks" className="bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-soft border border-slate-100 dark:border-slate-700 flex flex-col items-center justify-center gap-3 group active:scale-95 transition-all h-28 relative card-hover">
-                        <div className="relative p-3 bg-sky-50 dark:bg-sky-900/30 text-primary rounded-xl group-hover:scale-110 transition-transform">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <Link to="/coach/feedbacks" className="bg-gradient-to-br from-sky-50/80 to-white dark:from-sky-900/20 dark:to-slate-800 p-4 rounded-2xl shadow-sm border border-sky-100/50 dark:border-sky-700/30 flex flex-col items-center justify-center gap-3 group active:scale-95 transition-all h-28 relative card-hover overflow-hidden">
+                        <div className="absolute top-0 right-0 w-20 h-20 bg-sky-100/20 rounded-full blur-xl -translate-y-1/2 translate-x-1/2"></div>
+                        <div className="relative p-3 bg-white dark:bg-sky-900/40 text-primary rounded-xl group-hover:scale-110 transition-transform shadow-sm">
                             <span className="material-symbols-rounded text-2xl">chat_bubble</span>
                             {recentFeedbacksCount > 0 && (
                                 <span className="absolute -top-1 -right-1 bg-danger text-white text-[10px] font-bold h-5 w-5 flex items-center justify-center rounded-full border-2 border-white dark:border-slate-800">
@@ -252,10 +231,11 @@ const CoachDashboard: React.FC = () => {
                                 </span>
                             )}
                         </div>
-                        <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">Feedbacks</span>
+                        <span className="text-sm font-semibold text-slate-700 dark:text-slate-200 relative z-10">Feedbacks</span>
                     </Link>
-                    <Link to="/coach/updates" className="bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-soft border border-slate-100 dark:border-slate-700 flex flex-col items-center justify-center gap-3 group active:scale-95 transition-all h-28 relative card-hover">
-                        <div className="relative p-3 bg-amber-50 dark:bg-amber-900/30 text-warning rounded-xl group-hover:scale-110 transition-transform">
+                    <Link to="/coach/updates" className="bg-gradient-to-br from-amber-50/80 to-white dark:from-amber-900/20 dark:to-slate-800 p-4 rounded-2xl shadow-sm border border-amber-100/50 dark:border-amber-700/30 flex flex-col items-center justify-center gap-3 group active:scale-95 transition-all h-28 relative card-hover overflow-hidden">
+                        <div className="absolute top-0 right-0 w-20 h-20 bg-amber-100/20 rounded-full blur-xl -translate-y-1/2 translate-x-1/2"></div>
+                        <div className="relative p-3 bg-white dark:bg-amber-900/40 text-warning rounded-xl group-hover:scale-110 transition-transform shadow-sm">
                             <span className="material-symbols-rounded text-2xl">calendar_month</span>
                             {updatesCount > 0 && (
                                 <span className="absolute -top-1 -right-1 bg-danger text-white text-[10px] font-bold h-5 w-5 flex items-center justify-center rounded-full border-2 border-white dark:border-slate-800">
@@ -263,13 +243,13 @@ const CoachDashboard: React.FC = () => {
                                 </span>
                             )}
                         </div>
-                        <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">Atualizações</span>
+                        <span className="text-sm font-semibold text-slate-700 dark:text-slate-200 relative z-10">Atualizações</span>
                     </Link>
                 </div>
 
                 {/* Tool Banner (Invite) */}
                 <Link to="/coach/invite">
-                    <div className="w-full bg-primary-50 dark:bg-primary/10 p-5 rounded-2xl flex items-center justify-between group cursor-pointer transition-colors hover:bg-primary-100 dark:hover:bg-primary/20 border border-primary-100 dark:border-primary/20">
+                    <div className="w-full bg-white dark:bg-slate-800 p-5 rounded-2xl flex items-center justify-between group cursor-pointer transition-colors hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 shadow-sm">
                         <div className="flex flex-col gap-1">
                             <span className="text-xs font-bold text-primary uppercase tracking-wide">Ferramenta</span>
                             <span className="text-lg font-bold text-slate-900 dark:text-white font-display">"Convidar Aluno"</span>
@@ -281,21 +261,23 @@ const CoachDashboard: React.FC = () => {
                 </Link>
 
                 {/* Library Cards */}
-                <div className="grid grid-cols-2 gap-4 pb-4">
-                    <Link to="/coach/library" className="bg-white dark:bg-slate-800 p-5 rounded-2xl shadow-soft border border-slate-100 dark:border-slate-700 flex flex-col items-start gap-4 text-left group active:scale-95 transition-all card-hover">
-                        <div className="p-2.5 bg-amber-50 dark:bg-amber-900/20 rounded-xl text-warning">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pb-4">
+                    <Link to="/coach/library" className="bg-gradient-to-br from-amber-50/80 to-white dark:from-amber-900/20 dark:to-slate-800 p-5 rounded-2xl shadow-sm border border-amber-100/50 dark:border-amber-700/30 flex flex-col items-start gap-4 text-left group active:scale-95 transition-all card-hover overflow-hidden relative">
+                        <div className="absolute top-0 right-0 w-24 h-24 bg-amber-100/20 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2"></div>
+                        <div className="p-2.5 bg-white dark:bg-amber-900/40 rounded-xl text-warning shadow-sm relative z-10">
                             <span className="material-symbols-rounded text-2xl">fitness_center</span>
                         </div>
-                        <div>
+                        <div className="relative z-10">
                             <span className="font-display text-xl font-bold block text-slate-900 dark:text-white">Treinos</span>
                             <span className="text-xs text-slate-500 dark:text-slate-400 font-medium uppercase mt-1 block tracking-wide">Biblioteca</span>
                         </div>
                     </Link>
-                    <Link to="/coach/exercises" className="bg-white dark:bg-slate-800 p-5 rounded-2xl shadow-soft border border-slate-100 dark:border-slate-700 flex flex-col items-start gap-4 text-left group active:scale-95 transition-all card-hover">
-                        <div className="p-2.5 bg-emerald-50 dark:bg-emerald-900/20 rounded-xl text-success">
+                    <Link to="/coach/exercises" className="bg-gradient-to-br from-emerald-50/80 to-white dark:from-emerald-900/20 dark:to-slate-800 p-5 rounded-2xl shadow-sm border border-emerald-100/50 dark:border-emerald-700/30 flex flex-col items-start gap-4 text-left group active:scale-95 transition-all card-hover overflow-hidden relative">
+                        <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-100/20 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2"></div>
+                        <div className="p-2.5 bg-white dark:bg-emerald-900/40 rounded-xl text-success shadow-sm relative z-10">
                             <span className="material-symbols-rounded text-2xl">play_circle</span>
                         </div>
-                        <div>
+                        <div className="relative z-10">
                             <span className="font-display text-xl font-bold block text-slate-900 dark:text-white">Exercícios</span>
                             <span className="text-xs text-slate-500 dark:text-slate-400 font-medium uppercase mt-1 block tracking-wide">Biblioteca</span>
                         </div>

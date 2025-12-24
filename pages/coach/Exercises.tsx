@@ -1,9 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import MainLayout from '../../layouts/MainLayout';
+import MainLayout from '../../components/Layout/MainLayout';
 import { supabase } from '../../lib/supabaseClient';
 import { useAuth } from '../../contexts/AuthContext';
 import { Link, useNavigate } from 'react-router-dom';
 import ExerciseFormModal from '../../components/coach/exercises/ExerciseFormModal';
+import VideoPlayerModal from '../../components/shared/VideoPlayerModal';
+import VideoThumbnail from '../../components/shared/VideoThumbnail';
+import toast from 'react-hot-toast';
 
 interface ExercisesProps {
     isModal?: boolean;
@@ -13,15 +16,26 @@ interface ExercisesProps {
 const Exercises: React.FC<ExercisesProps> = ({ isModal, onSelect }) => {
     const { user, role } = useAuth();
     const navigate = useNavigate();
+    // Pagination & Data
+    const PAGE_SIZE = 20;
     const [exercises, setExercises] = useState<any[]>([]);
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(false);
+    const [loadingMore, setLoadingMore] = useState(false);
+    const [hasMore, setHasMore] = useState(true);
+    const [page, setPage] = useState(0);
     const [searchTerm, setSearchTerm] = useState('');
+    const [debouncedSearch, setDebouncedSearch] = useState('');
     const [filterMuscle, setFilterMuscle] = useState('all');
 
     // Create/Edit Modal
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingExercise, setEditingExercise] = useState<any | null>(null);
     const [saveLoading, setSaveLoading] = useState(false);
+
+    // Video Player Modal
+    const [videoModal, setVideoModal] = useState<{ open: boolean, url: string, title: string }>({
+        open: false, url: '', title: ''
+    });
 
     const muscleGroups = [
         { value: 'chest', label: 'Peito' },
@@ -34,28 +48,94 @@ const Exercises: React.FC<ExercisesProps> = ({ isModal, onSelect }) => {
         { value: 'full_body', label: 'Outros' }
     ];
 
+    // Debounce search term
     useEffect(() => {
-        if (user) fetchExercises();
-    }, [user]);
+        const timer = setTimeout(() => {
+            setDebouncedSearch(searchTerm);
+            setPage(0); // Reset page on new search
+        }, 500);
+        return () => clearTimeout(timer);
+    }, [searchTerm]);
 
-    const fetchExercises = async () => {
+    // Reset pagination when filters change
+    useEffect(() => {
+        setPage(0);
+    }, [filterMuscle]);
+
+    useEffect(() => {
+        if (user) {
+            // When page is 0, we treat it as a fresh load or reset
+            fetchExercises(page === 0);
+        }
+    }, [user, page, debouncedSearch, filterMuscle]);
+
+    const fetchExercises = async (isReset = false) => {
         try {
-            setLoading(true);
-            // Fetch public excercises OR exercises created by this coach
-            const { data, error } = await supabase
-                .from('exercises')
-                .select('*')
-                .or(`is_public.eq.true,owner_id.eq.${user?.id}`)
-                .order('name');
+            if (isReset) {
+                setLoading(true);
+            } else {
+                setLoadingMore(true);
+            }
+
+
+
+
+
+
+            // Use RPC for popularity sorting
+            const { data, error } = await supabase.rpc('get_popular_exercises', {
+                search_term: debouncedSearch,
+                filter_muscle: filterMuscle,
+                page_index: page,
+                page_size: PAGE_SIZE
+            });
 
             if (error) throw error;
-            setExercises(data || []);
+
+            const newExercises = data || [];
+            if (isReset) {
+                setExercises(newExercises);
+            } else {
+                setExercises(prev => {
+                    const existingIds = new Set(prev.map(e => e.id));
+                    const uniqueNew = newExercises.filter(e => !existingIds.has(e.id));
+                    return [...prev, ...uniqueNew];
+                });
+            }
+
+            setHasMore(newExercises.length === PAGE_SIZE);
+
         } catch (error) {
             console.error('Error fetching exercises:', error);
         } finally {
             setLoading(false);
+            setLoadingMore(false);
         }
     };
+
+    // Observer for infinite scroll
+    const observerTarget = React.useRef(null);
+
+    useEffect(() => {
+        const observer = new IntersectionObserver(
+            entries => {
+                if (entries[0].isIntersecting && hasMore && !loading && !loadingMore) {
+                    setPage(prev => prev + 1);
+                }
+            },
+            { threshold: 0.5 }
+        );
+
+        if (observerTarget.current) {
+            observer.observe(observerTarget.current);
+        }
+
+        return () => {
+            if (observerTarget.current) {
+                observer.unobserve(observerTarget.current);
+            }
+        };
+    }, [hasMore, loading, loadingMore]);
 
     const handleSave = async (data: any) => {
         try {
@@ -85,11 +165,15 @@ const Exercises: React.FC<ExercisesProps> = ({ isModal, onSelect }) => {
 
             setIsModalOpen(false);
             setEditingExercise(null);
-            fetchExercises();
+            setEditingExercise(null);
+            // Refresh list (reset)
+            setPage(0);
+            fetchExercises(true);
+            toast.success('Exercício salvo com sucesso!');
 
         } catch (error) {
             console.error(error);
-            alert('Erro ao salvar exercício.');
+            toast.error('Erro ao salvar exercício.');
         } finally {
             setSaveLoading(false);
         }
@@ -101,18 +185,18 @@ const Exercises: React.FC<ExercisesProps> = ({ isModal, onSelect }) => {
         try {
             const { error } = await supabase.from('exercises').delete().eq('id', id);
             if (error) throw error;
-            fetchExercises();
+            // Update local state without fetching for smoothness
+            setExercises(prev => prev.filter(e => e.id !== id));
+            toast.success('Exercício excluído.');
         } catch (error) {
             console.error(error);
-            alert('Erro ao excluir. Pode estar em uso.');
+            toast.error('Erro ao excluir. Pode estar em uso.');
         }
     };
 
-    const filteredExercises = exercises.filter(ex => {
-        const matchesSearch = ex.name.toLowerCase().includes(searchTerm.toLowerCase());
-        const matchesMuscle = filterMuscle === 'all' || ex.muscle_group === filterMuscle;
-        return matchesSearch && matchesMuscle;
-    });
+    // Removed client-side filtering logic as we now do it server-side
+    // Function kept if needed for other helpers, otherwise unused.
+    const filteredExercises = exercises; // Direct usage since we filter on fetch
 
     const getYoutubeId = (url: string) => {
         if (!url) return null;
@@ -178,12 +262,29 @@ const Exercises: React.FC<ExercisesProps> = ({ isModal, onSelect }) => {
                                             ${isModal ? 'cursor-pointer hover:border-primary active:scale-[0.98]' : ''}
                                         `}
                                     >
-                                        {/* Thumb */}
-                                        <div className="w-16 h-16 rounded-lg bg-slate-200 dark:bg-slate-700 flex-shrink-0 overflow-hidden relative">
+                                        {/* Thumb - Clicável para abrir vídeo */}
+                                        <div
+                                            className="w-16 h-16 rounded-lg bg-slate-200 dark:bg-slate-700 flex-shrink-0 overflow-hidden relative cursor-pointer group"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                if (ex.video_url) {
+                                                    setVideoModal({ open: true, url: ex.video_url, title: ex.name });
+                                                }
+                                            }}
+                                        >
                                             {getYoutubeId(ex.video_url) ? (
-                                                <img src={`https://img.youtube.com/vi/${getYoutubeId(ex.video_url)}/0.jpg`} className="w-full h-full object-cover" alt="" />
-                                            ) : ex.video_url && ex.video_url.match(/\.(jpeg|jpg|gif|png)$/) ? (
+                                                <>
+                                                    <img src={`https://img.youtube.com/vi/${getYoutubeId(ex.video_url)}/0.jpg`} className="w-full h-full object-cover" alt="" />
+                                                    <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                                        <span className="material-symbols-rounded text-white text-2xl">play_circle</span>
+                                                    </div>
+                                                </>
+                                            ) : ex.video_url && ex.video_url.match(/\.(gif)$/i) ? (
                                                 <img src={ex.video_url} className="w-full h-full object-cover" alt="" />
+                                            ) : ex.video_url && ex.video_url.match(/\.(jpeg|jpg|png)$/i) ? (
+                                                <img src={ex.video_url} className="w-full h-full object-cover" alt="" />
+                                            ) : ex.video_url && ex.video_url.match(/\.mp4($|\?)/i) ? (
+                                                <VideoThumbnail src={ex.video_url} className="w-full h-full rounded-lg" />
                                             ) : (
                                                 <div className="w-full h-full flex items-center justify-center text-slate-400">
                                                     <span className="material-symbols-rounded">fitness_center</span>
@@ -193,7 +294,15 @@ const Exercises: React.FC<ExercisesProps> = ({ isModal, onSelect }) => {
 
                                         <div className="flex-1 min-w-0">
                                             <h4 className="font-bold text-slate-900 dark:text-white truncate">{ex.name}</h4>
-                                            <p className="text-xs text-slate-500">{muscleGroups.find(m => m.value === ex.muscle_group)?.label || ex.muscle_group}</p>
+                                            <div className="flex items-center gap-2 mt-0.5">
+                                                <p className="text-xs text-slate-500">{muscleGroups.find(m => m.value === ex.muscle_group)?.label || ex.muscle_group}</p>
+                                                {ex.usage_count > 0 && (
+                                                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-300 flex items-center gap-0.5">
+                                                        <span className="material-symbols-rounded text-[10px]">trending_up</span>
+                                                        {ex.usage_count}
+                                                    </span>
+                                                )}
+                                            </div>
                                         </div>
 
                                         {/* Actions (Only if NOT modal) */}
@@ -229,6 +338,15 @@ const Exercises: React.FC<ExercisesProps> = ({ isModal, onSelect }) => {
                                 ))
                             )}
 
+                            {loadingMore && (
+                                <div className="text-center py-4">
+                                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto"></div>
+                                </div>
+                            )}
+
+                            {/* Observer Target */}
+                            <div ref={observerTarget} className="h-4"></div>
+
                             {/* Create Button - Relative at bottom of List */}
                             <button
                                 onClick={() => {
@@ -253,14 +371,22 @@ const Exercises: React.FC<ExercisesProps> = ({ isModal, onSelect }) => {
                 loading={saveLoading}
                 isAdmin={role === 'admin'}
             />
+
+            <VideoPlayerModal
+                isOpen={videoModal.open}
+                onClose={() => setVideoModal({ ...videoModal, open: false })}
+                videoUrl={videoModal.url}
+                title={videoModal.title}
+            />
         </div>
     );
+
 
     if (isModal) return <div className="h-full">{Content}</div>;
 
     return (
-        <MainLayout className="h-screen flex flex-col overflow-hidden">
-            <header className="flex-none px-5 py-6 flex items-center justify-between bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm z-30 border-b border-slate-100 dark:border-slate-700">
+        <MainLayout>
+            <header className="flex-none px-5 py-6 flex items-center justify-between bg-white dark:bg-slate-900 z-30 border-b border-slate-100 dark:border-slate-700">
                 <div className="flex items-center gap-3">
                     <Link to="/coach/dashboard" className="p-2 -ml-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
                         <span className="material-symbols-rounded text-slate-500">arrow_back</span>

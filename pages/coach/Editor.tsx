@@ -1,16 +1,18 @@
 import React, { useEffect, useState, useRef } from 'react';
-import MainLayout from '../../layouts/MainLayout';
+import MainLayout from '../../components/Layout/MainLayout';
 import { supabase } from '../../lib/supabaseClient';
 import { useAuth } from '../../contexts/AuthContext';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import ExerciseCard from '../../components/coach/editor/ExerciseCard';
 import Exercises from './Exercises'; // Correct component for exercises
+import toast from 'react-hot-toast';
 
 const Editor: React.FC = () => {
     const { user } = useAuth();
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
     const workoutId = searchParams.get('workout_id');
+    const studentId = searchParams.get('student_id');
 
     const [workout, setWorkout] = useState<any>(null);
     const [items, setItems] = useState<any[]>([]);
@@ -228,19 +230,20 @@ const Editor: React.FC = () => {
 
             // Success
             navigate(-1);
+            toast.success('Treino salvo com sucesso!');
 
         } catch (error) {
             console.error('Save Error:', error);
-            alert('Erro ao salvar treino. Tente novamente.');
+            toast.error('Erro ao salvar treino. Tente novamente.');
         } finally {
             setSaving(false);
         }
     };
 
     return (
-        <MainLayout className="pb-32 bg-slate-50 dark:bg-slate-900 min-h-screen">
+        <MainLayout>
             {/* Header */}
-            <header className="px-5 py-4 flex items-center justify-between sticky top-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm z-30 border-b border-slate-100 dark:border-slate-800">
+            <header className="px-5 py-4 flex items-center justify-between sticky top-0 bg-white dark:bg-slate-900 z-30 border-b border-slate-100 dark:border-slate-800">
                 <div className="flex items-center gap-3">
                     <button onClick={() => navigate(-1)} className="p-2 -ml-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
                         <span className="material-symbols-rounded text-slate-500">arrow_back</span>
@@ -253,7 +256,7 @@ const Editor: React.FC = () => {
                 <button
                     onClick={handleSave}
                     disabled={saving}
-                    className="text-primary font-bold hover:bg-primary/5 px-4 py-2 rounded-xl transition-colors disabled:opacity-50"
+                    className="bg-sky-500 hover:bg-sky-600 !text-white font-bold px-5 py-2 rounded-xl transition-colors disabled:opacity-50 shadow-sm shadow-sky-500/20"
                 >
                     {saving ? 'Salvando...' : 'Salvar'}
                 </button>
@@ -284,6 +287,7 @@ const Editor: React.FC = () => {
                                 <ExerciseCard
                                     item={item}
                                     index={index}
+                                    studentId={studentId}
                                     onUpdate={(updated) => handleUpdateItem(index, updated)}
                                     onDelete={() => handleDeleteItem(index)}
                                 />
@@ -304,9 +308,9 @@ const Editor: React.FC = () => {
 
             {/* Library Modal Overlay */}
             {showLibrary && (
-                <div className="fixed inset-0 z-[60] bg-white dark:bg-slate-900 animate-slide-up overflow-auto">
+                <div className="fixed inset-0 z-[60] bg-white dark:bg-slate-900 overflow-auto">
                     {/* Simplified Header for Modal Mode */}
-                    <div className="sticky top-0 z-10 bg-white/95 dark:bg-slate-900/95 backdrop-blur border-b border-slate-100 p-4 flex items-center gap-3">
+                    <div className="sticky top-0 z-10 bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800 p-4 flex items-center gap-3">
                         <button onClick={() => setShowLibrary(false)} className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800">
                             <span className="material-symbols-rounded">close</span>
                         </button>

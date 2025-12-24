@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import TypeSelectionModal from './TypeSelectionModal';
 import RPEGuideModal from './RPEGuideModal';
-import VideoPlayerModal from './VideoPlayerModal';
+import VideoPlayerModal from '../../shared/VideoPlayerModal';
+import ExerciseHistoryModal from '../../shared/ExerciseHistoryModal';
+import VideoThumbnail from '../../shared/VideoThumbnail';
 
 interface Set {
     id: string; // Temporarily just random string if new
@@ -18,10 +20,11 @@ interface ExerciseCardProps {
     index: number;
     onUpdate: (updatedItem: any) => void;
     onDelete: () => void;
+    studentId?: string | null;
     dragHandleProps?: any; // Props for the drag handle
 }
 
-const ExerciseCard: React.FC<ExerciseCardProps> = ({ item, index, onUpdate, onDelete, dragHandleProps }) => {
+const ExerciseCard: React.FC<ExerciseCardProps> = ({ item, index, onUpdate, onDelete, studentId, dragHandleProps }) => {
     const [sets, setSets] = useState<Set[]>(item.sets || []);
     const [notes, setNotes] = useState(item.coach_notes || '');
 
@@ -30,6 +33,7 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({ item, index, onUpdate, onDe
     const [rpeModalOpen, setRpeModalOpen] = useState(false);
     const [showDescription, setShowDescription] = useState(false);
     const [showVideoModal, setShowVideoModal] = useState(false);
+    const [showHistoryModal, setShowHistoryModal] = useState(false);
 
     // Sync back to parent whenever local state changes (debounced could be better but direct for now)
     const updateParent = (newSets: Set[], newNotes: string) => {
@@ -125,6 +129,8 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({ item, index, onUpdate, onDe
                                 <span className="material-symbols-rounded text-white drop-shadow-md text-lg">play_circle</span>
                             </div>
                         </div>
+                    ) : videoUrl?.match(/\.mp4($|\?)/i) ? (
+                        <VideoThumbnail src={videoUrl} className="w-full h-full rounded-lg" />
                     ) : (
                         <div className="w-full h-full flex items-center justify-center text-slate-400">
                             <span className="material-symbols-rounded text-xl">image</span>
@@ -138,6 +144,16 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({ item, index, onUpdate, onDe
                         <span className="material-symbols-rounded text-slate-400 text-sm transition-transform duration-300" style={{ transform: showDescription ? 'rotate(180deg)' : 'rotate(0deg)' }}>expand_more</span>
                     </div>
                 </div>
+
+                {studentId && (
+                    <button
+                        onClick={() => setShowHistoryModal(true)}
+                        className="p-2 text-sky-500 hover:bg-sky-50 dark:hover:bg-sky-900/20 rounded-lg transition-colors"
+                        title="Ver histórico do aluno"
+                    >
+                        <span className="material-symbols-rounded">history</span>
+                    </button>
+                )}
 
                 <button onClick={onDelete} className="p-2 text-slate-400 hover:text-red-500 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
                     <span className="material-symbols-rounded">delete</span>
@@ -298,6 +314,15 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({ item, index, onUpdate, onDe
                 title={item.exercise?.name}
             />
 
+            {studentId && (
+                <ExerciseHistoryModal
+                    isOpen={showHistoryModal}
+                    onClose={() => setShowHistoryModal(false)}
+                    exerciseId={item.exercise_id || item.exercise?.id}
+                    exerciseName={item.exercise?.name}
+                    studentId={studentId}
+                />
+            )}
         </div>
     );
 };

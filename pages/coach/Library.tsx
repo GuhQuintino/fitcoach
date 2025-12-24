@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import MainLayout from '../../layouts/MainLayout';
+import MainLayout from '../../components/Layout/MainLayout';
 import { supabase } from '../../lib/supabaseClient';
 import { useAuth } from '../../contexts/AuthContext';
 import { Link, useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
 
 const Library: React.FC = () => {
     const { user } = useAuth();
@@ -44,6 +45,7 @@ const Library: React.FC = () => {
                 .from('routines')
                 .select('*')
                 .eq('coach_id', user!.id)
+                .eq('is_template', true)
                 .order('created_at', { ascending: false });
 
             if (routinesError) throw routinesError;
@@ -95,30 +97,113 @@ const Library: React.FC = () => {
         try {
             setAssignLoading(true);
 
-            // Deactivate previous active routines for this student
+            // 1. Fetch Original Routine Data (Deep)
+            const { data: fullRoutine, error: fError } = await supabase
+                .from('routines')
+                .select(`
+                    *,
+                    workouts (
+                        *,
+                        workout_items (
+                            *,
+                            workout_sets (*)
+                        )
+                    )
+                `)
+                .eq('id', selectedRoutineForAssign.id)
+                .single();
+
+            if (fError) throw fError;
+
+            // 2. Clone Routine (Student-specific)
+            const { data: newRoutine, error: rError } = await supabase
+                .from('routines')
+                .insert([{
+                    coach_id: user!.id,
+                    name: fullRoutine.name,
+                    description: fullRoutine.description,
+                    is_template: false,
+                    duration_weeks: fullRoutine.duration_weeks
+                }])
+                .select()
+                .single();
+
+            if (rError) throw rError;
+
+            // 3. Clone Workouts and Descendants
+            if (fullRoutine.workouts && fullRoutine.workouts.length > 0) {
+                // We'll do this sequentially to maintain relationships correctly
+                for (const w of fullRoutine.workouts) {
+                    const { data: newW, error: wError } = await supabase
+                        .from('workouts')
+                        .insert([{
+                            routine_id: newRoutine.id,
+                            name: w.name,
+                            order_index: w.order_index
+                        }])
+                        .select()
+                        .single();
+
+                    if (wError) throw wError;
+
+                    if (w.workout_items && w.workout_items.length > 0) {
+                        for (const item of w.workout_items) {
+                            const { data: newItem, error: iError } = await supabase
+                                .from('workout_items')
+                                .insert([{
+                                    workout_id: newW.id,
+                                    exercise_id: item.exercise_id,
+                                    order_index: item.order_index,
+                                    coach_notes: item.coach_notes
+                                }])
+                                .select()
+                                .single();
+
+                            if (iError) throw iError;
+
+                            if (item.workout_sets && item.workout_sets.length > 0) {
+                                const setsToInsert = item.workout_sets.map((s: any) => ({
+                                    workout_item_id: newItem.id,
+                                    type: s.type,
+                                    reps_target: s.reps_target,
+                                    rest_seconds: s.rest_seconds,
+                                    rpe_target: s.rpe_target,
+                                    order_index: s.order_index
+                                }));
+
+                                const { error: sError } = await supabase
+                                    .from('workout_sets')
+                                    .insert(setsToInsert);
+                                if (sError) throw sError;
+                            }
+                        }
+                    }
+                }
+            }
+
+            // 4. Update Assignment to point to the NEW Routine
+            // Deactivate previous
             await supabase
                 .from('student_assignments')
                 .update({ is_active: false })
                 .eq('student_id', studentId);
 
-            // Create new assignment
-            const { error } = await supabase
+            const { error: aError } = await supabase
                 .from('student_assignments')
                 .insert([{
                     student_id: studentId,
-                    routine_id: selectedRoutineForAssign.id,
-                    coach_id: user!.id,
+                    routine_id: newRoutine.id,
                     is_active: true,
-                    assigned_at: new Date()
+                    started_at: new Date().toISOString().split('T')[0]
                 }]);
 
-            if (error) throw error;
+            if (aError) throw aError;
 
-            alert(`Rotina atribuída com sucesso para o aluno!`);
+            toast.success('Treino clonado e atribuído individualmente!');
             setIsAssignModalOpen(false);
         } catch (error) {
             console.error('Error assigning routine:', error);
-            alert('Erro ao atribuir rotina.');
+            toast.error('Erro ao atribuir treino individual.');
         } finally {
             setAssignLoading(false);
         }
@@ -159,10 +244,11 @@ const Library: React.FC = () => {
             setEditingRoutine(null);
             setFormData({ name: '', duration_minutes: '50-60', level: 'Iniciante', frequency: '3' });
             fetchRoutines();
+            toast.success('Rotina salva com sucesso!');
 
         } catch (error) {
             console.error('Error saving routine:', error);
-            alert('Erro ao salvar rotina.');
+            toast.error('Erro ao salvar rotina.');
         } finally {
             setSaveLoading(false);
         }
@@ -176,9 +262,10 @@ const Library: React.FC = () => {
             const { error } = await supabase.from('routines').delete().eq('id', id);
             if (error) throw error;
             fetchRoutines();
+            toast.success('Rotina excluída com sucesso.');
         } catch (error) {
             console.error('Error deleting routine:', error);
-            alert('Cannot delete routine with active assignments.');
+            toast.error('Não é possível excluir rotina com atribuições ativas.');
         }
     };
 
@@ -211,8 +298,8 @@ const Library: React.FC = () => {
     });
 
     return (
-        <MainLayout className="pb-24">
-            <header className="px-5 py-6 flex items-center justify-between sticky top-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm z-30 border-b border-slate-100 dark:border-slate-700">
+        <MainLayout>
+            <header className="px-5 py-6 flex items-center justify-between sticky top-0 bg-white dark:bg-slate-900 z-30 border-b border-slate-100 dark:border-slate-700">
                 <div className="flex items-center gap-3">
                     <Link to="/coach/dashboard" className="p-2 -ml-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
                         <span className="material-symbols-rounded text-slate-500">arrow_back</span>
@@ -244,8 +331,8 @@ const Library: React.FC = () => {
                                 key={level}
                                 onClick={() => setFilterLevel(level)}
                                 className={`whitespace-nowrap px-3 py-1.5 rounded-lg text-xs font-bold transition-all border ${filterLevel === level
-                                        ? 'bg-slate-800 text-white border-slate-800 dark:bg-white dark:text-slate-900'
-                                        : 'bg-white dark:bg-slate-800 text-slate-500 border-slate-200 dark:border-slate-700'
+                                    ? 'bg-slate-800 text-white border-slate-800 dark:bg-white dark:text-slate-900'
+                                    : 'bg-white dark:bg-slate-800 text-slate-500 border-slate-200 dark:border-slate-700'
                                     }`}
                             >
                                 {level === 'all' ? 'Todos' : level}
@@ -331,7 +418,7 @@ const Library: React.FC = () => {
                             setFormData({ name: '', duration_minutes: '50-60', level: 'Iniciante', frequency: '3' });
                             setIsRoutineModalOpen(true);
                         }}
-                        className="w-full bg-primary text-white py-4 rounded-xl shadow-lg shadow-primary/30 flex items-center justify-center gap-2 font-bold text-lg hover:bg-primary-dark transition-all transform active:scale-[0.98]"
+                        className="w-full bg-sky-500 text-white py-4 rounded-xl shadow-lg shadow-sky-500/30 flex items-center justify-center gap-2 font-bold text-lg hover:bg-sky-600 transition-all transform active:scale-[0.98]"
                     >
                         <span className="material-symbols-rounded">add_circle</span>
                         Adicionar Nova Rotina
@@ -341,8 +428,8 @@ const Library: React.FC = () => {
 
             {/* Routine Modal */}
             {isRoutineModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-5 bg-black/60 backdrop-blur-sm animate-fade-in">
-                    <div className="bg-white dark:bg-slate-800 w-full max-w-md rounded-2xl p-6 shadow-2xl animate-scale-up">
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-5 bg-black/70">
+                    <div className="bg-white dark:bg-slate-800 w-full max-w-md rounded-2xl p-6 shadow-xl">
                         <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-4">
                             {editingRoutine ? 'Editar Rotina' : 'Nova Rotina'}
                         </h2>
@@ -395,7 +482,7 @@ const Library: React.FC = () => {
 
                             <div className="flex gap-3 pt-2">
                                 <button type="button" onClick={() => setIsRoutineModalOpen(false)} className="flex-1 py-3 text-slate-500 font-bold hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl transition-colors">Cancelar</button>
-                                <button type="submit" disabled={saveLoading} className="flex-1 bg-primary text-white font-bold rounded-xl py-3 shadow-lg hover:bg-primary-dark transition-colors flex items-center justify-center gap-2">
+                                <button type="submit" disabled={saveLoading} className="flex-1 bg-sky-500 text-white font-bold rounded-xl py-3 shadow-lg hover:bg-sky-600 transition-colors flex items-center justify-center gap-2">
                                     {saveLoading && <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>}
                                     Salvar
                                 </button>
@@ -407,8 +494,8 @@ const Library: React.FC = () => {
 
             {/* Assign Modal */}
             {isAssignModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-5 bg-black/60 backdrop-blur-sm animate-fade-in">
-                    <div className="bg-white dark:bg-slate-800 w-full max-w-md rounded-2xl p-6 shadow-2xl animate-scale-up max-h-[80vh] overflow-hidden flex flex-col">
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-5 bg-black/70">
+                    <div className="bg-white dark:bg-slate-800 w-full max-w-md rounded-2xl p-6 shadow-xl max-h-[80vh] overflow-hidden flex flex-col">
                         <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-4">
                             Atribuir "{selectedRoutineForAssign?.name}"
                         </h2>
@@ -431,7 +518,7 @@ const Library: React.FC = () => {
                                         <button
                                             disabled={assignLoading}
                                             onClick={() => handleAssign(student.id)}
-                                            className="px-3 py-1.5 bg-primary text-white text-xs font-bold rounded-lg hover:bg-primary-dark transition-colors"
+                                            className="px-3 py-1.5 bg-sky-500 text-white text-xs font-bold rounded-lg hover:bg-sky-600 transition-colors"
                                         >
                                             Selecionar
                                         </button>
