@@ -15,7 +15,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
     const showNav = !!session;
 
     return (
-        <div className="min-h-screen w-full bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-50 transition-colors duration-300">
+        <div className="min-h-screen w-full bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-50 transition-colors duration-300 overflow-x-hidden">
             {/* Main Content Container */}
             <div className="w-full max-w-5xl mx-auto min-h-screen relative flex flex-col shadow-2xl bg-white dark:bg-slate-900">
 

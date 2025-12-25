@@ -105,6 +105,7 @@
     scroll-behavior: smooth;
     overscroll-behavior-y: contain;
     touch-action: manipulation;
+    overflow-x: hidden;
   }
 
   body {
@@ -112,6 +113,9 @@
     background-color: var(--color-background-light, #FFFFFF);
     color: var(--color-text-primary-light, #0F172A);
     touch-action: manipulation;
+    overflow-x: hidden;
+    position: relative;
+    width: 100%;
   }
 
   .dark body {

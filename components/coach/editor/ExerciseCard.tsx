@@ -188,7 +188,7 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({ item, index, onUpdate, onDe
 
             {/* Sets Table */}
             <div className="p-2 sm:p-4">
-                <div className="grid grid-cols-[2.5rem_1.2fr_1.2fr_1fr_1.2fr_auto] gap-2 mb-2 px-1 text-[10px] items-center font-bold text-slate-400 uppercase tracking-wider text-center">
+                <div className="grid grid-cols-[2rem_1fr_1fr_1fr_1fr_auto] sm:grid-cols-[2.5rem_1.2fr_1.2fr_1fr_1.2fr_auto] gap-1 sm:gap-2 mb-2 px-1 text-[10px] items-center font-bold text-slate-400 uppercase tracking-wider text-center">
                     <div className="text-center">#</div>
                     <div>kg</div>
                     <div>Reps</div>
@@ -206,7 +206,7 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({ item, index, onUpdate, onDe
                         const workingSetIndex = sets.slice(0, i + 1).filter(s => s.type === 'working').length;
 
                         return (
-                            <div key={set.id} className="grid grid-cols-[2.5rem_1.2fr_1.2fr_1fr_1.2fr_auto] gap-2 items-center">
+                            <div key={set.id} className="grid grid-cols-[2rem_1fr_1fr_1fr_1fr_auto] sm:grid-cols-[2.5rem_1.2fr_1.2fr_1fr_1.2fr_auto] gap-1 sm:gap-2 items-center">
                                 {/* Type Selector */}
                                 <button
                                     onClick={() => setTypeModal({ isOpen: true, setIndex: i })}
