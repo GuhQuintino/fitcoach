@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useMemo } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabaseClient';
+import toast from 'react-hot-toast';
 
 type Role = 'admin' | 'coach' | 'student' | null;
 
@@ -145,6 +146,49 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             setLoading(false);
         }
     };
+
+    // Real-time listener for coaches to receive student sign-up notifications
+    useEffect(() => {
+        if (role !== 'coach' || !user) return;
+
+        const channel = supabase
+            .channel('coach_notifications')
+            .on(
+                'postgres_changes',
+                {
+                    event: 'INSERT',
+                    schema: 'public',
+                    table: 'students_data',
+                    filter: `coach_id=eq.${user.id}`
+                },
+                async (payload) => {
+                    // Fetch student name for the notification
+                    const { data: profile } = await supabase
+                        .from('profiles')
+                        .select('full_name')
+                        .eq('id', payload.new.id)
+                        .single();
+
+                    const studentName = profile?.full_name || 'Um novo aluno';
+                    toast.success(`${studentName} acabou de se cadastrar usando seu link!`, {
+                        duration: 6000,
+                        icon: '👋',
+                        style: {
+                            borderRadius: '16px',
+                            background: '#0f172a',
+                            color: '#fff',
+                            fontSize: '14px',
+                            fontWeight: 'bold'
+                        }
+                    });
+                }
+            )
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
+    }, [role, user]);
 
     const signOut = async () => {
         await supabase.auth.signOut();

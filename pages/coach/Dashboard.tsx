@@ -79,6 +79,43 @@ const CoachDashboard: React.FC = () => {
                     activePercentage: totalCount > 0 ? Math.round((activeCount / totalCount) * 100) : 0
                 });
 
+                // 4. Calculate Updates Count
+                let totalUpdates = pendingCount;
+
+                // Check for students without active routines
+                const activeStudentIds = profiles?.filter(p => p.status === 'active').map(p => p.id) || [];
+                if (activeStudentIds.length > 0) {
+                    const { data: assignments } = await supabase
+                        .from('student_assignments')
+                        .select('student_id')
+                        .eq('is_active', true)
+                        .in('student_id', activeStudentIds);
+
+                    const withRoutine = new Set(assignments?.map(a => a.student_id));
+                    const noRoutineCount = activeStudentIds.length - withRoutine.size;
+                    totalUpdates += noRoutineCount;
+                }
+
+                // Check for expiring plans (next 7 days)
+                const { data: expiringData } = await supabase
+                    .from('students_data')
+                    .select('consultancy_expires_at')
+                    .eq('coach_id', user.id)
+                    .not('consultancy_expires_at', 'is', null);
+
+                const now = new Date();
+                const sevenDays = new Date();
+                sevenDays.setDate(now.getDate() + 7);
+
+                const expiringCount = expiringData?.filter(s => {
+                    const exp = new Date(s.consultancy_expires_at);
+                    return exp <= sevenDays;
+                }).length || 0;
+
+                totalUpdates += expiringCount;
+                setUpdatesCount(totalUpdates);
+
+                // Fetch Feedback Count
                 if (studentIds.length > 0) {
                     const { count, error: countError } = await supabase
                         .from('workout_logs')
@@ -90,8 +127,6 @@ const CoachDashboard: React.FC = () => {
                         setRecentFeedbacksCount(count || 0);
                     }
                 }
-
-                setUpdatesCount(0); // Still mock for now
 
             } catch (error) {
                 console.error('Error fetching dashboard stats:', error);

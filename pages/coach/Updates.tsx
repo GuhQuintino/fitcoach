@@ -8,6 +8,7 @@ const Updates: React.FC = () => {
     const { user } = useAuth();
     const [expiringStudents, setExpiringStudents] = useState<any[]>([]);
     const [noRoutineStudents, setNoRoutineStudents] = useState<any[]>([]);
+    const [pendingStudents, setPendingStudents] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -79,6 +80,10 @@ const Updates: React.FC = () => {
                 setNoRoutineStudents([]);
             }
 
+            // 3. Fetch Pending Approvals
+            const pending = studentsData?.filter((s: any) => s.profiles?.status === 'pending') || [];
+            setPendingStudents(pending);
+
         } catch (error) {
             console.error('Error fetching updates:', error);
         } finally {
@@ -104,6 +109,39 @@ const Updates: React.FC = () => {
             </header>
 
             <main className="px-5 space-y-8">
+                {/* Section: Pending Approvals */}
+                {pendingStudents.length > 0 && (
+                    <section>
+                        <div className="flex items-center gap-2 mb-4">
+                            <span className="material-symbols-rounded text-blue-500">person_add</span>
+                            <h2 className="text-lg font-bold text-slate-900 dark:text-white">Aprovações Pendentes</h2>
+                        </div>
+
+                        <div className="space-y-3">
+                            {pendingStudents.map(student => (
+                                <div key={student.id} className="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-soft border border-slate-100 dark:border-slate-700 flex items-center justify-between animate-pulse-slow">
+                                    <div className="flex items-center gap-3">
+                                        <img
+                                            src={student.profiles?.avatar_url || `https://ui-avatars.com/api/?name=${student.profiles?.full_name || 'Aluno'}&background=random`}
+                                            alt=""
+                                            className="w-10 h-10 rounded-full bg-slate-100"
+                                        />
+                                        <div>
+                                            <h3 className="font-bold text-slate-900 dark:text-white text-sm">{student.profiles?.full_name || 'Usuário'}</h3>
+                                            <p className="text-xs text-blue-500 font-bold uppercase tracking-wider">Novo Cadastro</p>
+                                        </div>
+                                    </div>
+                                    <Link
+                                        to={`/coach/students`}
+                                        className="px-3 py-1.5 bg-blue-500 text-white text-xs font-bold rounded-lg hover:bg-blue-600 shadow-md shadow-blue-500/20 transition-all active:scale-95"
+                                    >
+                                        Ver Aluno
+                                    </Link>
+                                </div>
+                            ))}
+                        </div>
+                    </section>
+                )}
                 {/* Section: Expiring Plans */}
                 <section>
                     <div className="flex items-center gap-2 mb-4">
