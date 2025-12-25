@@ -207,7 +207,10 @@ const RoutineDetails: React.FC = () => {
                 for (const update of updates) {
                     await supabase
                         .from('workouts')
-                        .update({ day_number: update.day_number })
+                        .update({
+                            day_number: update.day_number,
+                            order_index: update.day_number
+                        })
                         .eq('id', update.id);
                 }
             }

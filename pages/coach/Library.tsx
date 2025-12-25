@@ -140,7 +140,8 @@ const Library: React.FC = () => {
                         .insert([{
                             routine_id: newRoutine.id,
                             name: w.name,
-                            order_index: w.order_index
+                            day_number: w.day_number || w.order_index,
+                            order_index: w.order_index || w.day_number
                         }])
                         .select()
                         .single();

@@ -116,7 +116,7 @@ const StudentProfileView: React.FC = () => {
                     .from('workouts')
                     .select('*')
                     .eq('routine_id', assignment.routines.id)
-                    .order('order_index', { ascending: true });
+                    .order('day_number', { ascending: true });
                 setWorkouts(wData || []);
             } else {
                 setActiveRoutine(null);
@@ -237,7 +237,12 @@ const StudentProfileView: React.FC = () => {
             }));
 
             for (const update of updates) {
-                await supabase.from('workouts').update({ day_number: update.day_number }).eq('id', update.id);
+                await supabase.from('workouts')
+                    .update({
+                        day_number: update.day_number,
+                        order_index: update.day_number // Manter ambos sincronizados
+                    })
+                    .eq('id', update.id);
             }
         } catch (error) {
             console.error('Error reordering workouts:', error);
