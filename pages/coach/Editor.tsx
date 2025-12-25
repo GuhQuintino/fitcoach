@@ -33,6 +33,7 @@ const Editor: React.FC = () => {
     const fetchWorkoutData = async () => {
         try {
             setLoading(true);
+            setItems([]); // Clear current items to avoid ghost data
             // Fetch workout details + routine name
             const { data: wData, error: wError } = await supabase
                 .from('workouts')
@@ -272,12 +273,34 @@ const Editor: React.FC = () => {
         };
     }, [items, hasUnsavedChanges, loading]);
 
+    // Prevent accidental navigation with unsaved changes
+    useEffect(() => {
+        const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+            if (hasUnsavedChanges) {
+                e.preventDefault();
+                e.returnValue = '';
+            }
+        };
+        window.addEventListener('beforeunload', handleBeforeUnload);
+        return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+    }, [hasUnsavedChanges]);
+
+    const handleBack = () => {
+        if (hasUnsavedChanges) {
+            if (confirm('Existem alterações não salvas. Deseja sair mesmo assim?')) {
+                navigate(-1);
+            }
+        } else {
+            navigate(-1);
+        }
+    };
+
     return (
         <MainLayout>
             {/* Header */}
             <header className="px-5 py-4 flex items-center justify-between sticky top-0 bg-white dark:bg-slate-900 z-30 border-b border-slate-100 dark:border-slate-800">
                 <div className="flex items-center gap-3">
-                    <button onClick={() => navigate(-1)} className="p-2 -ml-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                    <button onClick={handleBack} className="p-2 -ml-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
                         <span className="material-symbols-rounded text-slate-500">arrow_back</span>
                     </button>
                     <div>
