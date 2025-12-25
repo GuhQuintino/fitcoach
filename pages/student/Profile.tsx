@@ -638,6 +638,7 @@ const StudentProfile: React.FC = () => {
                                 <span className="text-sm text-slate-500 dark:text-slate-400">Português</span>
                             </div>
                         </div>
+                    </div>
                 </section>
 
                 {/* Logout Button */}
