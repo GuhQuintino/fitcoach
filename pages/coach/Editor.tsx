@@ -18,6 +18,12 @@ const Editor: React.FC = () => {
     const [items, setItems] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
+    const [lastSaved, setLastSaved] = useState<Date | null>(null);
+    const [isAutoSaving, setIsAutoSaving] = useState(false);
+    const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+
+    // Auto-save debounce timer
+    const saveTimerRef = useRef<NodeJS.Timeout | null>(null);
 
     // Initial Fetch
     useEffect(() => {
@@ -71,12 +77,14 @@ const Editor: React.FC = () => {
         const newItems = [...items];
         newItems[index] = updatedItem;
         setItems(newItems);
+        setHasUnsavedChanges(true);
     };
 
     const handleDeleteItem = async (index: number) => {
         if (!confirm('Remover exercício?')) return;
         const newItems = items.filter((_, i) => i !== index);
         setItems(newItems);
+        setHasUnsavedChanges(true);
     };
 
     // --- Drag & Drop ---
@@ -95,6 +103,7 @@ const Editor: React.FC = () => {
             const draggedItemContent = _items.splice(dragItem.current, 1)[0];
             _items.splice(dragOverItem.current, 0, draggedItemContent);
             setItems(_items);
+            setHasUnsavedChanges(true);
         }
         dragItem.current = null;
         dragOverItem.current = null;
@@ -127,14 +136,16 @@ const Editor: React.FC = () => {
             ]
         };
         setItems([...items, newItem]);
+        setHasUnsavedChanges(true);
         setShowLibrary(false);
     };
 
 
     // --- Saving ---
-    const handleSave = async () => {
+    const handleSave = async (isManual = true) => {
         try {
-            setSaving(true);
+            if (isManual) setSaving(true);
+            else setIsAutoSaving(true);
 
             // 1. Clean up removed Items
             const currentIds = items.filter(i => !i.id.toString().startsWith('temp')).map(i => i.id);
@@ -229,16 +240,37 @@ const Editor: React.FC = () => {
             }
 
             // Success
-            navigate(-1);
-            toast.success('Treino salvo com sucesso!');
+            setHasUnsavedChanges(false);
+            setLastSaved(new Date());
+
+            if (isManual) {
+                navigate(-1);
+                toast.success('Treino salvo com sucesso!');
+            }
 
         } catch (error) {
             console.error('Save Error:', error);
-            toast.error('Erro ao salvar treino. Tente novamente.');
+            if (isManual) toast.error('Erro ao salvar treino. Tente novamente.');
         } finally {
             setSaving(false);
+            setIsAutoSaving(false);
         }
     };
+
+    // Auto-save effect
+    useEffect(() => {
+        if (!loading && hasUnsavedChanges) {
+            if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+
+            saveTimerRef.current = setTimeout(() => {
+                handleSave(false);
+            }, 3000); // Save after 3 seconds of inactivity
+        }
+
+        return () => {
+            if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+        };
+    }, [items, hasUnsavedChanges, loading]);
 
     return (
         <MainLayout>
@@ -250,15 +282,28 @@ const Editor: React.FC = () => {
                     </button>
                     <div>
                         <p className="text-xs text-slate-500 font-bold uppercase tracking-wider">{workout?.routines?.name}</p>
-                        <h1 className="text-base font-bold text-slate-900 dark:text-white font-display leading-tight">{workout?.name || 'Editor'}</h1>
+                        <div className="flex items-center gap-2">
+                            <h1 className="text-base font-bold text-slate-900 dark:text-white font-display leading-tight">{workout?.name || 'Editor'}</h1>
+                            {isAutoSaving ? (
+                                <span className="text-[10px] text-sky-500 font-bold flex items-center gap-1 animate-pulse">
+                                    <span className="material-symbols-rounded text-[12px]">sync</span>
+                                    Salvando...
+                                </span>
+                            ) : lastSaved ? (
+                                <span className="text-[10px] text-emerald-500 font-bold flex items-center gap-1">
+                                    <span className="material-symbols-rounded text-[12px]">done</span>
+                                    Salvo {lastSaved.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                </span>
+                            ) : null}
+                        </div>
                     </div>
                 </div>
                 <button
-                    onClick={handleSave}
-                    disabled={saving}
-                    className="bg-sky-500 hover:bg-sky-600 !text-white font-bold px-5 py-2 rounded-xl transition-colors disabled:opacity-50 shadow-sm shadow-sky-500/20"
+                    onClick={() => handleSave(true)}
+                    disabled={saving || isAutoSaving}
+                    className="bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-bold px-5 py-2 rounded-xl transition-all disabled:opacity-50 shadow-sm active:scale-95"
                 >
-                    {saving ? 'Salvando...' : 'Salvar'}
+                    {saving ? 'Salvando...' : 'Sair e Salvar'}
                 </button>
             </header>
 

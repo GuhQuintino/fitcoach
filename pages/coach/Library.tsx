@@ -38,9 +38,9 @@ const Library: React.FC = () => {
         }
     }, [user]);
 
-    const fetchRoutines = async () => {
+    const fetchRoutines = async (isBackground = false) => {
         try {
-            setLoading(true);
+            if (!isBackground) setLoading(true);
             const { data: routinesData, error: routinesError } = await supabase
                 .from('routines')
                 .select('*')
@@ -235,7 +235,8 @@ const Library: React.FC = () => {
                     .insert([{
                         coach_id: user!.id,
                         name: formData.name,
-                        description: descriptionText
+                        description: descriptionText,
+                        is_template: true
                     }]);
                 if (error) throw error;
             }
@@ -243,7 +244,7 @@ const Library: React.FC = () => {
             setIsRoutineModalOpen(false);
             setEditingRoutine(null);
             setFormData({ name: '', duration_minutes: '50-60', level: 'Iniciante', frequency: '3' });
-            fetchRoutines();
+            fetchRoutines(true);
             toast.success('Rotina salva com sucesso!');
 
         } catch (error) {

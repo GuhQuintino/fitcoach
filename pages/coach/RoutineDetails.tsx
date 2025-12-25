@@ -37,9 +37,9 @@ const RoutineDetails: React.FC = () => {
         }
     }, [user, routineId]);
 
-    const fetchRoutineDetails = async () => {
+    const fetchRoutineDetails = async (isBackground = false) => {
         try {
-            setLoading(true);
+            if (!isBackground) setLoading(true);
 
             // 1. Fetch Routine Info
             const { data: routineData, error: routineError } = await supabase
@@ -115,7 +115,7 @@ const RoutineDetails: React.FC = () => {
             setIsWorkoutModalOpen(false);
             setEditingWorkout(null);
             setFormData({ name: '', description: '', duration_minutes: '' });
-            fetchRoutineDetails();
+            fetchRoutineDetails(true);
 
         } catch (error) {
             console.error('Error saving workout:', error);
