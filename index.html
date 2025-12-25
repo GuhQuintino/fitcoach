@@ -41,6 +41,26 @@
                 '</div>';
             console.error('Global Error Caught:', e);
         });
+
+        // Force disable zoom on mobile (iOS Safari ignores the meta tag)
+        document.addEventListener('touchstart', function (event) {
+            if (event.touches.length > 1) {
+                event.preventDefault();
+            }
+        }, { passive: false });
+
+        let lastTouchEnd = 0;
+        document.addEventListener('touchend', function (event) {
+            let now = (new Date()).getTime();
+            if (now - lastTouchEnd <= 300) {
+                event.preventDefault();
+            }
+            lastTouchEnd = now;
+        }, false);
+
+        document.addEventListener('gesturestart', function (event) {
+            event.preventDefault();
+        });
     </script>
     <!-- Tailwind CSS (Local Build) -->
     <!-- Configuration moved to tailwind.config.js and styles to index.css -->
