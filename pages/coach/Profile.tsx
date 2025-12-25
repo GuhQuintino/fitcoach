@@ -5,7 +5,7 @@ import { supabase } from '../../lib/supabaseClient';
 import toast from 'react-hot-toast';
 
 import { useAuth } from '../../contexts/AuthContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import InstallTutorial from '../../components/shared/InstallTutorial';
 
 const CoachProfile: React.FC = () => {
@@ -311,10 +311,9 @@ const CoachProfile: React.FC = () => {
                     </div>
                 </div>
 
-                {/* App Settings */}
-                <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl rounded-[2.5rem] border border-white dark:border-slate-700/50 p-4 space-y-2">
+                <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl rounded-[2.5rem] border border-white dark:border-slate-700/50 p-4 space-y-2 mb-4">
                     <InstallTutorial />
-                    <button className="w-full flex items-center justify-between p-4 hover:bg-slate-50 dark:hover:bg-slate-700/50 rounded-2xl transition-all group">
+                    <Link to="/coach/settings/notifications" className="w-full flex items-center justify-between p-4 hover:bg-slate-50 dark:hover:bg-slate-700/50 rounded-2xl transition-all group">
                         <div className="flex items-center gap-4">
                             <div className="p-2.5 bg-blue-500/10 text-blue-500 rounded-xl">
                                 <span className="material-symbols-rounded">notifications</span>
@@ -322,8 +321,8 @@ const CoachProfile: React.FC = () => {
                             <span className="font-bold text-slate-700 dark:text-slate-200">Notificações</span>
                         </div>
                         <span className="material-symbols-rounded text-slate-300 group-hover:translate-x-1 transition-transform">chevron_right</span>
-                    </button>
-                    <button className="w-full flex items-center justify-between p-4 hover:bg-slate-50 dark:hover:bg-slate-700/50 rounded-2xl transition-all group">
+                    </Link>
+                    <Link to="/coach/settings/privacy" className="w-full flex items-center justify-between p-4 hover:bg-slate-50 dark:hover:bg-slate-700/50 rounded-2xl transition-all group">
                         <div className="flex items-center gap-4">
                             <div className="p-2.5 bg-amber-500/10 text-amber-500 rounded-xl">
                                 <span className="material-symbols-rounded">shield</span>
@@ -331,7 +330,7 @@ const CoachProfile: React.FC = () => {
                             <span className="font-bold text-slate-700 dark:text-slate-200">Privacidade</span>
                         </div>
                         <span className="material-symbols-rounded text-slate-300 group-hover:translate-x-1 transition-transform">chevron_right</span>
-                    </button>
+                    </Link>
                 </div>
 
                 {/* Logout Button */}

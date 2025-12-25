@@ -36,6 +36,10 @@ const WorkoutExecution = lazy(() => import('./pages/student/WorkoutExecution'));
 const History = lazy(() => import('./pages/student/History'));
 const StudentProfile = lazy(() => import('./pages/student/Profile'));
 
+// Settings Pages
+const NotificationsSettings = lazy(() => import('./pages/settings/Notifications'));
+const PrivacySettings = lazy(() => import('./pages/settings/Privacy'));
+
 const RequireAuth: React.FC<{ children: React.ReactNode; allowedRole?: 'coach' | 'student' | 'admin'; skipExpirationCheck?: boolean }> = ({ children, allowedRole, skipExpirationCheck }) => {
     const { session, role, loading, status, expiresAt, coachExpiresAt } = useAuth();
     const location = useLocation();
@@ -143,6 +147,8 @@ const AppContent = () => {
                             <Route path="feedbacks" element={<Feedbacks />} />
                             <Route path="updates" element={<Updates />} />
                             <Route path="exercises" element={<Exercises />} />
+                            <Route path="settings/notifications" element={<NotificationsSettings />} />
+                            <Route path="settings/privacy" element={<PrivacySettings />} />
                         </Routes>
                     </RequireAuth>
                 } />
@@ -156,6 +162,8 @@ const AppContent = () => {
                             <Route path="workout/:id" element={<WorkoutExecution />} />
                             <Route path="history" element={<History />} />
                             <Route path="profile" element={<StudentProfile />} />
+                            <Route path="settings/notifications" element={<NotificationsSettings />} />
+                            <Route path="settings/privacy" element={<PrivacySettings />} />
                         </Routes>
                     </RequireAuth>
                 } />

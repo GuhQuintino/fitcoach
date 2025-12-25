@@ -74,40 +74,47 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const fetchUserProfile = async (userId: string) => {
         if (!userId) return;
         try {
-            const { data, error } = await supabase
+            // First, fetch the core profile to get the role
+            const { data: profile, error } = await supabase
                 .from('profiles')
                 .select('role, status, avatar_url')
                 .eq('id', userId)
                 .single();
 
-            if (data) {
-                setRole(data.role as Role);
-                setStatus(data.status);
-                setAvatarUrl(data.avatar_url);
+            if (error) throw error;
 
-                // Fetch Expiration Date based on Role
-                if (data.role === 'coach') {
+            if (profile) {
+                setRole(profile.role as Role);
+                setStatus(profile.status);
+                setAvatarUrl(profile.avatar_url);
+
+                // Fetch extra data in parallel based on role
+                if (profile.role === 'coach') {
                     const { data: coachData } = await supabase
                         .from('coaches_data')
                         .select('subscription_expires_at')
                         .eq('id', userId)
                         .single();
                     setExpiresAt(coachData?.subscription_expires_at ?? null);
-                } else if (data.role === 'student') {
+                } else if (profile.role === 'student') {
                     const { data: studentData } = await supabase
                         .from('students_data')
                         .select('consultancy_expires_at, coach_id')
                         .eq('id', userId)
                         .single();
-                    setExpiresAt(studentData?.consultancy_expires_at ?? null);
 
-                    if (studentData?.coach_id) {
-                        const { data: coachDataDesc } = await supabase
-                            .from('coaches_data')
-                            .select('subscription_expires_at')
-                            .eq('id', studentData.coach_id)
-                            .single();
-                        setCoachExpiresAt(coachDataDesc?.subscription_expires_at ?? null);
+                    if (studentData) {
+                        setExpiresAt(studentData.consultancy_expires_at ?? null);
+
+                        if (studentData.coach_id) {
+                            // Fetch coach subscription status
+                            const { data: coachDataDesc } = await supabase
+                                .from('coaches_data')
+                                .select('subscription_expires_at')
+                                .eq('id', studentData.coach_id)
+                                .single();
+                            setCoachExpiresAt(coachDataDesc?.subscription_expires_at ?? null);
+                        }
                     }
                 }
             }
