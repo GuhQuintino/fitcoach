@@ -6,6 +6,7 @@ import toast from 'react-hot-toast';
 
 import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import InstallTutorial from '../../components/shared/InstallTutorial';
 
 const CoachProfile: React.FC = () => {
     const { user, signOut } = useAuth();
@@ -312,6 +313,7 @@ const CoachProfile: React.FC = () => {
 
                 {/* App Settings */}
                 <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl rounded-[2.5rem] border border-white dark:border-slate-700/50 p-4 space-y-2">
+                    <InstallTutorial />
                     <button className="w-full flex items-center justify-between p-4 hover:bg-slate-50 dark:hover:bg-slate-700/50 rounded-2xl transition-all group">
                         <div className="flex items-center gap-4">
                             <div className="p-2.5 bg-blue-500/10 text-blue-500 rounded-xl">

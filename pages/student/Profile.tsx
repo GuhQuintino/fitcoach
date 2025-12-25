@@ -7,6 +7,7 @@ import { supabase } from '../../lib/supabaseClient';
 import toast from 'react-hot-toast';
 import EvolutionGallery from '../../components/student/EvolutionGallery';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import InstallTutorial from '../../components/shared/InstallTutorial';
 
 const StudentProfile: React.FC = () => {
     const { user, signOut } = useAuth();
@@ -602,39 +603,41 @@ const StudentProfile: React.FC = () => {
                 {/* Settings Section */}
                 <section className="space-y-3 animate-slide-up">
                     <h3 className="text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider ml-1">Configurações</h3>
-                    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-soft border border-slate-100 dark:border-slate-700 overflow-hidden divide-y divide-slate-100 dark:divide-slate-700">
-                        <div className="flex items-center justify-between p-4 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors cursor-pointer">
-                            <div className="flex items-center gap-3">
-                                <div className="p-2 rounded-xl bg-sky-50 dark:bg-sky-900/20 text-primary">
-                                    <span className="material-symbols-rounded">notifications</span>
+                    <div className="space-y-3">
+                        <InstallTutorial />
+                        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-soft border border-slate-100 dark:border-slate-700 overflow-hidden divide-y divide-slate-100 dark:divide-slate-700">
+                            <div className="flex items-center justify-between p-4 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors cursor-pointer">
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 rounded-xl bg-sky-50 dark:bg-sky-900/20 text-primary">
+                                        <span className="material-symbols-rounded">notifications</span>
+                                    </div>
+                                    <p className="text-sm font-medium text-slate-900 dark:text-white">Notificações</p>
                                 </div>
-                                <p className="text-sm font-medium text-slate-900 dark:text-white">Notificações</p>
+                                <div className="relative">
+                                    <input
+                                        type="checkbox"
+                                        id="notifications-toggle"
+                                        className="sr-only peer"
+                                        defaultChecked
+                                    />
+                                    <label
+                                        htmlFor="notifications-toggle"
+                                        className="block w-10 h-6 bg-slate-200 dark:bg-slate-600 rounded-full cursor-pointer peer-checked:bg-primary transition-colors"
+                                    >
+                                        <span className="absolute left-1 top-1 w-4 h-4 bg-white rounded-full shadow-sm transition-transform peer-checked:translate-x-4"></span>
+                                    </label>
+                                </div>
                             </div>
-                            <div className="relative">
-                                <input
-                                    type="checkbox"
-                                    id="notifications-toggle"
-                                    className="sr-only peer"
-                                    defaultChecked
-                                />
-                                <label
-                                    htmlFor="notifications-toggle"
-                                    className="block w-10 h-6 bg-slate-200 dark:bg-slate-600 rounded-full cursor-pointer peer-checked:bg-primary transition-colors"
-                                >
-                                    <span className="absolute left-1 top-1 w-4 h-4 bg-white rounded-full shadow-sm transition-transform peer-checked:translate-x-4"></span>
-                                </label>
+                            <div className="flex items-center justify-between p-4 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors cursor-pointer">
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 text-success">
+                                        <span className="material-symbols-rounded">language</span>
+                                    </div>
+                                    <p className="text-sm font-medium text-slate-900 dark:text-white">Idioma</p>
+                                </div>
+                                <span className="text-sm text-slate-500 dark:text-slate-400">Português</span>
                             </div>
                         </div>
-                        <div className="flex items-center justify-between p-4 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors cursor-pointer">
-                            <div className="flex items-center gap-3">
-                                <div className="p-2 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 text-success">
-                                    <span className="material-symbols-rounded">language</span>
-                                </div>
-                                <p className="text-sm font-medium text-slate-900 dark:text-white">Idioma</p>
-                            </div>
-                            <span className="text-sm text-slate-500 dark:text-slate-400">Português</span>
-                        </div>
-                    </div>
                 </section>
 
                 {/* Logout Button */}
