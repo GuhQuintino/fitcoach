@@ -116,10 +116,31 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                             setCoachExpiresAt(coachDataDesc?.subscription_expires_at ?? null);
                         }
                     }
+                } else {
+                    // Fallback to metadata if profile doesn't exist yet (e.g., brand new user)
+                    const metaRole = session?.user?.user_metadata?.role;
+                    if (metaRole) {
+                        setRole(metaRole as Role);
+                        // Default to pending for new users without profile rows
+                        setStatus('pending');
+                    }
+                }
+            } else {
+                // Trigger metadata fallback if profile fetch fails
+                const metaRole = session?.user?.user_metadata?.role;
+                if (metaRole) {
+                    setRole(metaRole as Role);
+                    setStatus('pending');
                 }
             }
         } catch (error) {
             console.error('Erro ao buscar perfil:', error);
+            // Fallback on error too
+            const metaRole = session?.user?.user_metadata?.role;
+            if (metaRole) {
+                setRole(metaRole as Role);
+                setStatus('pending');
+            }
         } finally {
             setLoading(false);
         }

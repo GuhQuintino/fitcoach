@@ -54,6 +54,7 @@ const RequireAuth: React.FC<{ children: React.ReactNode; allowedRole?: 'coach' |
     }
 
     if (status === 'pending' && role !== 'admin') {
+        if (location.pathname === '/waiting-approval') return <>{children}</>;
         return <Navigate to="/waiting-approval" replace />;
     }
 
@@ -76,6 +77,12 @@ const RequireAuth: React.FC<{ children: React.ReactNode; allowedRole?: 'coach' |
 
     // Admin tem acesso a tudo (Coach e Student)
     if (allowedRole && role !== allowedRole && role !== 'admin') {
+        // Safe check: if role is null, we can't redirect with certainty
+        if (!role) {
+            if (location.pathname === '/waiting-approval') return <>{children}</>;
+            return <Navigate to="/waiting-approval" replace />;
+        }
+
         // Redirecionar para o dashboard correto se tentar acessar rota não autorizada
         return <Navigate to={role === 'coach' ? '/coach/dashboard' : '/student/dashboard'} replace />;
     }
