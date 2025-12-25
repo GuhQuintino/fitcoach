@@ -4,6 +4,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabaseClient';
 import { Link, useNavigate } from 'react-router-dom';
 import ThemeToggle from '../../components/ThemeToggle';
+import PWAInstallPrompt from '../../components/shared/PWAInstallPrompt';
 
 const StudentDashboard: React.FC = () => {
     const { user, expiresAt } = useAuth();
@@ -309,6 +310,7 @@ const StudentDashboard: React.FC = () => {
             </header>
 
             <main className="px-6 -mt-4 space-y-6 relative z-20">
+                <PWAInstallPrompt />
                 {/* Active Workout Banner */}
                 {activeWorkout && (
                     <div className="bg-slate-900 dark:bg-slate-800 rounded-3xl p-5 shadow-xl border border-white/5 animate-slide-up">

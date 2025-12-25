@@ -30,6 +30,11 @@ A aplicação segue uma arquitetura baseada em **Frontend as a Service**, utiliz
 - **State Management Strategy**: React Context API (`AuthContext`, `ThemeContext`).
 - **Form Handling**: Formulários React controlados com estilização via `@tailwindcss/forms`.
 - **Navegação**: React Router Dom v7 utilizando `HashRouter`.
+- **PWA (Progressive Web App)**: 
+  - Suporte total a "Adicionar à Tela de Início" (Manifest configurado).
+  - Banner customizado de instalação (`PWAInstallPrompt`) com detecção automática de sistema (Android/iOS).
+  - Execução em modo `standalone` para experiência de "App Nativo".
+  - Otimização de ciclo de vida para evitar travamentos ao retomar o app (Auth Throttling).
 
 ## Backend Architecture
 - **Server Framework**: Serverless (Supabase).
@@ -111,6 +116,15 @@ A aplicação segue uma arquitetura baseada em **Frontend as a Service**, utiliz
 - **React Hot Toast**: Notificações in-app.
 - **QRCode.react**: Geração de convites via QR Code.
 - **ExerciseDB (Futuro)**: Integração para banco de exercícios global.
+
+## Automation & Tools
+### YouTube Video Automation
+Localizado em `/scripts/youtube-upload`, este script automatiza o envio de vídeos para o YouTube como "Não listados" e atualiza o Supabase.
+- **Input**: Pasta `public/exercises/hevy/`.
+- **Output**: Links do YouTube injetados no banco de dados.
+- **Tags**: Aplicação automática de `#Shorts` para melhor exibição mobile.
+- **Persistence**: Controle de arquivos já processados via `processed.json`.
+- **Trigger**: Script de execução diária para evitar limites de cota da API.
 
 ## Meta Tags & SEO
 - **Title**: FitCoach Pro

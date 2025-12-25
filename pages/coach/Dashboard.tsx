@@ -5,6 +5,7 @@ import ThemeToggle from '../../components/ThemeToggle';
 import MainLayout from '../../components/Layout/MainLayout';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabaseClient';
+import PWAInstallPrompt from '../../components/shared/PWAInstallPrompt';
 
 interface DashboardStats {
     totalStudents: number;
@@ -219,6 +220,7 @@ const CoachDashboard: React.FC = () => {
             </header>
 
             <main className="flex-1 px-5 pt-6 space-y-5">
+                <PWAInstallPrompt />
                 {/* Quick Actions */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <Link to="/coach/feedbacks" className="bg-gradient-to-br from-sky-50/80 to-white dark:from-sky-900/20 dark:to-slate-800 p-4 rounded-2xl shadow-sm border border-sky-100/50 dark:border-sky-700/30 flex flex-col items-center justify-center gap-3 group active:scale-95 transition-all h-28 relative card-hover overflow-hidden">
