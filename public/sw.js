@@ -1,10 +1,25 @@
-// Minimal Service Worker for PWA compliance
-const CACHE_NAME = 'fitcoach-v1';
+// Minimal Service Worker for PWA compliance - v2 (Force Update)
+const CACHE_NAME = 'fitcoach-v2';
 
 self.addEventListener('install', (event) => {
+    self.skipWaiting(); // Force update
     event.waitUntil(
         caches.open(CACHE_NAME).then((cache) => {
             return cache.addAll(['/']);
+        })
+    );
+});
+
+self.addEventListener('activate', (event) => {
+    event.waitUntil(
+        caches.keys().then((cacheNames) => {
+            return Promise.all(
+                cacheNames.map((cacheName) => {
+                    if (cacheName !== CACHE_NAME) {
+                        return caches.delete(cacheName);
+                    }
+                })
+            );
         })
     );
 });
