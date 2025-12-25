@@ -114,7 +114,7 @@ const Library: React.FC = () => {
                 .eq('id', selectedRoutineForAssign.id)
                 .order('day_number', { foreignTable: 'workouts', ascending: true })
                 .order('order_index', { foreignTable: 'workouts.workout_items', ascending: true })
-                .order('order_index', { foreignTable: 'workouts.workout_items.workout_sets', ascending: true })
+                .order('set_order', { foreignTable: 'workouts.workout_items.workout_sets', ascending: true })
                 .single();
 
             if (fError) throw fError;
@@ -173,7 +173,8 @@ const Library: React.FC = () => {
                                     reps_target: s.reps_target,
                                     rest_seconds: s.rest_seconds,
                                     rpe_target: s.rpe_target,
-                                    order_index: s.order_index
+                                    order_index: s.order_index || s.set_order,
+                                    set_order: s.set_order || s.order_index
                                 }));
 
                                 const { error: sError } = await supabase

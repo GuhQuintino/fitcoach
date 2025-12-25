@@ -223,6 +223,7 @@ const Editor: React.FC = () => {
                     const setPayload = {
                         workout_item_id: itemId, // IMPORTANT: Use the potentially new itemId
                         set_order: j + 1,
+                        order_index: j + 1, // Syncing with order_index too
                         type: set.type,
                         reps_target: set.reps_target,
                         rest_seconds: parseInt(set.rest_seconds) || 60,

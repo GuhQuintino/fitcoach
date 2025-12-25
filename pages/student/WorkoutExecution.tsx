@@ -144,7 +144,8 @@ id,
         )
             `)
                 .eq('workout_id', workoutId)
-                .order('order_index');
+                .order('order_index')
+                .order('set_order', { foreignTable: 'workout_sets', ascending: true });
 
             if (iError) throw iError;
 
