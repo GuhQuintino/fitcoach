@@ -23,6 +23,17 @@ const StudentProfileView: React.FC = () => {
     const [weightHistory, setWeightHistory] = useState<any[]>([]);
     const [logs, setLogs] = useState<any[]>([]);
     const [showHistoryModal, setShowHistoryModal] = useState(false);
+    const [assignmentId, setAssignmentId] = useState<string | null>(null);
+
+    // Edit Routine Modal
+    const [isEditingRoutineModal, setIsEditingRoutineModal] = useState(false);
+    const [routineName, setRoutineName] = useState('');
+    const [savingRoutine, setSavingRoutine] = useState(false);
+
+    // Edit Workout Modal
+    const [editingWorkoutItem, setEditingWorkoutItem] = useState<any | null>(null);
+    const [workoutName, setWorkoutName] = useState('');
+    const [savingWorkout, setSavingWorkout] = useState(false);
 
     useEffect(() => {
         if (id) {
@@ -98,7 +109,9 @@ const StudentProfileView: React.FC = () => {
                 .maybeSingle();
 
             if (assignment?.routines) {
+                setAssignmentId(assignment.id);
                 setActiveRoutine(assignment.routines);
+                setRoutineName(assignment.routines.name);
                 const { data: wData } = await supabase
                     .from('workouts')
                     .select('*')
@@ -135,6 +148,101 @@ const StudentProfileView: React.FC = () => {
             toast.error('Erro ao atualizar validade.');
         } finally {
             setSavingExpiration(false);
+        }
+    };
+
+    const handleUpdateRoutineName = async () => {
+        if (!activeRoutine || !routineName.trim()) return;
+        try {
+            setSavingRoutine(true);
+            const { error } = await supabase
+                .from('routines')
+                .update({ name: routineName })
+                .eq('id', activeRoutine.id);
+
+            if (error) throw error;
+
+            setActiveRoutine({ ...activeRoutine, name: routineName });
+            setIsEditingRoutineModal(false);
+            toast.success('Nome da rotina atualizado!');
+        } catch (error) {
+            console.error('Error updating routine:', error);
+            toast.error('Erro ao atualizar nome da rotina.');
+        } finally {
+            setSavingRoutine(false);
+        }
+    };
+
+    const handleUnassignRoutine = async () => {
+        if (!assignmentId || !window.confirm('Tem certeza que deseja remover esta rotina do aluno?')) return;
+        try {
+            setLoading(true);
+            const { error } = await supabase
+                .from('student_assignments')
+                .update({ is_active: false })
+                .eq('id', assignmentId);
+
+            if (error) throw error;
+
+            setActiveRoutine(null);
+            setWorkouts([]);
+            setAssignmentId(null);
+            toast.success('Rotina removida com sucesso!');
+        } catch (error) {
+            console.error('Error unassigning routine:', error);
+            toast.error('Erro ao remover rotina.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleUpdateWorkoutName = async () => {
+        if (!editingWorkoutItem || !workoutName.trim()) return;
+        try {
+            setSavingWorkout(true);
+            const { error } = await supabase
+                .from('workouts')
+                .update({ name: workoutName })
+                .eq('id', editingWorkoutItem.id);
+
+            if (error) throw error;
+
+            setWorkouts(prev => prev.map(w => w.id === editingWorkoutItem.id ? { ...w, name: workoutName } : w));
+            setEditingWorkoutItem(null);
+            toast.success('Nome do treino atualizado!');
+        } catch (error) {
+            console.error('Error updating workout:', error);
+            toast.error('Erro ao atualizar nome do treino.');
+        } finally {
+            setSavingWorkout(false);
+        }
+    };
+
+    const handleReorderWorkout = async (index: number, direction: 'up' | 'down') => {
+        const newIndex = direction === 'up' ? index - 1 : index + 1;
+        if (newIndex < 0 || newIndex >= workouts.length) return;
+
+        const newWorkouts = [...workouts];
+        const [moved] = newWorkouts.splice(index, 1);
+        newWorkouts.splice(newIndex, 0, moved);
+
+        // Optimistic update
+        setWorkouts(newWorkouts);
+
+        try {
+            // Update day_number for all to ensure order
+            const updates = newWorkouts.map((w, idx) => ({
+                id: w.id,
+                day_number: idx + 1
+            }));
+
+            for (const update of updates) {
+                await supabase.from('workouts').update({ day_number: update.day_number }).eq('id', update.id);
+            }
+        } catch (error) {
+            console.error('Error reordering workouts:', error);
+            toast.error('Erro ao salvar nova ordem.');
+            fetchStudentDetails(); // Rollback
         }
     };
 
@@ -276,34 +384,82 @@ const StudentProfileView: React.FC = () => {
                 </section>
 
                 <section className="px-6 py-2">
-                    <h3 className="text-slate-900 dark:text-white text-lg font-bold mb-4 flex items-center gap-2">
-                        <span className="material-symbols-rounded text-primary">fitness_center</span>
-                        Treino Atual
-                    </h3>
+                    <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-slate-900 dark:text-white text-lg font-bold flex items-center gap-2">
+                            <span className="material-symbols-rounded text-primary">fitness_center</span>
+                            Treino Atual
+                        </h3>
+                        {activeRoutine && (
+                            <button
+                                onClick={handleUnassignRoutine}
+                                className="text-xs font-bold text-red-500 hover:text-red-600 flex items-center gap-1"
+                            >
+                                <span className="material-symbols-rounded text-[16px]">delete</span>
+                                Remover Rotina
+                            </button>
+                        )}
+                    </div>
 
                     {activeRoutine ? (
                         <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm overflow-hidden">
-                            <div className="p-4 border-b border-slate-100 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900/50">
-                                <p className="text-xs font-bold text-primary uppercase tracking-wider mb-1">Rotina Ativa</p>
-                                <h4 className="font-bold text-slate-900 dark:text-white">{activeRoutine.name}</h4>
+                            <div className="p-4 border-b border-slate-100 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900/50 flex items-center justify-between">
+                                <div>
+                                    <p className="text-xs font-bold text-primary uppercase tracking-wider mb-1">Rotina Ativa</p>
+                                    <h4 className="font-bold text-slate-900 dark:text-white">{activeRoutine.name}</h4>
+                                </div>
+                                <button
+                                    onClick={() => {
+                                        setRoutineName(activeRoutine.name);
+                                        setIsEditingRoutineModal(true);
+                                    }}
+                                    className="p-2 text-slate-400 hover:text-primary transition-colors"
+                                >
+                                    <span className="material-symbols-rounded text-xl">edit</span>
+                                </button>
                             </div>
                             <div className="p-2 space-y-1">
                                 {workouts.length > 0 ? (
                                     workouts.map((w, idx) => (
                                         <div key={w.id} className="flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors group">
                                             <div className="flex items-center gap-3">
+                                                <div className="flex flex-col gap-1 mr-1">
+                                                    <button
+                                                        onClick={() => handleReorderWorkout(idx, 'up')}
+                                                        disabled={idx === 0}
+                                                        className="text-slate-400 hover:text-primary disabled:opacity-0"
+                                                    >
+                                                        <span className="material-symbols-rounded text-sm">keyboard_arrow_up</span>
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleReorderWorkout(idx, 'down')}
+                                                        disabled={idx === workouts.length - 1}
+                                                        className="text-slate-400 hover:text-primary disabled:opacity-0"
+                                                    >
+                                                        <span className="material-symbols-rounded text-sm">keyboard_arrow_down</span>
+                                                    </button>
+                                                </div>
                                                 <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-700 flex items-center justify-center text-xs font-bold text-slate-500">
                                                     {String.fromCharCode(65 + idx)}
                                                 </div>
                                                 <span className="text-sm font-medium text-slate-700 dark:text-slate-200">{w.name}</span>
                                             </div>
-                                            <Link
-                                                to={`/coach/editor?workout_id=${w.id}&student_id=${id}`}
-                                                className="opacity-0 group-hover:opacity-100 flex items-center gap-1 text-xs font-bold text-primary hover:underline transition-all"
-                                            >
-                                                <span className="material-symbols-rounded text-[16px]">edit</span>
-                                                Editar
-                                            </Link>
+                                            <div className="flex items-center gap-2">
+                                                <button
+                                                    onClick={() => {
+                                                        setEditingWorkoutItem(w);
+                                                        setWorkoutName(w.name);
+                                                    }}
+                                                    className="opacity-0 group-hover:opacity-100 p-2 text-slate-400 hover:text-primary transition-all"
+                                                >
+                                                    <span className="material-symbols-rounded text-lg">edit</span>
+                                                </button>
+                                                <Link
+                                                    to={`/coach/editor?workout_id=${w.id}&student_id=${id}`}
+                                                    className="opacity-0 group-hover:opacity-100 flex items-center gap-1 text-xs font-bold text-primary hover:underline transition-all"
+                                                >
+                                                    Montar Treino
+                                                </Link>
+                                            </div>
                                         </div>
                                     ))
                                 ) : (
@@ -586,6 +742,58 @@ const StudentProfileView: React.FC = () => {
                                     <p className="text-sm text-slate-400 italic">Nenhum treino realizado ainda.</p>
                                 </div>
                             )}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Edit Routine Name Modal */}
+            {isEditingRoutineModal && (
+                <div className="fixed inset-0 z-[110] flex items-center justify-center p-5 bg-black/60 backdrop-blur-sm animate-fade-in">
+                    <div className="bg-white dark:bg-slate-800 w-full max-w-sm rounded-[2rem] p-6 shadow-2xl animate-scale-up border border-slate-100 dark:border-slate-700">
+                        <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Editar Nome da Rotina</h2>
+                        <input
+                            type="text"
+                            value={routineName}
+                            onChange={(e) => setRoutineName(e.target.value)}
+                            placeholder="Nome da rotina"
+                            className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-slate-900 dark:text-white font-bold focus:outline-none focus:ring-2 focus:ring-primary/50 mb-6"
+                        />
+                        <div className="flex gap-3">
+                            <button onClick={() => setIsEditingRoutineModal(false)} className="flex-1 py-3 text-slate-500 font-bold">Cancelar</button>
+                            <button
+                                onClick={handleUpdateRoutineName}
+                                disabled={savingRoutine}
+                                className="flex-1 bg-primary text-white py-3 rounded-xl font-bold disabled:opacity-50"
+                            >
+                                {savingRoutine ? 'Salvando...' : 'Salvar'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Edit Workout Name Modal */}
+            {editingWorkoutItem && (
+                <div className="fixed inset-0 z-[110] flex items-center justify-center p-5 bg-black/60 backdrop-blur-sm animate-fade-in">
+                    <div className="bg-white dark:bg-slate-800 w-full max-w-sm rounded-[2rem] p-6 shadow-2xl animate-scale-up border border-slate-100 dark:border-slate-700">
+                        <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Editar Nome do Treino</h2>
+                        <input
+                            type="text"
+                            value={workoutName}
+                            onChange={(e) => setWorkoutName(e.target.value)}
+                            placeholder="Ex: Treino de Perna"
+                            className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-slate-900 dark:text-white font-bold focus:outline-none focus:ring-2 focus:ring-primary/50 mb-6"
+                        />
+                        <div className="flex gap-3">
+                            <button onClick={() => setEditingWorkoutItem(null)} className="flex-1 py-3 text-slate-500 font-bold">Cancelar</button>
+                            <button
+                                onClick={handleUpdateWorkoutName}
+                                disabled={savingWorkout}
+                                className="flex-1 bg-primary text-white py-3 rounded-xl font-bold disabled:opacity-50"
+                            >
+                                {savingWorkout ? 'Salvando...' : 'Salvar'}
+                            </button>
                         </div>
                     </div>
                 </div>

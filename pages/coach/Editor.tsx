@@ -298,7 +298,7 @@ const Editor: React.FC = () => {
     return (
         <MainLayout>
             {/* Header */}
-            <header className="px-5 py-4 flex items-center justify-between sticky top-0 bg-white dark:bg-slate-900 z-30 border-b border-slate-100 dark:border-slate-800">
+            <header className="w-full px-5 py-4 flex items-center justify-between sticky top-0 bg-white dark:bg-slate-900 z-30 border-b border-slate-100 dark:border-slate-800">
                 <div className="flex items-center gap-3">
                     <button onClick={handleBack} className="p-2 -ml-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
                         <span className="material-symbols-rounded text-slate-500">arrow_back</span>

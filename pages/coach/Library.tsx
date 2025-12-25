@@ -4,6 +4,7 @@ import { supabase } from '../../lib/supabaseClient';
 import { useAuth } from '../../contexts/AuthContext';
 import { Link, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
+import { matchesSearch } from '../../utils/textUtils';
 
 const Library: React.FC = () => {
     const { user } = useAuth();
@@ -293,9 +294,9 @@ const Library: React.FC = () => {
 
     const filteredRoutines = routines.filter(r => {
         const meta = parseMetadata(r.description);
-        const matchesSearch = r.name.toLowerCase().includes(searchTerm.toLowerCase());
+        const matchesSearchQuery = matchesSearch(r.name, searchTerm);
         const matchesLevel = filterLevel === 'all' || meta.level === filterLevel;
-        return matchesSearch && matchesLevel;
+        return matchesSearchQuery && matchesLevel;
     });
 
     return (

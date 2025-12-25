@@ -3,6 +3,7 @@ import MainLayout from '../../components/Layout/MainLayout';
 import { supabase } from '../../lib/supabaseClient';
 import { useAuth } from '../../contexts/AuthContext';
 import { Link } from 'react-router-dom';
+import { matchesSearch } from '../../utils/textUtils';
 
 const CoachStudents: React.FC = () => {
     const { user } = useAuth();
@@ -50,15 +51,20 @@ const CoachStudents: React.FC = () => {
                 query = query.or(`status.eq.rejected,status.eq.banned,and(status.eq.active,consultancy_expires_at.lt.${new Date().toISOString()})`, { foreignTable: 'profiles' as any });
             }
 
-            // Search by Name
+            query = query.order('full_name', { foreignTable: 'profiles' });
+            const { data, error } = await query;
+            if (error) throw error;
+
+            let filteredData = data || [];
+
+            // Client-side Search (Accent Insensitive)
             if (searchTerm.trim()) {
-                query = query.ilike('profiles.full_name', `%${searchTerm}%`);
+                filteredData = filteredData.filter(s =>
+                    matchesSearch(s.profiles?.full_name || '', searchTerm)
+                );
             }
 
-            const { data, error } = await query.order('full_name', { foreignTable: 'profiles' });
-
-            if (error) throw error;
-            setStudents(data || []);
+            setStudents(filteredData);
         } catch (error) {
             console.error('Error fetching students:', error);
         } finally {

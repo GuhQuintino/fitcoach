@@ -103,6 +103,7 @@
 
   html {
     scroll-behavior: smooth;
+    overscroll-behavior-y: contain;
   }
 
   body {
