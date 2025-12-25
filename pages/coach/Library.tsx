@@ -112,6 +112,9 @@ const Library: React.FC = () => {
                     )
                 `)
                 .eq('id', selectedRoutineForAssign.id)
+                .order('day_number', { foreignTable: 'workouts', ascending: true })
+                .order('order_index', { foreignTable: 'workouts.workout_items', ascending: true })
+                .order('order_index', { foreignTable: 'workouts.workout_items.workout_sets', ascending: true })
                 .single();
 
             if (fError) throw fError;
