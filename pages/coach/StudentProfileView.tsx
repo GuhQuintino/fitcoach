@@ -388,7 +388,7 @@ const StudentProfileView: React.FC = () => {
                     )}
                 </section>
 
-                <section className="px-6 py-2">
+                <section className="px-4 sm:px-6 py-2">
                     <div className="flex items-center justify-between mb-4">
                         <h3 className="text-slate-900 dark:text-white text-lg font-bold flex items-center gap-2">
                             <span className="material-symbols-rounded text-primary">fitness_center</span>
@@ -422,49 +422,60 @@ const StudentProfileView: React.FC = () => {
                                     <span className="material-symbols-rounded text-xl">edit</span>
                                 </button>
                             </div>
-                            <div className="p-2 space-y-1">
+                            <div className="p-4 space-y-4">
                                 {workouts.length > 0 ? (
                                     workouts.map((w, idx) => (
-                                        <div key={w.id} className="flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors group">
-                                            <div className="flex items-center gap-3">
-                                                <div className="flex flex-col gap-1 mr-1">
+                                        <div key={w.id} className="bg-slate-50 dark:bg-slate-900/50 rounded-2xl p-4 border border-slate-100 dark:border-slate-700 flex flex-col gap-4 shadow-sm">
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-9 h-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center text-sm font-black ring-1 ring-primary/20">
+                                                        {String.fromCharCode(65 + idx)}
+                                                    </div>
+                                                    <div>
+                                                        <h4 className="font-bold text-slate-900 dark:text-white leading-tight">{w.name}</h4>
+                                                        <p className="text-[10px] text-slate-500 font-medium uppercase tracking-tighter">Treino Individual</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-center gap-1">
+                                                    <div className="flex items-center bg-white dark:bg-slate-800 rounded-lg border border-slate-100 dark:border-slate-700 p-0.5">
+                                                        <button
+                                                            onClick={() => handleReorderWorkout(idx, 'up')}
+                                                            disabled={idx === 0}
+                                                            className="p-1.5 text-slate-400 hover:text-primary disabled:opacity-20 transition-colors"
+                                                            title="Mover para cima"
+                                                        >
+                                                            <span className="material-symbols-rounded text-base">keyboard_arrow_up</span>
+                                                        </button>
+                                                        <div className="w-[1px] h-4 bg-slate-100 dark:bg-slate-700 mx-0.5" />
+                                                        <button
+                                                            onClick={() => handleReorderWorkout(idx, 'down')}
+                                                            disabled={idx === workouts.length - 1}
+                                                            className="p-1.5 text-slate-400 hover:text-primary disabled:opacity-20 transition-colors"
+                                                            title="Mover para baixo"
+                                                        >
+                                                            <span className="material-symbols-rounded text-base">keyboard_arrow_down</span>
+                                                        </button>
+                                                    </div>
                                                     <button
-                                                        onClick={() => handleReorderWorkout(idx, 'up')}
-                                                        disabled={idx === 0}
-                                                        className="text-slate-400 hover:text-primary disabled:opacity-0"
+                                                        onClick={() => {
+                                                            setEditingWorkoutItem(w);
+                                                            setWorkoutName(w.name);
+                                                        }}
+                                                        className="p-2 text-slate-400 hover:text-primary transition-colors flex items-center justify-center"
+                                                        title="Renomear"
                                                     >
-                                                        <span className="material-symbols-rounded text-sm">keyboard_arrow_up</span>
-                                                    </button>
-                                                    <button
-                                                        onClick={() => handleReorderWorkout(idx, 'down')}
-                                                        disabled={idx === workouts.length - 1}
-                                                        className="text-slate-400 hover:text-primary disabled:opacity-0"
-                                                    >
-                                                        <span className="material-symbols-rounded text-sm">keyboard_arrow_down</span>
+                                                        <span className="material-symbols-rounded text-lg">edit</span>
                                                     </button>
                                                 </div>
-                                                <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-700 flex items-center justify-center text-xs font-bold text-slate-500">
-                                                    {String.fromCharCode(65 + idx)}
-                                                </div>
-                                                <span className="text-sm font-medium text-slate-700 dark:text-slate-200">{w.name}</span>
                                             </div>
-                                            <div className="flex items-center gap-2">
-                                                <button
-                                                    onClick={() => {
-                                                        setEditingWorkoutItem(w);
-                                                        setWorkoutName(w.name);
-                                                    }}
-                                                    className="opacity-0 group-hover:opacity-100 p-2 text-slate-400 hover:text-primary transition-all"
-                                                >
-                                                    <span className="material-symbols-rounded text-lg">edit</span>
-                                                </button>
-                                                <Link
-                                                    to={`/coach/editor?workout_id=${w.id}&student_id=${id}`}
-                                                    className="opacity-0 group-hover:opacity-100 flex items-center gap-1 text-xs font-bold text-primary hover:underline transition-all"
-                                                >
-                                                    Montar Treino
-                                                </Link>
-                                            </div>
+
+                                            <Link
+                                                to={`/coach/editor?workout_id=${w.id}&student_id=${id}`}
+                                                className="w-full bg-white dark:bg-slate-800 text-primary border border-primary/20 hover:border-primary/40 font-black py-3 rounded-xl transition-all flex items-center justify-center gap-2 active:scale-[0.98] shadow-sm text-sm"
+                                            >
+                                                <span className="material-symbols-rounded text-[20px]">edit_note</span>
+                                                MONTAR TREINO {String.fromCharCode(65 + idx)}
+                                            </Link>
                                         </div>
                                     ))
                                 ) : (
@@ -483,7 +494,7 @@ const StudentProfileView: React.FC = () => {
                     )}
                 </section>
 
-                <section className="px-6 py-2">
+                <section className="px-4 sm:px-6 py-2">
                     <h3 className="text-slate-900 dark:text-white text-lg font-bold mb-4 flex items-center gap-2">
                         <span className="material-symbols-rounded text-primary">photo_library</span>
                         Evolução (Fotos)
@@ -492,10 +503,10 @@ const StudentProfileView: React.FC = () => {
                 </section>
 
                 {/* Workout History Section */}
-                <section className="px-6 py-4">
+                <section className="px-4 sm:px-6 py-4">
                     <button
                         onClick={() => setShowHistoryModal(true)}
-                        className="w-full bg-white dark:bg-slate-800 rounded-[2.5rem] p-6 shadow-soft border border-slate-100 dark:border-slate-700 flex items-center justify-between group hover:border-primary/30 transition-all overflow-hidden relative"
+                        className="w-full bg-white dark:bg-slate-800 rounded-[2.5rem] p-4 sm:p-6 shadow-soft border border-slate-100 dark:border-slate-700 flex items-center justify-between group hover:border-primary/30 transition-all overflow-hidden relative"
                     >
                         <div className="absolute top-0 right-0 p-8 opacity-5">
                             <span className="material-symbols-rounded text-6xl">history</span>
@@ -515,7 +526,7 @@ const StudentProfileView: React.FC = () => {
                     </button>
                 </section>
 
-                <section className="px-6 py-2 space-y-6">
+                <section className="px-4 sm:px-6 py-2 space-y-6">
                     {/* Charts Grid */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {/* Weight Evolution Chart */}
@@ -676,134 +687,140 @@ const StudentProfileView: React.FC = () => {
                 )}
             </div>
             {/* History Modal */}
-            {showHistoryModal && (
-                <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300">
-                    <div className="bg-slate-50 dark:bg-slate-900 w-full max-w-lg rounded-t-[2.5rem] sm:rounded-[2.5rem] max-h-[90vh] flex flex-col shadow-2xl animate-in slide-in-from-bottom duration-500 overflow-hidden">
-                        <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between sticky top-0 bg-slate-50 dark:bg-slate-900 z-10">
-                            <div>
-                                <h2 className="text-xl font-bold text-slate-900 dark:text-white">Histórico de Treinos</h2>
-                                <p className="text-xs text-slate-500 uppercase font-black tracking-widest mt-1">{profile?.full_name}</p>
+            {
+                showHistoryModal && (
+                    <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300">
+                        <div className="bg-slate-50 dark:bg-slate-900 w-full max-w-lg rounded-t-[2.5rem] sm:rounded-[2.5rem] max-h-[90vh] flex flex-col shadow-2xl animate-in slide-in-from-bottom duration-500 overflow-hidden">
+                            <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between sticky top-0 bg-slate-50 dark:bg-slate-900 z-10">
+                                <div>
+                                    <h2 className="text-xl font-bold text-slate-900 dark:text-white">Histórico de Treinos</h2>
+                                    <p className="text-xs text-slate-500 uppercase font-black tracking-widest mt-1">{profile?.full_name}</p>
+                                </div>
+                                <button
+                                    onClick={() => setShowHistoryModal(false)}
+                                    className="w-10 h-10 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500 hover:bg-slate-200 transition-all"
+                                >
+                                    <span className="material-symbols-rounded">close</span>
+                                </button>
                             </div>
-                            <button
-                                onClick={() => setShowHistoryModal(false)}
-                                className="w-10 h-10 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500 hover:bg-slate-200 transition-all"
-                            >
-                                <span className="material-symbols-rounded">close</span>
-                            </button>
-                        </div>
 
-                        <div className="flex-1 overflow-y-auto p-6 space-y-4">
-                            {logs.length > 0 ? (
-                                logs.map((log) => (
-                                    <div key={log.id} className="bg-white dark:bg-slate-800 rounded-3xl p-5 shadow-soft border border-slate-100 dark:border-slate-700 flex flex-col gap-4">
-                                        <div className="flex items-center justify-between">
-                                            <div className="flex items-center gap-4">
-                                                <div className="w-12 h-12 rounded-2xl bg-primary/5 dark:bg-primary/10 flex flex-col items-center justify-center text-primary">
-                                                    <span className="text-[9px] font-black uppercase leading-none">{new Date(log.started_at).toLocaleString('pt-BR', { month: 'short' }).replace('.', '')}</span>
-                                                    <span className="text-lg font-black leading-tight">{new Date(log.started_at).getDate()}</span>
-                                                </div>
-                                                <div>
-                                                    <h4 className="font-bold text-slate-900 dark:text-white text-base line-clamp-1">{log.workout?.name || 'Treino s/ nome'}</h4>
-                                                    <div className="flex items-center gap-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">
-                                                        <span className="flex items-center gap-1">
-                                                            <span className="material-symbols-rounded text-sm">schedule</span>
-                                                            {Math.floor((new Date(log.finished_at).getTime() - new Date(log.started_at).getTime()) / 60000)} min
-                                                        </span>
-                                                        <span className="flex items-center gap-1 text-primary">
-                                                            <span className="material-symbols-rounded text-sm">bolt</span>
-                                                            {log.effort_rating || 0}/10 Esforço
-                                                        </span>
+                            <div className="flex-1 overflow-y-auto p-6 space-y-4">
+                                {logs.length > 0 ? (
+                                    logs.map((log) => (
+                                        <div key={log.id} className="bg-white dark:bg-slate-800 rounded-3xl p-5 shadow-soft border border-slate-100 dark:border-slate-700 flex flex-col gap-4">
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex items-center gap-4">
+                                                    <div className="w-12 h-12 rounded-2xl bg-primary/5 dark:bg-primary/10 flex flex-col items-center justify-center text-primary">
+                                                        <span className="text-[9px] font-black uppercase leading-none">{new Date(log.started_at).toLocaleString('pt-BR', { month: 'short' }).replace('.', '')}</span>
+                                                        <span className="text-lg font-black leading-tight">{new Date(log.started_at).getDate()}</span>
+                                                    </div>
+                                                    <div>
+                                                        <h4 className="font-bold text-slate-900 dark:text-white text-base line-clamp-1">{log.workout?.name || 'Treino s/ nome'}</h4>
+                                                        <div className="flex items-center gap-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">
+                                                            <span className="flex items-center gap-1">
+                                                                <span className="material-symbols-rounded text-sm">schedule</span>
+                                                                {Math.floor((new Date(log.finished_at).getTime() - new Date(log.started_at).getTime()) / 60000)} min
+                                                            </span>
+                                                            <span className="flex items-center gap-1 text-primary">
+                                                                <span className="material-symbols-rounded text-sm">bolt</span>
+                                                                {log.effort_rating || 0}/10 Esforço
+                                                            </span>
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>
+
+                                            {log.feedback_notes && (
+                                                <div className="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-2xl text-xs text-slate-600 dark:text-slate-300 italic border border-slate-100/50 dark:border-slate-800/50 leading-relaxed">
+                                                    "{log.feedback_notes}"
+                                                </div>
+                                            )}
+
+                                            {/* Set Summary */}
+                                            {log.set_logs && log.set_logs.length > 0 && (
+                                                <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-100 dark:border-slate-700/50">
+                                                    <div className="flex flex-col">
+                                                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider">Média de Carga</span>
+                                                        <span className="text-sm font-bold text-slate-700 dark:text-slate-300">
+                                                            {(log.set_logs.reduce((acc: number, s: any) => acc + (s.weight_kg || 0), 0) / log.set_logs.length).toFixed(1)} kg
+                                                        </span>
+                                                    </div>
+                                                    <div className="flex flex-col">
+                                                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider">Total de Séries</span>
+                                                        <span className="text-sm font-bold text-slate-700 dark:text-slate-300">{log.set_logs.length} séries</span>
+                                                    </div>
+                                                </div>
+                                            )}
                                         </div>
-
-                                        {log.feedback_notes && (
-                                            <div className="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-2xl text-xs text-slate-600 dark:text-slate-300 italic border border-slate-100/50 dark:border-slate-800/50 leading-relaxed">
-                                                "{log.feedback_notes}"
-                                            </div>
-                                        )}
-
-                                        {/* Set Summary */}
-                                        {log.set_logs && log.set_logs.length > 0 && (
-                                            <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-100 dark:border-slate-700/50">
-                                                <div className="flex flex-col">
-                                                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider">Média de Carga</span>
-                                                    <span className="text-sm font-bold text-slate-700 dark:text-slate-300">
-                                                        {(log.set_logs.reduce((acc: number, s: any) => acc + (s.weight_kg || 0), 0) / log.set_logs.length).toFixed(1)} kg
-                                                    </span>
-                                                </div>
-                                                <div className="flex flex-col">
-                                                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider">Total de Séries</span>
-                                                    <span className="text-sm font-bold text-slate-700 dark:text-slate-300">{log.set_logs.length} séries</span>
-                                                </div>
-                                            </div>
-                                        )}
+                                    ))
+                                ) : (
+                                    <div className="py-12 text-center">
+                                        <span className="material-symbols-rounded text-4xl text-slate-200 mb-2">history</span>
+                                        <p className="text-sm text-slate-400 italic">Nenhum treino realizado ainda.</p>
                                     </div>
-                                ))
-                            ) : (
-                                <div className="py-12 text-center">
-                                    <span className="material-symbols-rounded text-4xl text-slate-200 mb-2">history</span>
-                                    <p className="text-sm text-slate-400 italic">Nenhum treino realizado ainda.</p>
-                                </div>
-                            )}
+                                )}
+                            </div>
                         </div>
                     </div>
-                </div>
-            )}
+                )
+            }
 
             {/* Edit Routine Name Modal */}
-            {isEditingRoutineModal && (
-                <div className="fixed inset-0 z-[110] flex items-center justify-center p-5 bg-black/60 backdrop-blur-sm animate-fade-in">
-                    <div className="bg-white dark:bg-slate-800 w-full max-w-sm rounded-[2rem] p-6 shadow-2xl animate-scale-up border border-slate-100 dark:border-slate-700">
-                        <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Editar Nome da Rotina</h2>
-                        <input
-                            type="text"
-                            value={routineName}
-                            onChange={(e) => setRoutineName(e.target.value)}
-                            placeholder="Nome da rotina"
-                            className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-slate-900 dark:text-white font-bold focus:outline-none focus:ring-2 focus:ring-primary/50 mb-6"
-                        />
-                        <div className="flex gap-3">
-                            <button onClick={() => setIsEditingRoutineModal(false)} className="flex-1 py-3 text-slate-500 font-bold">Cancelar</button>
-                            <button
-                                onClick={handleUpdateRoutineName}
-                                disabled={savingRoutine}
-                                className="flex-1 bg-primary text-white py-3 rounded-xl font-bold disabled:opacity-50"
-                            >
-                                {savingRoutine ? 'Salvando...' : 'Salvar'}
-                            </button>
+            {
+                isEditingRoutineModal && (
+                    <div className="fixed inset-0 z-[110] flex items-center justify-center p-5 bg-black/60 backdrop-blur-sm animate-fade-in">
+                        <div className="bg-white dark:bg-slate-800 w-full max-w-sm rounded-[2rem] p-6 shadow-2xl animate-scale-up border border-slate-100 dark:border-slate-700">
+                            <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Editar Nome da Rotina</h2>
+                            <input
+                                type="text"
+                                value={routineName}
+                                onChange={(e) => setRoutineName(e.target.value)}
+                                placeholder="Nome da rotina"
+                                className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-slate-900 dark:text-white font-bold focus:outline-none focus:ring-2 focus:ring-primary/50 mb-6"
+                            />
+                            <div className="flex gap-3">
+                                <button onClick={() => setIsEditingRoutineModal(false)} className="flex-1 py-3 text-slate-500 font-bold">Cancelar</button>
+                                <button
+                                    onClick={handleUpdateRoutineName}
+                                    disabled={savingRoutine}
+                                    className="flex-1 bg-primary text-white py-3 rounded-xl font-bold disabled:opacity-50"
+                                >
+                                    {savingRoutine ? 'Salvando...' : 'Salvar'}
+                                </button>
+                            </div>
                         </div>
                     </div>
-                </div>
-            )}
+                )
+            }
 
             {/* Edit Workout Name Modal */}
-            {editingWorkoutItem && (
-                <div className="fixed inset-0 z-[110] flex items-center justify-center p-5 bg-black/60 backdrop-blur-sm animate-fade-in">
-                    <div className="bg-white dark:bg-slate-800 w-full max-w-sm rounded-[2rem] p-6 shadow-2xl animate-scale-up border border-slate-100 dark:border-slate-700">
-                        <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Editar Nome do Treino</h2>
-                        <input
-                            type="text"
-                            value={workoutName}
-                            onChange={(e) => setWorkoutName(e.target.value)}
-                            placeholder="Ex: Treino de Perna"
-                            className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-slate-900 dark:text-white font-bold focus:outline-none focus:ring-2 focus:ring-primary/50 mb-6"
-                        />
-                        <div className="flex gap-3">
-                            <button onClick={() => setEditingWorkoutItem(null)} className="flex-1 py-3 text-slate-500 font-bold">Cancelar</button>
-                            <button
-                                onClick={handleUpdateWorkoutName}
-                                disabled={savingWorkout}
-                                className="flex-1 bg-primary text-white py-3 rounded-xl font-bold disabled:opacity-50"
-                            >
-                                {savingWorkout ? 'Salvando...' : 'Salvar'}
-                            </button>
+            {
+                editingWorkoutItem && (
+                    <div className="fixed inset-0 z-[110] flex items-center justify-center p-5 bg-black/60 backdrop-blur-sm animate-fade-in">
+                        <div className="bg-white dark:bg-slate-800 w-full max-w-sm rounded-[2rem] p-6 shadow-2xl animate-scale-up border border-slate-100 dark:border-slate-700">
+                            <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Editar Nome do Treino</h2>
+                            <input
+                                type="text"
+                                value={workoutName}
+                                onChange={(e) => setWorkoutName(e.target.value)}
+                                placeholder="Ex: Treino de Perna"
+                                className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-slate-900 dark:text-white font-bold focus:outline-none focus:ring-2 focus:ring-primary/50 mb-6"
+                            />
+                            <div className="flex gap-3">
+                                <button onClick={() => setEditingWorkoutItem(null)} className="flex-1 py-3 text-slate-500 font-bold">Cancelar</button>
+                                <button
+                                    onClick={handleUpdateWorkoutName}
+                                    disabled={savingWorkout}
+                                    className="flex-1 bg-primary text-white py-3 rounded-xl font-bold disabled:opacity-50"
+                                >
+                                    {savingWorkout ? 'Salvando...' : 'Salvar'}
+                                </button>
+                            </div>
                         </div>
                     </div>
-                </div>
-            )}
-        </MainLayout>
+                )
+            }
+        </MainLayout >
     );
 };
 
