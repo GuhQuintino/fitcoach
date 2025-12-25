@@ -3,6 +3,7 @@ import { HashRouter, Routes, Route, Navigate, useLocation } from 'react-router-d
 import { ThemeProvider } from './components/ThemeContext';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import LoadingScreen from './components/shared/LoadingScreen';
+import ErrorBoundary from './components/shared/ErrorBoundary';
 import { Toaster } from 'react-hot-toast';
 
 // Auth Pages
@@ -185,14 +186,16 @@ const AppContent = () => {
 
 const App = () => {
     return (
-        <ThemeProvider>
-            <AuthProvider>
-                <HashRouter>
-                    <Toaster position="top-right" />
-                    <AppContent />
-                </HashRouter>
-            </AuthProvider>
-        </ThemeProvider>
+        <ErrorBoundary>
+            <ThemeProvider>
+                <AuthProvider>
+                    <HashRouter>
+                        <Toaster position="top-right" />
+                        <AppContent />
+                    </HashRouter>
+                </AuthProvider>
+            </ThemeProvider>
+        </ErrorBoundary>
     );
 };
 
