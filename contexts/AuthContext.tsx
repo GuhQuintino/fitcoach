@@ -8,6 +8,7 @@ interface AuthContextType {
     session: Session | null;
     user: User | null;
     role: Role;
+    avatarUrl: string | null;
     status: string | null;
     expiresAt: string | null;
     coachExpiresAt: string | null;
@@ -21,10 +22,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const [session, setSession] = useState<Session | null>(null);
     const [user, setUser] = useState<User | null>(null);
     const [role, setRole] = useState<Role>(null);
+    const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
     const [status, setStatus] = useState<string | null>(null);
     const [expiresAt, setExpiresAt] = useState<string | null>(null);
     const [coachExpiresAt, setCoachExpiresAt] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
+
+    const prevUserId = React.useRef<string | null>(null);
 
     useEffect(() => {
         // Obter sessão inicial
@@ -41,13 +45,22 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         // Escutar mudanças na autenticação
         const {
             data: { subscription },
-        } = supabase.auth.onAuthStateChange((_event, session) => {
+        } = supabase.auth.onAuthStateChange((event, session) => {
             setSession(session);
-            setUser(session?.user ?? null);
-            if (session?.user) {
-                fetchUserProfile(session.user.id);
+            const currentUser = session?.user ?? null;
+            setUser(currentUser);
+
+            if (currentUser) {
+                // Stabilizer: Only re-fetch if the user ID actually changed
+                // This prevents heavy RPC/Select calls on every browser focus (which triggers session refreshes)
+                if (currentUser.id !== prevUserId.current) {
+                    prevUserId.current = currentUser.id;
+                    fetchUserProfile(currentUser.id);
+                }
             } else {
+                prevUserId.current = null;
                 setRole(null);
+                setAvatarUrl(null);
                 setStatus(null);
                 setExpiresAt(null);
                 setCoachExpiresAt(null);
@@ -59,16 +72,18 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }, []);
 
     const fetchUserProfile = async (userId: string) => {
+        if (!userId) return;
         try {
             const { data, error } = await supabase
                 .from('profiles')
-                .select('role, status')
+                .select('role, status, avatar_url')
                 .eq('id', userId)
                 .single();
 
             if (data) {
                 setRole(data.role as Role);
                 setStatus(data.status);
+                setAvatarUrl(data.avatar_url);
 
                 // Fetch Expiration Date based on Role
                 if (data.role === 'coach') {
@@ -117,12 +132,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         session,
         user,
         role,
+        avatarUrl,
         status,
         expiresAt,
         coachExpiresAt,
         loading,
         signOut
-    }), [session, user, role, status, expiresAt, coachExpiresAt, loading]);
+    }), [session, user, role, avatarUrl, status, expiresAt, coachExpiresAt, loading]);
 
     return (
         <AuthContext.Provider value={value}>

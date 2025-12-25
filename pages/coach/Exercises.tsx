@@ -393,6 +393,20 @@ const Exercises: React.FC<ExercisesProps> = ({ isModal, onSelect }) => {
                     </Link>
                     <h1 className="text-xl font-bold text-slate-900 dark:text-white font-display">Exercícios</h1>
                 </div>
+
+                {/* Header Action Button */}
+                {!isModal && (
+                    <button
+                        onClick={() => {
+                            setEditingExercise(null);
+                            setIsModalOpen(true);
+                        }}
+                        className="p-2 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-xl shadow-md active:scale-95 transition-all flex items-center gap-2 px-3"
+                    >
+                        <span className="material-symbols-rounded text-xl">add</span>
+                        <span className="text-sm font-bold hidden xs:inline">Novo</span>
+                    </button>
+                )}
             </header>
             <main className="flex-1 overflow-hidden relative">
                 {Content}

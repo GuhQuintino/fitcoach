@@ -15,7 +15,7 @@ interface DashboardStats {
 }
 
 const CoachDashboard: React.FC = () => {
-    const { user, role, expiresAt } = useAuth();
+    const { user, role, expiresAt, avatarUrl } = useAuth();
     const [stats, setStats] = useState<DashboardStats>({
         totalStudents: 0,
         activeStudents: 0,
@@ -130,15 +130,15 @@ const CoachDashboard: React.FC = () => {
                 <div className="flex justify-between items-start mb-6">
                     <Link to="/coach/profile" className="flex items-center gap-4 group cursor-pointer transition-opacity hover:opacity-80">
                         <div className="w-14 h-14 rounded-2xl overflow-hidden flex-shrink-0 shadow-soft border-2 border-slate-100 dark:border-slate-600">
-                            {user?.user_metadata?.avatar_url ? (
+                            {avatarUrl || user?.user_metadata?.avatar_url ? (
                                 <img
                                     alt="Profile"
                                     className="w-full h-full object-cover"
-                                    src={user.user_metadata.avatar_url}
+                                    src={avatarUrl || user?.user_metadata?.avatar_url}
                                 />
                             ) : (
                                 <div className="w-full h-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-slate-400">
-                                    <span className="material-symbols-rounded">person</span>
+                                    <span className="material-symbols-rounded text-3xl">account_circle</span>
                                 </div>
                             )}
                         </div>
@@ -247,8 +247,8 @@ const CoachDashboard: React.FC = () => {
                     </Link>
                 </div>
 
-                {/* Tool Banner (Invite) */}
-                <Link to="/coach/invite">
+                {/* Tool Banner (Invite) - Increased margin top to separate from quick actions */}
+                <Link to="/coach/invite" className="block mt-4">
                     <div className="w-full bg-white dark:bg-slate-800 p-5 rounded-2xl flex items-center justify-between group cursor-pointer transition-colors hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 shadow-sm">
                         <div className="flex flex-col gap-1">
                             <span className="text-xs font-bold text-primary uppercase tracking-wide">Ferramenta</span>
@@ -260,8 +260,8 @@ const CoachDashboard: React.FC = () => {
                     </div>
                 </Link>
 
-                {/* Library Cards */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pb-4">
+                {/* Library Cards - Added mt-8 for better spacing */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pb-12 mt-8">
                     <Link to="/coach/library" className="bg-gradient-to-br from-amber-50/80 to-white dark:from-amber-900/20 dark:to-slate-800 p-5 rounded-2xl shadow-sm border border-amber-100/50 dark:border-amber-700/30 flex flex-col items-start gap-4 text-left group active:scale-95 transition-all card-hover overflow-hidden relative">
                         <div className="absolute top-0 right-0 w-24 h-24 bg-amber-100/20 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2"></div>
                         <div className="p-2.5 bg-white dark:bg-amber-900/40 rounded-xl text-warning shadow-sm relative z-10">
