@@ -1,5 +1,18 @@
 @import "tailwindcss";
 
+/* Fallback fonts when Google Fonts don't load (slow connection) */
+@font-face {
+  font-family: 'Outfit';
+  src: local('system-ui'), local('Segoe UI'), local('Roboto'), local('Helvetica Neue'), local('Arial');
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'DM Sans';
+  src: local('system-ui'), local('Segoe UI'), local('Roboto'), local('Helvetica Neue'), local('Arial');
+  font-display: swap;
+}
+
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {

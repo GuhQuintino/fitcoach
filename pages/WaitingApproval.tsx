@@ -50,6 +50,34 @@ const WaitingApproval: React.FC = () => {
         fetchContactInfo();
     }, [role, user]);
 
+    // Listener para atualização automática quando aprovado
+    useEffect(() => {
+        if (!user) return;
+
+        const channel = supabase
+            .channel('approval_status')
+            .on(
+                'postgres_changes',
+                {
+                    event: 'UPDATE',
+                    schema: 'public',
+                    table: 'profiles',
+                    filter: `id=eq.${user.id}`
+                },
+                (payload: any) => {
+                    if (payload.new.status === 'active') {
+                        // Redirecionar para dashboard quando aprovado
+                        navigate(role === 'coach' ? '/coach/dashboard' : '/student/dashboard');
+                    }
+                }
+            )
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
+    }, [user, role, navigate]);
+
     const handleSignOut = async () => {
         await signOut();
         navigate('/login');

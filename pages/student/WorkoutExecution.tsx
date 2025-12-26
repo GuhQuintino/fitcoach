@@ -534,14 +534,14 @@ exercise_id,
                                             </div >
 
                                             {/* Sets Flow */}
-                                            < div className="divide-y divide-slate-50 dark:divide-slate-700/50" >
-                                                <div className="grid grid-cols-[40px_1fr_70px_70px_45px_45px] gap-2 px-3 py-2 bg-slate-50 dark:bg-slate-800/50 text-[10px] font-bold text-slate-400 uppercase tracking-wider text-center">
-                                                    <div>Série</div>
+                                            <div className="divide-y divide-slate-50 dark:divide-slate-700/50">
+                                                <div className="grid grid-cols-[32px_1fr_56px_56px_40px] sm:grid-cols-[40px_1fr_70px_70px_45px_45px] gap-1 sm:gap-2 px-2 sm:px-3 py-2 bg-slate-50 dark:bg-slate-800/50 text-[9px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-wider text-center">
+                                                    <div>#</div>
                                                     <div className="text-left">Anterior</div>
                                                     <div>kg</div>
                                                     <div>Reps</div>
-                                                    <div>PSE</div>
-                                                    <div>Info</div>
+                                                    <div className="hidden sm:block">PSE</div>
+                                                    <div>✓</div>
                                                 </div>
 
                                                 {
@@ -566,27 +566,27 @@ exercise_id,
                                                             };
 
                                                             return (
-                                                                <div key={set.id + setIndex} className={`grid grid-cols-[40px_1fr_70px_70px_45px_45px] gap-2 px-3 py-3.5 items-center transition-all duration-300 ${rowBg}`}>
+                                                                <div key={set.id + setIndex} className={`grid grid-cols-[32px_1fr_56px_56px_40px] sm:grid-cols-[40px_1fr_70px_70px_45px_45px] gap-1 sm:gap-2 px-2 sm:px-3 py-1 sm:py-2 items-center transition-all duration-300 ${rowBg}`}>
                                                                     <div className="flex items-center justify-center">
                                                                         {getSetIcon()}
                                                                     </div>
-                                                                    <div className="text-left overflow-hidden">
+                                                                    <div className="text-left overflow-hidden min-w-0">
                                                                         <button
                                                                             onClick={() => setHistoryModal({ open: true, exerciseId: exercise.id, exerciseName: exercise.name })}
-                                                                            className="text-[11px] font-medium text-slate-400 dark:text-slate-500 truncate hover:text-sky-500 transition-colors flex items-center gap-1 group/hist"
+                                                                            className="text-[9px] sm:text-[11px] font-medium text-slate-400 dark:text-slate-500 truncate hover:text-sky-500 transition-colors flex items-center gap-1 group/hist max-w-full"
                                                                         >
-                                                                            {set.prev_log || '-'}
-                                                                            {set.prev_log && <span className="material-symbols-rounded text-[12px] opacity-0 group-hover/hist:opacity-100">history</span>}
+                                                                            <span className="truncate">{set.prev_log || '-'}</span>
+                                                                            {set.prev_log && <span className="material-symbols-rounded text-[11px] opacity-0 group-hover/hist:opacity-100 flex-shrink-0">history</span>}
                                                                         </button>
-                                                                        <div className="flex flex-wrap items-center gap-1 mt-0.5">
+                                                                        <div className="flex flex-wrap items-center gap-0.5 sm:gap-1">
                                                                             {set.weight_target && (
-                                                                                <span className="text-[9px] bg-sky-100 dark:bg-sky-900/40 text-sky-600 dark:text-sky-400 px-1.5 py-0.5 rounded-full font-bold uppercase tracking-tight">Coach: {set.weight_target}kg</span>
+                                                                                <span className="text-[7px] sm:text-[9px] bg-sky-100 dark:bg-sky-900/40 text-sky-600 dark:text-sky-400 px-1 sm:px-1.5 py-0 rounded-full font-bold uppercase tracking-tight">{set.weight_target}kg</span>
                                                                             )}
                                                                             {set.reps_target && (
-                                                                                <span className="text-[9px] bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 px-1.5 py-0.5 rounded-full font-bold uppercase tracking-tight">Coach: {set.reps_target} reps</span>
+                                                                                <span className="text-[7px] sm:text-[9px] bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 px-1 sm:px-1.5 py-0 rounded-full font-bold uppercase tracking-tight">{set.reps_target}r</span>
                                                                             )}
                                                                             {set.rpe_target && (
-                                                                                <span className="text-[9px] bg-purple-100 dark:bg-purple-900/40 text-purple-600 dark:text-purple-400 px-1.5 py-0.5 rounded-full font-bold uppercase tracking-tight">Coach: @{set.rpe_target}</span>
+                                                                                <span className="text-[7px] sm:text-[9px] bg-purple-100 dark:bg-purple-900/40 text-purple-600 dark:text-purple-400 px-1 sm:px-1.5 py-0 rounded-full font-bold uppercase tracking-tight sm:hidden">@{set.rpe_target}</span>
                                                                             )}
                                                                         </div>
                                                                     </div>
@@ -594,7 +594,7 @@ exercise_id,
                                                                         <input
                                                                             type="number"
                                                                             inputMode="decimal"
-                                                                            className={`w-full h-10 text-center text-sm font-bold bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl focus:border-sky-500 focus:ring-1 focus:ring-sky-500 p-0 text-slate-900 dark:text-white transition-all shadow-sm ${set.completed ? 'opacity-60' : ''}`}
+                                                                            className={`w-full h-8 sm:h-9 text-center text-xs sm:text-sm font-bold bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg sm:rounded-xl focus:border-sky-500 focus:ring-1 focus:ring-sky-500 p-0 text-slate-900 dark:text-white transition-all shadow-sm ${set.completed ? 'opacity-60' : ''}`}
                                                                             placeholder={set.prev_log !== '-' ? set.prev_log.split('kg')[0] : (set.weight_target ? String(set.weight_target) : '-')}
                                                                             value={set.weight}
                                                                             onChange={(e) => handleInputChange(exIndex, setIndex, 'weight', e.target.value)}
@@ -604,16 +604,16 @@ exercise_id,
                                                                         <input
                                                                             type="number"
                                                                             inputMode="numeric"
-                                                                            className={`w-full h-10 text-center text-sm font-bold bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl focus:border-sky-500 focus:ring-1 focus:ring-sky-500 p-0 text-slate-900 dark:text-white transition-all shadow-sm ${set.completed ? 'opacity-60' : ''}`}
+                                                                            className={`w-full h-8 sm:h-9 text-center text-xs sm:text-sm font-bold bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg sm:rounded-xl focus:border-sky-500 focus:ring-1 focus:ring-sky-500 p-0 text-slate-900 dark:text-white transition-all shadow-sm ${set.completed ? 'opacity-60' : ''}`}
                                                                             placeholder={set.reps_target && !set.reps_target.includes('-') ? set.reps_target : '-'}
                                                                             value={set.reps}
                                                                             onChange={(e) => handleInputChange(exIndex, setIndex, 'reps', e.target.value)}
                                                                         />
                                                                     </div>
-                                                                    <div>
+                                                                    <div className="hidden sm:block">
                                                                         <button
                                                                             onClick={() => setPseModal({ open: true, exerciseIndex: exIndex, setIndex: setIndex })}
-                                                                            className={`w-full h-10 rounded-xl flex items-center justify-center text-xs font-bold transition-all shadow-sm ${set.rpe ? 'bg-slate-800 text-white dark:bg-white dark:text-slate-900 ring-2 ring-primary/20' : 'bg-slate-100 dark:bg-slate-700 text-slate-400'} ${set.completed ? 'opacity-60' : ''}`}
+                                                                            className={`w-full h-9 rounded-xl flex items-center justify-center text-xs font-bold transition-all shadow-sm ${set.rpe ? 'bg-slate-800 text-white dark:bg-white dark:text-slate-900 ring-2 ring-primary/20' : 'bg-slate-100 dark:bg-slate-700 text-slate-400'} ${set.completed ? 'opacity-60' : ''}`}
                                                                         >
                                                                             {set.rpe || (set.rpe_target ? `@${set.rpe_target}` : '@')}
                                                                         </button>
@@ -621,9 +621,9 @@ exercise_id,
                                                                     <div className="flex justify-center">
                                                                         <button
                                                                             onClick={() => toggleSetCompletion(exIndex, setIndex)}
-                                                                            className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${set.completed ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20 scale-105' : 'bg-slate-100 dark:bg-slate-700 text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'}`}
+                                                                            className={`w-8 h-8 sm:w-9 sm:h-9 rounded-lg sm:rounded-xl flex items-center justify-center transition-all ${set.completed ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20 scale-105' : 'bg-slate-100 dark:bg-slate-700 text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'}`}
                                                                         >
-                                                                            <span className="material-symbols-rounded text-xl">check</span>
+                                                                            <span className="material-symbols-rounded text-lg sm:text-xl">check</span>
                                                                         </button>
                                                                     </div>
                                                                 </div>
