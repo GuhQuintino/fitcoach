@@ -4,6 +4,7 @@ import RPEGuideModal from './RPEGuideModal';
 import VideoPlayerModal from '../../shared/VideoPlayerModal';
 import ExerciseHistoryModal from '../../shared/ExerciseHistoryModal';
 import VideoThumbnail from '../../shared/VideoThumbnail';
+import toast from 'react-hot-toast';
 
 interface Set {
     id: string; // Temporarily just random string if new
@@ -67,6 +68,15 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({ item, index, onUpdate, onDe
         newSets[index] = { ...newSets[index], [field]: value };
         setSets(newSets);
         updateParent(newSets, notes);
+    };
+
+    const handleBulkApplyRest = () => {
+        if (sets.length < 2) return;
+        const firstRest = sets[0].rest_seconds;
+        const newSets = sets.map(s => ({ ...s, rest_seconds: firstRest }));
+        setSets(newSets);
+        updateParent(newSets, notes);
+        toast.success(`Rest de ${firstRest}s aplicado em todas as séries!`, { icon: '⚡' });
     };
 
     const getSetTypeIcon = (type: string, isFirstWorking: boolean) => {
@@ -192,7 +202,10 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({ item, index, onUpdate, onDe
                     <div className="text-center">#</div>
                     <div>kg</div>
                     <div>Reps</div>
-                    <div>Desc</div>
+                    <div className="flex items-center justify-center gap-1 group/rest cursor-pointer hover:text-primary transition-colors" onClick={handleBulkApplyRest} title="Replicar descanso para todas as séries">
+                        Desc
+                        <span className="material-symbols-rounded text-[10px] opacity-0 group-hover/rest:opacity-100 transition-opacity">sync_alt</span>
+                    </div>
                     <div className="flex items-center justify-center gap-1 cursor-pointer hover:text-primary transition-colors" onClick={() => setRpeModalOpen(true)}>
                         PSE
                         <span className="material-symbols-rounded text-[10px]">help</span>
@@ -210,10 +223,17 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({ item, index, onUpdate, onDe
                                 {/* Type Selector */}
                                 <button
                                     onClick={() => setTypeModal({ isOpen: true, setIndex: i })}
-                                    className="w-full h-10 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 flex items-center justify-center hover:border-primary/50 transition-colors"
+                                    className={`w-full h-10 rounded-xl border flex items-center justify-center transition-all duration-300 ${set.type === 'warmup'
+                                        ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800/50 text-amber-600'
+                                        : set.type === 'failure'
+                                            ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800/50 text-red-600'
+                                            : set.type === 'dropset'
+                                                ? 'bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-800/50 text-purple-600'
+                                                : 'bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-sky-600'
+                                        } hover:scale-105 active:scale-95 shadow-sm`}
                                 >
                                     {(set.type === 'working') ? (
-                                        <span className="text-blue-600 dark:text-blue-400 font-black text-sm">{workingSetIndex}</span>
+                                        <span className="font-black text-xs uppercase tracking-tighter">{workingSetIndex}ª</span>
                                     ) : (
                                         getSetTypeIcon(set.type, false)
                                     )}
@@ -250,11 +270,16 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({ item, index, onUpdate, onDe
                                 </div>
 
                                 {/* RPE Selector */}
-                                <div className="relative">
+                                <div className="relative group/rpe">
                                     <select
-                                        className={`w-full h-10 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-center font-bold outline-none focus:ring-1 focus:ring-primary/50 appearance-none px-0
-                                ${parseFloat(set.rpe_target) >= 9 ? 'text-red-500' : parseFloat(set.rpe_target) >= 7 ? 'text-amber-500' : 'text-green-500'}
-                            `}
+                                        className={`w-full h-10 rounded-xl border text-center font-bold outline-none focus:ring-2 focus:ring-primary/20 appearance-none px-0 transition-all duration-300
+                                ${parseFloat(set.rpe_target) >= 9
+                                                ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800/50 text-red-600'
+                                                : parseFloat(set.rpe_target) >= 7
+                                                    ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800/50 text-amber-600'
+                                                    : 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800/50 text-emerald-600'
+                                            }
+                                        `}
                                         value={set.rpe_target}
                                         onChange={(e) => handleSetChange(i, 'rpe_target', e.target.value)}
                                     >
@@ -262,12 +287,11 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({ item, index, onUpdate, onDe
                                             <option key={val} value={val} className="text-slate-900 dark:text-white bg-white dark:bg-slate-800">{val}</option>
                                         ))}
                                     </select>
-                                    {/* Custom Chevron */}
-                                    <span className="absolute right-1 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 material-symbols-rounded text-sm">unfold_more</span>
+                                    <span className="absolute right-1 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 material-symbols-rounded text-[12px] opacity-0 group-hover/rpe:opacity-100 transition-opacity">unfold_more</span>
                                 </div>
 
                                 {/* Delete Set */}
-                                <button onClick={() => handleRemoveSet(i)} className="p-1 text-slate-300 hover:text-red-500 transition-colors flex justify-center w-6">
+                                <button onClick={() => handleRemoveSet(i)} className="p-1 text-slate-300 hover:text-red-500 transition-colors flex justify-center w-6 hover:rotate-90 transition-transform">
                                     <span className="material-symbols-rounded text-lg">close</span>
                                 </button>
                             </div>

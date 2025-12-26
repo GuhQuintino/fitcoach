@@ -10,7 +10,7 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import InstallTutorial from '../../components/shared/InstallTutorial';
 
 const StudentProfile: React.FC = () => {
-    const { user, signOut } = useAuth();
+    const { user, signOut, preferences, updatePreferences } = useAuth();
     const navigate = useNavigate();
 
     const [loading, setLoading] = useState(true);
@@ -597,6 +597,30 @@ const StudentProfile: React.FC = () => {
                     </div>
                     <div className="bg-white dark:bg-slate-800 p-2 rounded-[2.5rem] shadow-soft border border-slate-100 dark:border-slate-700">
                         <EvolutionGallery />
+                    </div>
+                </section>
+
+                {/* Preferences Section */}
+                <section className="space-y-3 animate-slide-up">
+                    <h3 className="text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider ml-1">Experiência</h3>
+                    <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-soft border border-slate-100 dark:border-slate-700 overflow-hidden divide-y divide-slate-100 dark:divide-slate-700">
+                        <div className="flex items-center justify-between p-5">
+                            <div className="flex items-center gap-4">
+                                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-colors ${preferences.focusMode ? 'bg-primary/10 text-primary' : 'bg-slate-100 dark:bg-slate-700 text-slate-400'}`}>
+                                    <span className="material-symbols-rounded">select_window</span>
+                                </div>
+                                <div>
+                                    <p className="text-sm font-black text-slate-900 dark:text-white">Modo Foco</p>
+                                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Destaca exercício atual</p>
+                                </div>
+                            </div>
+                            <button
+                                onClick={() => updatePreferences({ focusMode: !preferences.focusMode })}
+                                className={`w-14 h-8 rounded-full transition-all relative flex items-center px-1 ${preferences.focusMode ? 'bg-primary' : 'bg-slate-200 dark:bg-slate-700'}`}
+                            >
+                                <div className={`w-6 h-6 bg-white rounded-full shadow-md transition-all ${preferences.focusMode ? 'translate-x-6' : 'translate-x-0'}`}></div>
+                            </button>
+                        </div>
                     </div>
                 </section>
 

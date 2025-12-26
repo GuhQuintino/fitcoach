@@ -13,8 +13,15 @@ interface AuthContextType {
     status: string | null;
     expiresAt: string | null;
     coachExpiresAt: string | null;
+    preferences: UserPreferences;
     loading: boolean;
     signOut: () => Promise<void>;
+    updatePreferences: (prefs: Partial<UserPreferences>) => Promise<void>;
+}
+
+interface UserPreferences {
+    focusMode: boolean;
+    [key: string]: any;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -27,6 +34,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const [status, setStatus] = useState<string | null>(null);
     const [expiresAt, setExpiresAt] = useState<string | null>(null);
     const [coachExpiresAt, setCoachExpiresAt] = useState<string | null>(null);
+    const [preferences, setPreferences] = useState<UserPreferences>({ focusMode: true });
     const [loading, setLoading] = useState(true);
 
     const prevUserId = React.useRef<string | null>(null);
@@ -65,6 +73,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 setStatus(null);
                 setExpiresAt(null);
                 setCoachExpiresAt(null);
+                setPreferences({ focusMode: true });
                 setLoading(false);
             }
         });
@@ -75,10 +84,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const fetchUserProfile = async (userId: string) => {
         if (!userId) return;
         try {
-            // First, fetch the core profile to get the role
+            // First, fetch the core profile to get the role and preferences
             const { data: profile, error } = await supabase
                 .from('profiles')
-                .select('role, status, avatar_url')
+                .select('role, status, avatar_url, preferences')
                 .eq('id', userId)
                 .single();
 
@@ -88,6 +97,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 setRole(profile.role as Role);
                 setStatus(profile.status);
                 setAvatarUrl(profile.avatar_url);
+                if (profile.preferences) {
+                    setPreferences(profile.preferences);
+                }
 
                 // Fetch extra data in parallel based on role
                 if (profile.role === 'coach') {
@@ -122,8 +134,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                     const metaRole = session?.user?.user_metadata?.role;
                     if (metaRole) {
                         setRole(metaRole as Role);
-                        // Default to pending for new users without profile rows
-                        setStatus('pending');
+                        // Only set pending if not admin
+                        setStatus(metaRole === 'admin' ? 'active' : 'pending');
                     }
                 }
             } else {
@@ -131,7 +143,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 const metaRole = session?.user?.user_metadata?.role;
                 if (metaRole) {
                     setRole(metaRole as Role);
-                    setStatus('pending');
+                    setStatus(metaRole === 'admin' ? 'active' : 'pending');
                 }
             }
         } catch (error) {
@@ -140,7 +152,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             const metaRole = session?.user?.user_metadata?.role;
             if (metaRole) {
                 setRole(metaRole as Role);
-                setStatus('pending');
+                setStatus(metaRole === 'admin' ? 'active' : 'pending');
             }
         } finally {
             setLoading(false);
@@ -198,6 +210,24 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         setCoachExpiresAt(null);
         setSession(null);
         setUser(null);
+        setPreferences({ focusMode: true });
+    };
+
+    const updatePreferences = async (newPrefs: Partial<UserPreferences>) => {
+        if (!user) return;
+        try {
+            const updated = { ...preferences, ...newPrefs };
+            const { error } = await supabase
+                .from('profiles')
+                .update({ preferences: updated })
+                .eq('id', user.id);
+
+            if (error) throw error;
+            setPreferences(updated);
+        } catch (error) {
+            console.error('Error updating preferences:', error);
+            toast.error('Erro ao salvar preferências.');
+        }
     };
 
     const value = useMemo(() => ({
@@ -208,9 +238,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         status,
         expiresAt,
         coachExpiresAt,
+        preferences,
         loading,
-        signOut
-    }), [session, user, role, avatarUrl, status, expiresAt, coachExpiresAt, loading]);
+        signOut,
+        updatePreferences
+    }), [session, user, role, avatarUrl, status, expiresAt, coachExpiresAt, preferences, loading]);
 
     return (
         <AuthContext.Provider value={value}>

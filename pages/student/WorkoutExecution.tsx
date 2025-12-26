@@ -24,6 +24,8 @@ interface TriggerSet {
     rest_seconds: number;
     completed: boolean;
     weight_target?: number | null;
+    reps_target?: string | null;
+    rpe_target?: string | null;
     prev_log?: string; // string representation of previous log e.g. "50kg x 10"
 }
 
@@ -38,7 +40,7 @@ interface TriggerExercise {
 }
 
 const WorkoutExecution: React.FC = () => {
-    const { user } = useAuth();
+    const { user, preferences } = useAuth();
     const navigate = useNavigate();
     const { id: workoutId } = useParams();
 
@@ -50,7 +52,9 @@ const WorkoutExecution: React.FC = () => {
     const [startTime, setStartTime] = useState<Date>(new Date());
     const [timerActive, setTimerActive] = useState(false);
     const [timeLeft, setTimeLeft] = useState(60);
+    const [initialTime, setInitialTime] = useState(60);
     const [toastVisible, setToastVisible] = useState(false);
+    const [currentExerciseIndex, setCurrentExerciseIndex] = useState(0);
     const timerRef = useRef<NodeJS.Timeout | null>(null);
 
     // PSE Modal
@@ -97,6 +101,18 @@ const WorkoutExecution: React.FC = () => {
         }, 1000);
         return () => clearInterval(interval);
     }, [startTime]);
+
+    // Auto-scroll to focused exercise
+    useEffect(() => {
+        if (!loading && exercises.length > 0) {
+            if (preferences.focusMode) {
+                const el = document.getElementById(`exercise-${currentExerciseIndex}`);
+                if (el) {
+                    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            }
+        }
+    }, [currentExerciseIndex, loading, exercises.length, preferences.focusMode]);
 
     // Calculate Volume & Sets
     useEffect(() => {
@@ -164,10 +180,12 @@ id,
                         type: set.type,
                         weight: '',
                         prev_log: '-', // Will be updated below
-                        reps: set.reps_target || '',
+                        reps: '', // Do not pre-fill with target as it might be a range (e.g. "8-12")
                         rpe: '',
                         rest_seconds: set.rest_seconds || 60,
                         weight_target: set.weight_target,
+                        reps_target: set.reps_target,
+                        rpe_target: set.rpe_target,
                         completed: false
                     }))
             }));
@@ -271,6 +289,12 @@ exercise_id,
         saveToLocalStorage(newExercises);
 
         if (!wasCompleted) {
+            // Check if all sets of current exercise are completed to move focus
+            const allSetsCompleted = newExercises[exIndex].sets.every(s => s.completed);
+            if (allSetsCompleted && exIndex === currentExerciseIndex && exIndex < exercises.length - 1) {
+                setCurrentExerciseIndex(exIndex + 1);
+            }
+
             // Started Rest
             startRestTimer(set.rest_seconds);
         }
@@ -279,6 +303,7 @@ exercise_id,
     const startRestTimer = (duration: number) => {
         if (timerRef.current) clearInterval(timerRef.current);
         setTimeLeft(duration);
+        setInitialTime(duration);
         setTimerActive(true);
         setToastVisible(true);
 
@@ -387,283 +412,322 @@ exercise_id,
 
     return (
         <MainLayout>
-            <div className="min-h-screen bg-white dark:bg-slate-900 pb-24 relative">
-                {/* Header */}
-                <header className="sticky top-0 z-40 bg-white dark:bg-slate-800 border-b border-slate-100 dark:border-slate-700 shadow-sm">
-                    <div className="px-4 py-3 flex items-center justify-between">
-                        <button onClick={() => navigate(-1)} className="p-2 -ml-2 rounded-xl text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
-                            <span className="material-symbols-rounded">arrow_back</span>
-                        </button>
-                        <div className="flex-1 px-2 text-center">
-                            <h1 className="text-base font-bold text-slate-900 dark:text-white truncate">{workout?.name}</h1>
+            <>
+                <div className="min-h-screen bg-white dark:bg-slate-900 pb-24 relative">
+                    {/* Header */}
+                    <header className="sticky top-0 z-40 bg-white dark:bg-slate-800 border-b border-slate-100 dark:border-slate-700 shadow-sm">
+                        <div className="px-4 py-3 flex items-center justify-between">
+                            <button onClick={() => navigate(-1)} className="p-2 -ml-2 rounded-xl text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
+                                <span className="material-symbols-rounded">arrow_back</span>
+                            </button>
+                            <div className="flex-1 px-2 text-center">
+                                <h1 className="text-base font-bold text-slate-900 dark:text-white truncate">{workout?.name}</h1>
+                            </div>
+                            <button
+                                onClick={handleFinishWorkout}
+                                className="bg-sky-500 hover:bg-sky-600 !text-white px-4 py-1.5 rounded-xl text-sm font-semibold transition-colors shadow-sm active:scale-95"
+                            >
+                                Concluir
+                            </button>
                         </div>
-                        <button
-                            onClick={handleFinishWorkout}
-                            className="bg-sky-500 hover:bg-sky-600 !text-white px-4 py-1.5 rounded-xl text-sm font-semibold transition-colors shadow-sm active:scale-95"
-                        >
-                            Concluir
-                        </button>
-                    </div>
-                </header>
+                    </header>
 
-                <main className="px-4 py-4 space-y-6">
-                    {/* Stats Bar */}
-                    <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 shadow-soft border border-slate-100 dark:border-slate-700 grid grid-cols-3 gap-2 text-center divide-x divide-slate-100 dark:divide-slate-700 transition-colors">
-                        <div>
-                            <p className="text-[10px] uppercase tracking-wide text-slate-500 dark:text-slate-400 mb-1">Duração</p>
-                            <p className="text-lg font-bold text-sky-500">{duration}</p>
-                        </div>
-                        <div>
-                            <p className="text-[10px] uppercase tracking-wide text-slate-500 dark:text-slate-400 mb-1">Volume</p>
-                            <p className="text-lg font-bold text-slate-900 dark:text-white">{volume} kg</p>
-                        </div>
-                        <div>
-                            <p className="text-[10px] uppercase tracking-wide text-slate-500 dark:text-slate-400 mb-1">Séries</p>
-                            <p className="text-lg font-bold text-slate-900 dark:text-white">{setsCompleted}</p>
-                        </div>
-                    </div>
-
-                    {/* Exercises List */}
-                    <div className="space-y-6">
-                        {exercises.map((exercise, exIndex) => (
-                            <div key={exercise.id + exIndex} className="bg-white dark:bg-slate-800 rounded-2xl shadow-soft border border-slate-100 dark:border-slate-700 overflow-hidden transition-colors">
-                                {/* Exercise Header */}
-                                <div className="p-4 border-b border-slate-100 dark:border-slate-700">
-                                    <div className="flex items-start justify-between mb-3 px-1">
-                                        <div className="flex items-center gap-3">
-                                            {/* Thumbnail Area */}
-                                            <div
-                                                className="w-14 h-14 rounded-xl bg-sky-50 dark:bg-sky-900/20 flex-shrink-0 overflow-hidden relative group cursor-pointer border border-sky-100/50 dark:border-sky-500/10"
-                                                onClick={() => {
-                                                    if (exercise.video_url) {
-                                                        setVideoModal({ open: true, url: exercise.video_url, title: exercise.name });
-                                                    }
-                                                }}
-                                            >
-                                                {(() => {
-                                                    const ytId = getYouTubeId(exercise.video_url);
-                                                    const videoUrl = exercise.video_url;
-                                                    const isGif = videoUrl?.toLowerCase().endsWith('.gif');
-                                                    const isMp4 = videoUrl?.toLowerCase().endsWith('.mp4');
-
-                                                    if (isGif) return <img src={videoUrl} className="w-full h-full object-cover" alt="GIF" />;
-                                                    if (ytId) return (
-                                                        <>
-                                                            <img
-                                                                src={`https://img.youtube.com/vi/${ytId}/0.jpg`}
-                                                                className="w-full h-full object-cover opacity-60 group-hover:opacity-100 transition-opacity"
-                                                                alt="Preview"
-                                                            />
-                                                            <div className="absolute inset-0 flex items-center justify-center">
-                                                                <span className="material-symbols-rounded text-sky-500 text-2xl drop-shadow-sm group-hover:scale-110 transition-transform">play_circle</span>
-                                                            </div>
-                                                        </>
-                                                    );
-                                                    if (isMp4) return (
-                                                        <video src={videoUrl} className="w-full h-full object-cover" muted playsInline />
-                                                    );
-                                                    return (
-                                                        <div className="w-full h-full flex items-center justify-center text-sky-300 dark:text-sky-700">
-                                                            <span className="material-symbols-rounded text-2xl">image</span>
-                                                        </div>
-                                                    );
-                                                })()}
-                                            </div >
-
-                                            <div className="cursor-pointer group/title" onClick={() => setDescModal({ open: true, description: exercise.description, title: exercise.name })}>
-                                                <div className="flex items-center gap-1.5">
-                                                    <h3 className="font-bold text-lg text-slate-800 dark:text-slate-100 group-hover/title:text-sky-500 transition-colors">{exercise.name}</h3>
-                                                    <span className="material-symbols-rounded text-[18px] text-slate-300 group-hover/title:text-sky-400">info</span>
-                                                </div>
-                                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Toque para detalhes</p>
-                                            </div>
-                                        </div >
-                                    </div >
-                                    {
-                                        exercise.notes && (
-                                            <div className="mx-2 mb-3 bg-sky-50/50 dark:bg-sky-900/10 p-3 rounded-2xl border border-sky-100 dark:border-sky-500/10 flex gap-3 items-start">
-                                                <span className="material-symbols-rounded text-sky-500 text-lg mt-0.5">sticky_note</span>
-                                                <div className="flex-1">
-                                                    <span className="uppercase text-[10px] font-bold text-sky-600 dark:text-sky-400 block mb-0.5 tracking-wider">Nota do Coach</span>
-                                                    <p className="text-xs font-medium text-slate-600 dark:text-slate-300 italic leading-relaxed">
-                                                        "{exercise.notes}"
-                                                    </p>
-                                                </div>
-                                            </div>
-                                        )
-                                    }
-                                </div >
-
-                                {/* Sets Flow */}
-                                < div className="divide-y divide-slate-50 dark:divide-slate-700/50" >
-                                    <div className="grid grid-cols-[40px_1fr_70px_70px_45px_45px] gap-2 px-3 py-2 bg-slate-50 dark:bg-slate-800/50 text-[10px] font-bold text-slate-400 uppercase tracking-wider text-center">
-                                        <div>Série</div>
-                                        <div className="text-left">Anterior</div>
-                                        <div>kg</div>
-                                        <div>Reps</div>
-                                        <div>PSE</div>
-                                        <div>Info</div>
-                                    </div>
-
-                                    {
-                                        (() => {
-                                            let workingSetCount = 0;
-                                            return exercise.sets.map((set, setIndex) => {
-                                                const isWarmup = set.type === 'warmup';
-                                                const isFailure = set.type === 'failure';
-                                                const isDropset = set.type === 'dropset';
-
-                                                if (set.type === 'working') workingSetCount++;
-
-                                                const rowBg = set.completed
-                                                    ? 'bg-emerald-50/40 dark:bg-emerald-900/10'
-                                                    : (isWarmup ? 'bg-amber-50/30 dark:bg-amber-900/5' : (isFailure ? 'bg-red-50/30 dark:bg-red-900/5' : (isDropset ? 'bg-purple-50/30 dark:bg-purple-900/5' : '')));
-
-                                                const getSetIcon = () => {
-                                                    if (isWarmup) return <button onClick={() => setSeriesHelpModal(true)} className="flex items-center justify-center w-full"><span className="material-symbols-rounded text-amber-500 text-lg">local_fire_department</span></button>;
-                                                    if (isFailure) return <button onClick={() => setSeriesHelpModal(true)} className="flex items-center justify-center w-full"><span className="material-symbols-rounded text-red-600 text-lg">bolt</span></button>;
-                                                    if (isDropset) return <button onClick={() => setSeriesHelpModal(true)} className="flex items-center justify-center w-full"><span className="material-symbols-rounded text-purple-500 text-lg">layers</span></button>;
-                                                    return <button onClick={() => setSeriesHelpModal(true)} className="text-sky-600 dark:text-sky-400 font-black text-sm w-full font-mono">{workingSetCount}</button>;
-                                                };
-
-                                                return (
-                                                    <div key={set.id + setIndex} className={`grid grid-cols-[40px_1fr_70px_70px_45px_45px] gap-2 px-3 py-3.5 items-center transition-all duration-300 ${rowBg}`}>
-                                                        <div className="flex items-center justify-center">
-                                                            {getSetIcon()}
-                                                        </div>
-                                                        <div className="text-left overflow-hidden">
-                                                            <button
-                                                                onClick={() => setHistoryModal({ open: true, exerciseId: exercise.id, exerciseName: exercise.name })}
-                                                                className="text-[11px] font-medium text-slate-400 dark:text-slate-500 truncate hover:text-sky-500 transition-colors flex items-center gap-1 group/hist"
-                                                            >
-                                                                {set.prev_log || '-'}
-                                                                {set.prev_log && <span className="material-symbols-rounded text-[12px] opacity-0 group-hover/hist:opacity-100">history</span>}
-                                                            </button>
-                                                            {set.weight_target && (
-                                                                <div className="flex items-center gap-1 mt-0.5">
-                                                                    <span className="text-[9px] bg-sky-100 dark:bg-sky-900/40 text-sky-600 dark:text-sky-400 px-1.5 py-0.5 rounded-full font-bold uppercase tracking-tight">Coach: {set.weight_target}kg</span>
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                        <div>
-                                                            <input
-                                                                type="number"
-                                                                inputMode="decimal"
-                                                                className={`w-full h-10 text-center text-sm font-bold bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl focus:border-sky-500 focus:ring-1 focus:ring-sky-500 p-0 text-slate-900 dark:text-white transition-all shadow-sm ${set.completed ? 'opacity-60' : ''}`}
-                                                                placeholder="-"
-                                                                value={set.weight}
-                                                                onChange={(e) => handleInputChange(exIndex, setIndex, 'weight', e.target.value)}
-                                                            />
-                                                        </div>
-                                                        <div>
-                                                            <input
-                                                                type="number"
-                                                                inputMode="numeric"
-                                                                className={`w-full h-10 text-center text-sm font-bold bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl focus:border-sky-500 focus:ring-1 focus:ring-sky-500 p-0 text-slate-900 dark:text-white transition-all shadow-sm ${set.completed ? 'opacity-60' : ''}`}
-                                                                placeholder="-"
-                                                                value={set.reps}
-                                                                onChange={(e) => handleInputChange(exIndex, setIndex, 'reps', e.target.value)}
-                                                            />
-                                                        </div>
-                                                        <div>
-                                                            <button
-                                                                onClick={() => setPseModal({ open: true, exerciseIndex: exIndex, setIndex: setIndex })}
-                                                                className={`w-full h-10 rounded-xl flex items-center justify-center text-xs font-bold transition-all shadow-sm ${set.rpe ? 'bg-slate-800 text-white dark:bg-white dark:text-slate-900 ring-2 ring-primary/20' : 'bg-slate-100 dark:bg-slate-700 text-slate-400'} ${set.completed ? 'opacity-60' : ''}`}
-                                                            >
-                                                                {set.rpe || '@'}
-                                                            </button>
-                                                        </div>
-                                                        <div className="flex justify-center">
-                                                            <button
-                                                                onClick={() => toggleSetCompletion(exIndex, setIndex)}
-                                                                className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${set.completed ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20 scale-105' : 'bg-slate-100 dark:bg-slate-700 text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'}`}
-                                                            >
-                                                                <span className="material-symbols-rounded text-xl">check</span>
-                                                            </button>
-                                                        </div>
-                                                    </div>
-                                                );
-                                            });
-                                        })()
-                                    }
-                                </div >
-                            </div >
-                        ))}
-                    </div >
-                </main >
-
-                {/* Rest Timer Toast */}
-                {
-                    toastVisible && (
-                        <div className="fixed bottom-[100px] left-0 right-0 z-[60] flex justify-center px-4">
-                            <div className="bg-slate-900 text-white px-5 py-3 rounded-2xl shadow-xl flex items-center justify-between w-full max-w-sm border border-white/10">
-                                <div className="flex items-center gap-3.5">
-                                    <div className="w-10 h-10 rounded-xl bg-slate-800 flex items-center justify-center relative overflow-hidden">
-                                        <div className="absolute inset-0 bg-primary/20 animate-pulse"></div>
-                                        <span className="material-symbols-rounded text-lg text-primary relative z-10">timer</span>
-                                    </div>
-                                    <div className="flex flex-col">
-                                        <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-0.5">Descanso</span>
-                                        <span className="font-mono text-2xl font-bold leading-none tabular-nums tracking-tight">{formatTime(timeLeft)}</span>
-                                    </div>
-                                </div>
-                                <button
-                                    onClick={stopRestTimer}
-                                    className="text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold px-4 py-2 rounded-lg transition-colors border border-slate-700"
-                                >
-                                    Pular
-                                </button>
+                    <main className="px-4 py-4 space-y-6">
+                        {/* Stats Bar */}
+                        <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 shadow-soft border border-slate-100 dark:border-slate-700 grid grid-cols-3 gap-2 text-center divide-x divide-slate-100 dark:divide-slate-700 transition-colors">
+                            <div>
+                                <p className="text-[10px] uppercase tracking-wide text-slate-500 dark:text-slate-400 mb-1">Duração</p>
+                                <p className="text-lg font-bold text-sky-500">{duration}</p>
+                            </div>
+                            <div>
+                                <p className="text-[10px] uppercase tracking-wide text-slate-500 dark:text-slate-400 mb-1">Volume</p>
+                                <p className="text-lg font-bold text-slate-900 dark:text-white">{volume} kg</p>
+                            </div>
+                            <div>
+                                <p className="text-[10px] uppercase tracking-wide text-slate-500 dark:text-slate-400 mb-1">Séries</p>
+                                <p className="text-lg font-bold text-slate-900 dark:text-white">{setsCompleted}</p>
                             </div>
                         </div>
-                    )
-                }
-            </div >
 
-            <VideoPlayerModal
-                isOpen={videoModal.open}
-                onClose={() => setVideoModal({ ...videoModal, open: false })}
-                videoUrl={videoModal.url}
-                title={videoModal.title}
-            />
+                        {/* Exercises List */}
+                        <div className="space-y-6">
+                            {exercises.map((exercise, exIndex) => {
+                                const isFocused = currentExerciseIndex === exIndex;
+                                const isCompleted = exIndex < currentExerciseIndex;
+                                const shouldFocus = preferences.focusMode;
 
-            <DescriptionModal
-                isOpen={descModal.open}
-                onClose={() => setDescModal({ ...descModal, open: false })}
-                description={descModal.description}
-                title={descModal.title}
-            />
-            <RPEGuideModal
-                isOpen={pseModal.open}
-                onClose={() => setPseModal({ ...pseModal, open: false })}
-                currentValue={pseModal.exerciseIndex !== null && pseModal.setIndex !== null ? exercises[pseModal.exerciseIndex].sets[pseModal.setIndex].rpe : ''}
-                onSelect={(pse) => {
-                    if (pseModal.exerciseIndex !== null && pseModal.setIndex !== null) {
-                        handleInputChange(pseModal.exerciseIndex, pseModal.setIndex, 'rpe', pse);
-                        setPseModal({ ...pseModal, open: false });
+                                return (
+                                    <div
+                                        key={exercise.id + exIndex}
+                                        id={`exercise-${exIndex}`}
+                                        className={`transition-all duration-500 mb-8 ${shouldFocus
+                                            ? (isFocused ? 'scale-[1.02] opacity-100 z-10' : 'scale-95 opacity-50 grayscale')
+                                            : 'opacity-100'
+                                            }`}
+                                    >
+                                        <div className={`bg-white dark:bg-slate-800 rounded-[2.5rem] shadow-soft border transition-all duration-500 overflow-hidden ${shouldFocus && isFocused ? 'border-primary/30 ring-4 ring-primary/5 shadow-focus-glow' : 'border-slate-100 dark:border-slate-700'}`}>
+                                            {/* Exercise Header */}
+                                            <div className="p-4 border-b border-slate-100 dark:border-slate-700">
+                                                <div className="flex items-start justify-between mb-3 px-1">
+                                                    <div className="flex items-center gap-3">
+                                                        {/* Thumbnail Area */}
+                                                        <div
+                                                            className="w-14 h-14 rounded-xl bg-sky-50 dark:bg-sky-900/20 flex-shrink-0 overflow-hidden relative group cursor-pointer border border-sky-100/50 dark:border-sky-500/10"
+                                                            onClick={() => {
+                                                                if (exercise.video_url) {
+                                                                    setVideoModal({ open: true, url: exercise.video_url, title: exercise.name });
+                                                                }
+                                                            }}
+                                                        >
+                                                            {(() => {
+                                                                const ytId = getYouTubeId(exercise.video_url);
+                                                                const videoUrl = exercise.video_url;
+                                                                const isGif = videoUrl?.toLowerCase().endsWith('.gif');
+                                                                const isMp4 = videoUrl?.toLowerCase().endsWith('.mp4');
+
+                                                                if (isGif) return <img src={videoUrl} className="w-full h-full object-cover" alt="GIF" />;
+                                                                if (ytId) return (
+                                                                    <>
+                                                                        <img
+                                                                            src={`https://img.youtube.com/vi/${ytId}/0.jpg`}
+                                                                            className="w-full h-full object-cover opacity-60 group-hover:opacity-100 transition-opacity"
+                                                                            alt="Preview"
+                                                                        />
+                                                                        <div className="absolute inset-0 flex items-center justify-center">
+                                                                            <span className="material-symbols-rounded text-sky-500 text-2xl drop-shadow-sm group-hover:scale-110 transition-transform">play_circle</span>
+                                                                        </div>
+                                                                    </>
+                                                                );
+                                                                if (isMp4) return (
+                                                                    <video src={videoUrl} className="w-full h-full object-cover" muted playsInline />
+                                                                );
+                                                                return (
+                                                                    <div className="w-full h-full flex items-center justify-center text-sky-300 dark:text-sky-700">
+                                                                        <span className="material-symbols-rounded text-2xl">image</span>
+                                                                    </div>
+                                                                );
+                                                            })()}
+                                                        </div >
+
+                                                        <div className="cursor-pointer group/title" onClick={() => setDescModal({ open: true, description: exercise.description, title: exercise.name })}>
+                                                            <div className="flex items-center gap-1.5">
+                                                                <h3 className="font-bold text-lg text-slate-800 dark:text-slate-100 group-hover/title:text-sky-500 transition-colors">{exercise.name}</h3>
+                                                                <span className="material-symbols-rounded text-[18px] text-slate-300 group-hover/title:text-sky-400">info</span>
+                                                            </div>
+                                                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Toque para detalhes</p>
+                                                        </div>
+                                                    </div >
+                                                </div >
+                                                {
+                                                    exercise.notes && (
+                                                        <div className="mx-2 mb-3 bg-sky-50/50 dark:bg-sky-900/10 p-3 rounded-2xl border border-sky-100 dark:border-sky-500/10 flex gap-3 items-start">
+                                                            <span className="material-symbols-rounded text-sky-500 text-lg mt-0.5">sticky_note</span>
+                                                            <div className="flex-1">
+                                                                <span className="uppercase text-[10px] font-bold text-sky-600 dark:text-sky-400 block mb-0.5 tracking-wider">Nota do Coach</span>
+                                                                <p className="text-xs font-medium text-slate-600 dark:text-slate-300 italic leading-relaxed">
+                                                                    "{exercise.notes}"
+                                                                </p>
+                                                            </div>
+                                                        </div>
+                                                    )
+                                                }
+                                            </div >
+
+                                            {/* Sets Flow */}
+                                            < div className="divide-y divide-slate-50 dark:divide-slate-700/50" >
+                                                <div className="grid grid-cols-[40px_1fr_70px_70px_45px_45px] gap-2 px-3 py-2 bg-slate-50 dark:bg-slate-800/50 text-[10px] font-bold text-slate-400 uppercase tracking-wider text-center">
+                                                    <div>Série</div>
+                                                    <div className="text-left">Anterior</div>
+                                                    <div>kg</div>
+                                                    <div>Reps</div>
+                                                    <div>PSE</div>
+                                                    <div>Info</div>
+                                                </div>
+
+                                                {
+                                                    (() => {
+                                                        let workingSetCount = 0;
+                                                        return exercise.sets.map((set, setIndex) => {
+                                                            const isWarmup = set.type === 'warmup';
+                                                            const isFailure = set.type === 'failure';
+                                                            const isDropset = set.type === 'dropset';
+
+                                                            if (set.type === 'working') workingSetCount++;
+
+                                                            const rowBg = set.completed
+                                                                ? 'bg-emerald-50/40 dark:bg-emerald-900/10'
+                                                                : (isWarmup ? 'bg-amber-50/30 dark:bg-amber-900/5' : (isFailure ? 'bg-red-50/30 dark:bg-red-900/5' : (isDropset ? 'bg-purple-50/30 dark:bg-purple-900/5' : '')));
+
+                                                            const getSetIcon = () => {
+                                                                if (isWarmup) return <button onClick={() => setSeriesHelpModal(true)} className="flex items-center justify-center w-full"><span className="material-symbols-rounded text-amber-500 text-lg">local_fire_department</span></button>;
+                                                                if (isFailure) return <button onClick={() => setSeriesHelpModal(true)} className="flex items-center justify-center w-full"><span className="material-symbols-rounded text-red-600 text-lg">bolt</span></button>;
+                                                                if (isDropset) return <button onClick={() => setSeriesHelpModal(true)} className="flex items-center justify-center w-full"><span className="material-symbols-rounded text-purple-500 text-lg">layers</span></button>;
+                                                                return <button onClick={() => setSeriesHelpModal(true)} className="text-sky-600 dark:text-sky-400 font-black text-sm w-full font-mono">{workingSetCount}</button>;
+                                                            };
+
+                                                            return (
+                                                                <div key={set.id + setIndex} className={`grid grid-cols-[40px_1fr_70px_70px_45px_45px] gap-2 px-3 py-3.5 items-center transition-all duration-300 ${rowBg}`}>
+                                                                    <div className="flex items-center justify-center">
+                                                                        {getSetIcon()}
+                                                                    </div>
+                                                                    <div className="text-left overflow-hidden">
+                                                                        <button
+                                                                            onClick={() => setHistoryModal({ open: true, exerciseId: exercise.id, exerciseName: exercise.name })}
+                                                                            className="text-[11px] font-medium text-slate-400 dark:text-slate-500 truncate hover:text-sky-500 transition-colors flex items-center gap-1 group/hist"
+                                                                        >
+                                                                            {set.prev_log || '-'}
+                                                                            {set.prev_log && <span className="material-symbols-rounded text-[12px] opacity-0 group-hover/hist:opacity-100">history</span>}
+                                                                        </button>
+                                                                        <div className="flex flex-wrap items-center gap-1 mt-0.5">
+                                                                            {set.weight_target && (
+                                                                                <span className="text-[9px] bg-sky-100 dark:bg-sky-900/40 text-sky-600 dark:text-sky-400 px-1.5 py-0.5 rounded-full font-bold uppercase tracking-tight">Coach: {set.weight_target}kg</span>
+                                                                            )}
+                                                                            {set.reps_target && (
+                                                                                <span className="text-[9px] bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 px-1.5 py-0.5 rounded-full font-bold uppercase tracking-tight">Coach: {set.reps_target} reps</span>
+                                                                            )}
+                                                                            {set.rpe_target && (
+                                                                                <span className="text-[9px] bg-purple-100 dark:bg-purple-900/40 text-purple-600 dark:text-purple-400 px-1.5 py-0.5 rounded-full font-bold uppercase tracking-tight">Coach: @{set.rpe_target}</span>
+                                                                            )}
+                                                                        </div>
+                                                                    </div>
+                                                                    <div>
+                                                                        <input
+                                                                            type="number"
+                                                                            inputMode="decimal"
+                                                                            className={`w-full h-10 text-center text-sm font-bold bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl focus:border-sky-500 focus:ring-1 focus:ring-sky-500 p-0 text-slate-900 dark:text-white transition-all shadow-sm ${set.completed ? 'opacity-60' : ''}`}
+                                                                            placeholder={set.prev_log !== '-' ? set.prev_log.split('kg')[0] : (set.weight_target ? String(set.weight_target) : '-')}
+                                                                            value={set.weight}
+                                                                            onChange={(e) => handleInputChange(exIndex, setIndex, 'weight', e.target.value)}
+                                                                        />
+                                                                    </div>
+                                                                    <div>
+                                                                        <input
+                                                                            type="number"
+                                                                            inputMode="numeric"
+                                                                            className={`w-full h-10 text-center text-sm font-bold bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl focus:border-sky-500 focus:ring-1 focus:ring-sky-500 p-0 text-slate-900 dark:text-white transition-all shadow-sm ${set.completed ? 'opacity-60' : ''}`}
+                                                                            placeholder={set.reps_target && !set.reps_target.includes('-') ? set.reps_target : '-'}
+                                                                            value={set.reps}
+                                                                            onChange={(e) => handleInputChange(exIndex, setIndex, 'reps', e.target.value)}
+                                                                        />
+                                                                    </div>
+                                                                    <div>
+                                                                        <button
+                                                                            onClick={() => setPseModal({ open: true, exerciseIndex: exIndex, setIndex: setIndex })}
+                                                                            className={`w-full h-10 rounded-xl flex items-center justify-center text-xs font-bold transition-all shadow-sm ${set.rpe ? 'bg-slate-800 text-white dark:bg-white dark:text-slate-900 ring-2 ring-primary/20' : 'bg-slate-100 dark:bg-slate-700 text-slate-400'} ${set.completed ? 'opacity-60' : ''}`}
+                                                                        >
+                                                                            {set.rpe || (set.rpe_target ? `@${set.rpe_target}` : '@')}
+                                                                        </button>
+                                                                    </div>
+                                                                    <div className="flex justify-center">
+                                                                        <button
+                                                                            onClick={() => toggleSetCompletion(exIndex, setIndex)}
+                                                                            className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${set.completed ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20 scale-105' : 'bg-slate-100 dark:bg-slate-700 text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'}`}
+                                                                        >
+                                                                            <span className="material-symbols-rounded text-xl">check</span>
+                                                                        </button>
+                                                                    </div>
+                                                                </div>
+                                                            );
+                                                        });
+                                                    })()
+                                                }
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </main >
+
+                    {/* Compact Floating Rest Timer */}
+                    {
+                        toastVisible && (
+                            <div className="fixed bottom-24 left-4 right-4 z-[90] animate-slide-up">
+                                <div className="bg-slate-900/90 dark:bg-white/95 backdrop-blur-xl p-4 rounded-[2rem] shadow-2xl border border-white/10 dark:border-slate-200 flex items-center justify-between gap-4">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-12 h-12 rounded-2xl bg-primary/20 flex items-center justify-center relative overflow-hidden shrink-0">
+                                            <div
+                                                className="absolute bottom-0 left-0 right-0 bg-primary/40 transition-all duration-1000 ease-linear origin-bottom"
+                                                style={{ height: `${((initialTime - timeLeft) / initialTime) * 100}%` }}
+                                            ></div>
+                                            <span className="material-symbols-rounded text-2xl text-primary relative z-10">timer</span>
+                                        </div>
+                                        <div className="flex flex-col">
+                                            <span className="text-[9px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-widest">Descanso</span>
+                                            <span className="font-mono text-2xl font-black tabular-nums text-white dark:text-slate-900 leading-none">
+                                                {formatTime(timeLeft)}
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex items-center gap-2">
+                                        <div className="flex bg-white/10 dark:bg-slate-100 p-1 rounded-xl">
+                                            <button onClick={() => setTimeLeft(prev => Math.max(0, prev - 15))} className="w-10 h-10 flex items-center justify-center text-white dark:text-slate-600 hover:text-primary transition-colors">
+                                                <span className="material-symbols-rounded text-lg">remove</span>
+                                            </button>
+                                            <button onClick={() => setTimeLeft(prev => prev + 15)} className="w-10 h-10 flex items-center justify-center text-white dark:text-slate-600 hover:text-primary transition-colors border-l border-white/10 dark:border-slate-200">
+                                                <span className="material-symbols-rounded text-lg">add</span>
+                                            </button>
+                                        </div>
+                                        <button
+                                            onClick={stopRestTimer}
+                                            className="h-12 px-6 bg-primary text-white font-bold rounded-xl shadow-lg shadow-primary/20 active:scale-95 transition-all text-xs whitespace-nowrap"
+                                        >
+                                            Pular
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        )
                     }
-                }}
-            />
+                </div >
 
-            <SeriesHelpModal
-                isOpen={seriesHelpModal}
-                onClose={() => setSeriesHelpModal(false)}
-            />
+                <VideoPlayerModal
+                    isOpen={videoModal.open}
+                    onClose={() => setVideoModal({ ...videoModal, open: false })}
+                    videoUrl={videoModal.url}
+                    title={videoModal.title}
+                />
 
-            <ExerciseHistoryModal
-                isOpen={historyModal.open}
-                onClose={() => setHistoryModal({ ...historyModal, open: false })}
-                exerciseId={historyModal.exerciseId}
-                exerciseName={historyModal.exerciseName}
-                studentId={user!.id}
-            />
+                <DescriptionModal
+                    isOpen={descModal.open}
+                    onClose={() => setDescModal({ ...descModal, open: false })}
+                    description={descModal.description}
+                    title={descModal.title}
+                />
+                <RPEGuideModal
+                    isOpen={pseModal.open}
+                    onClose={() => setPseModal({ ...pseModal, open: false })}
+                    currentValue={pseModal.exerciseIndex !== null && pseModal.setIndex !== null ? exercises[pseModal.exerciseIndex].sets[pseModal.setIndex].rpe : ''}
+                    onSelect={(pse) => {
+                        if (pseModal.exerciseIndex !== null && pseModal.setIndex !== null) {
+                            handleInputChange(pseModal.exerciseIndex, pseModal.setIndex, 'rpe', pse);
+                            setPseModal({ ...pseModal, open: false });
+                        }
+                    }}
+                />
 
-            <FinishWorkoutModal
-                isOpen={finishModalOpen}
-                onClose={() => setFinishModalOpen(false)}
-                onConfirm={confirmFinishWorkout}
-                comment={workoutComment}
-                onCommentChange={setWorkoutComment}
-            />
+                <SeriesHelpModal
+                    isOpen={seriesHelpModal}
+                    onClose={() => setSeriesHelpModal(false)}
+                />
+
+                <ExerciseHistoryModal
+                    isOpen={historyModal.open}
+                    onClose={() => setHistoryModal({ ...historyModal, open: false })}
+                    exerciseId={historyModal.exerciseId}
+                    exerciseName={historyModal.exerciseName}
+                    studentId={user!.id}
+                />
+
+                <FinishWorkoutModal
+                    isOpen={finishModalOpen}
+                    onClose={() => setFinishModalOpen(false)}
+                    onConfirm={confirmFinishWorkout}
+                    comment={workoutComment}
+                    onCommentChange={setWorkoutComment}
+                />
+            </>
         </MainLayout >
     );
 };

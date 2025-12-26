@@ -309,14 +309,14 @@ const Editor: React.FC = () => {
                         <div className="flex items-center gap-2">
                             <h1 className="text-base font-bold text-slate-900 dark:text-white font-display leading-tight">{workout?.name || 'Editor'}</h1>
                             {isAutoSaving ? (
-                                <span className="text-[10px] text-sky-500 font-bold flex items-center gap-1 animate-pulse">
+                                <span className="bg-sky-50 dark:bg-sky-900/20 text-sky-500 text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 animate-pulse border border-sky-100 dark:border-sky-500/20">
                                     <span className="material-symbols-rounded text-[12px]">sync</span>
-                                    Salvando...
+                                    Salvando
                                 </span>
                             ) : lastSaved ? (
-                                <span className="text-[10px] text-emerald-500 font-bold flex items-center gap-1">
+                                <span className="bg-emerald-50 dark:bg-emerald-900/20 text-emerald-500 text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 border border-emerald-100 dark:border-emerald-500/20">
                                     <span className="material-symbols-rounded text-[12px]">done</span>
-                                    Salvo {lastSaved.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                    Sincronizado {lastSaved.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                 </span>
                             ) : null}
                         </div>
@@ -325,7 +325,7 @@ const Editor: React.FC = () => {
                 <button
                     onClick={() => handleSave(true)}
                     disabled={saving || isAutoSaving}
-                    className="bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-bold px-5 py-2 rounded-xl transition-all disabled:opacity-50 shadow-sm active:scale-95"
+                    className="bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-bold px-6 py-2.5 rounded-2xl transition-all disabled:opacity-50 shadow-md hover:shadow-glow active:scale-95 text-sm"
                 >
                     {saving ? 'Salvando...' : 'Sair e Salvar'}
                 </button>

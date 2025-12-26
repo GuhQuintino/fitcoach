@@ -79,8 +79,7 @@ const RequireAuth: React.FC<{ children: React.ReactNode; allowedRole?: 'coach' |
     if (allowedRole && role !== allowedRole && role !== 'admin') {
         // Safe check: if role is null, we can't redirect with certainty
         if (!role) {
-            if (location.pathname === '/waiting-approval') return <>{children}</>;
-            return <Navigate to="/waiting-approval" replace />;
+            return <LoadingScreen />;
         }
 
         // Redirecionar para o dashboard correto se tentar acessar rota não autorizada
@@ -97,7 +96,7 @@ const AuthenticatedRedirect = () => {
 
     if (session) {
         if (role === 'admin') return <Navigate to="/admin/dashboard" replace />;
-        if (status === 'pending') return <Navigate to="/waiting-approval" replace />;
+        if (status === 'pending' && role !== 'admin') return <Navigate to="/waiting-approval" replace />;
 
         if (expiresAt) {
             const graceDate = new Date(expiresAt);

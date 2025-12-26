@@ -38,11 +38,38 @@
   --shadow-card: 0 4px 6px -1px rgba(0, 0, 0, 0.03), 0 2px 4px -2px rgba(0, 0, 0, 0.03);
   --shadow-elevated: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -4px rgba(0, 0, 0, 0.05);
   --shadow-glow: 0 0 20px rgba(14, 165, 233, 0.15);
+  --shadow-focus-glow: 0 0 35px rgba(14, 165, 233, 0.25);
 
   --animate-slide-up: slide-up 0.5s ease-out;
   --animate-fade-in: fade-in 0.3s ease-out;
   --animate-scale-up: scale-up 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   --animate-float: float 3s ease-in-out infinite;
+  --animate-pulse-soft: pulse-soft 2s ease-in-out infinite;
+  --animate-liquid: liquid 10s linear infinite;
+
+  @keyframes pulse-soft {
+
+    0%,
+    100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+
+    50% {
+      opacity: 0.8;
+      transform: scale(0.98);
+    }
+  }
+
+  @keyframes liquid {
+    0% {
+      transform: scaleY(0);
+    }
+
+    100% {
+      transform: scaleY(1);
+    }
+  }
 
   @keyframes slide-up {
     from {
@@ -173,6 +200,21 @@
   .dark .glass {
     background-color: rgb(30 41 59 / 0.7);
     border-color: rgb(255 255 255 / 0.1);
+  }
+
+  .glass-high {
+    background-color: rgb(255 255 255 / 0.4);
+    backdrop-filter: blur(32px);
+    border: 1px solid rgb(255 255 255 / 0.2);
+  }
+
+  .dark .glass-high {
+    background-color: rgb(15 23 42 / 0.4);
+    border-color: rgb(255 255 255 / 0.05);
+  }
+
+  .focus-ring {
+    @apply ring-4 ring-primary/20 border-primary shadow-focus-glow;
   }
 
   /* Interactive States */
