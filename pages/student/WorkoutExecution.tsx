@@ -559,10 +559,10 @@ exercise_id,
                                                                 : (isWarmup ? 'bg-amber-50/30 dark:bg-amber-900/5' : (isFailure ? 'bg-red-50/30 dark:bg-red-900/5' : (isDropset ? 'bg-purple-50/30 dark:bg-purple-900/5' : '')));
 
                                                             const getSetIcon = () => {
-                                                                if (isWarmup) return <button onClick={() => setSeriesHelpModal(true)} className="flex items-center justify-center w-full"><span className="material-symbols-rounded text-amber-500 text-lg">local_fire_department</span></button>;
-                                                                if (isFailure) return <button onClick={() => setSeriesHelpModal(true)} className="flex items-center justify-center w-full"><span className="material-symbols-rounded text-red-600 text-lg">bolt</span></button>;
-                                                                if (isDropset) return <button onClick={() => setSeriesHelpModal(true)} className="flex items-center justify-center w-full"><span className="material-symbols-rounded text-purple-500 text-lg">layers</span></button>;
-                                                                return <button onClick={() => setSeriesHelpModal(true)} className="text-sky-600 dark:text-sky-400 font-black text-sm w-full font-mono">{workingSetCount}</button>;
+                                                                if (isWarmup) return <button onClick={() => setSeriesHelpModal(true)} className="flex items-center justify-center w-full"><span className="material-symbols-rounded text-amber-500 text-sm">local_fire_department</span></button>;
+                                                                if (isFailure) return <button onClick={() => setSeriesHelpModal(true)} className="flex items-center justify-center w-full"><span className="material-symbols-rounded text-red-600 text-sm">bolt</span></button>;
+                                                                if (isDropset) return <button onClick={() => setSeriesHelpModal(true)} className="flex items-center justify-center w-full"><span className="material-symbols-rounded text-purple-500 text-sm">layers</span></button>;
+                                                                return <button onClick={() => setSeriesHelpModal(true)} className="text-sky-600 dark:text-sky-400 font-bold text-xs w-full font-mono">{workingSetCount}</button>;
                                                             };
 
                                                             return (
@@ -586,7 +586,7 @@ exercise_id,
                                                                                 <span className="text-[7px] sm:text-[9px] bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 px-1 sm:px-1.5 py-0 rounded-full font-bold uppercase tracking-tight">{set.reps_target}r</span>
                                                                             )}
                                                                             {set.rpe_target && (
-                                                                                <span className="text-[7px] sm:text-[9px] bg-purple-100 dark:bg-purple-900/40 text-purple-600 dark:text-purple-400 px-1 sm:px-1.5 py-0 rounded-full font-bold uppercase tracking-tight sm:hidden">@{set.rpe_target}</span>
+                                                                                <span className="text-[7px] sm:text-[9px] bg-purple-100 dark:bg-purple-900/40 text-purple-600 dark:text-purple-400 px-1 sm:px-1.5 py-0 rounded-full font-bold uppercase tracking-tight">@{set.rpe_target}</span>
                                                                             )}
                                                                         </div>
                                                                     </div>
@@ -812,6 +812,10 @@ const FinishWorkoutModal: React.FC<{
 
 const RPEGuideModal: React.FC<{ isOpen: boolean, onClose: () => void, onSelect: (pse: string) => void, currentValue?: string }> = ({ isOpen, onClose, onSelect, currentValue }) => {
     if (!isOpen) return null;
+
+    // Escala completa com valores intermediários (igual ao que o coach pode definir)
+    const rpeValues = [0, 5, 5.5, 6, 6.5, 7, 7.5, 8, 8.5, 9, 9.5, 10];
+
     return (
         <div className="fixed inset-0 z-[200] bg-black/80 flex items-center justify-center p-4" onClick={onClose}>
             <div className="bg-white dark:bg-slate-800 w-full max-w-sm rounded-3xl p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
@@ -821,23 +825,26 @@ const RPEGuideModal: React.FC<{ isOpen: boolean, onClose: () => void, onSelect: 
                         <span className="material-symbols-rounded">close</span>
                     </button>
                 </div>
-                <div className="grid grid-cols-5 gap-2">
-                    {Array.from({ length: 11 }, (_, i) => i).map(n => {
-                        const isSelected = currentValue === n.toString();
+                <div className="grid grid-cols-4 gap-2">
+                    {rpeValues.map(n => {
+                        const strVal = n.toString();
+                        const isSelected = currentValue === strVal;
+                        const isHigh = n >= 9;
+                        const isMedHigh = n >= 7.5 && n < 9;
                         return (
                             <button
                                 key={n}
-                                onClick={() => onSelect(n.toString())}
-                                className={`h-12 rounded-xl font-bold transition-all ${isSelected
+                                onClick={() => onSelect(strVal)}
+                                className={`h-11 rounded-xl font-bold text-sm transition-all ${isSelected
                                     ? 'bg-sky-500 text-white shadow-lg shadow-sky-500/20 scale-105 ring-2 ring-sky-500 ring-offset-2 dark:ring-offset-slate-800'
-                                    : n > 8 ? 'bg-red-50 text-red-600 dark:bg-red-900/20' : n > 6 ? 'bg-amber-50 text-amber-600 dark:bg-amber-900/20' : 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300'} hover:scale-105 active:scale-95`}
+                                    : isHigh ? 'bg-red-50 text-red-600 dark:bg-red-900/20' : isMedHigh ? 'bg-amber-50 text-amber-600 dark:bg-amber-900/20' : 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300'} hover:scale-105 active:scale-95`}
                             >
                                 {n}
                             </button>
                         );
                     })}
                 </div>
-                <p className="mt-4 text-[10px] text-slate-400 text-center uppercase tracking-widest font-bold">0 = Repouso | 10 = Esforço Máximo</p>
+                <p className="mt-4 text-[10px] text-slate-400 text-center uppercase tracking-widest font-bold">5-6 = Aquecimento | 10 = Falha Total</p>
             </div>
         </div>
     );
