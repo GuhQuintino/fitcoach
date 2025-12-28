@@ -57,11 +57,15 @@ const CoachDashboard: React.FC = () => {
                 let pendingCount = 0;
                 let inactiveCount = 0;
 
+                let profiles: any[] | null = [];
+
                 if (totalCount > 0) {
-                    const { data: profiles, error: profilesError } = await supabase
+                    const { data: p, error: profilesError } = await supabase
                         .from('profiles')
-                        .select('status')
+                        .select('status, id') // Added id here as it is used in line 86
                         .in('id', studentIds);
+
+                    profiles = p;
 
                     if (!profilesError && profiles) {
                         activeCount = profiles.filter(p => p?.status === 'active').length;
@@ -257,7 +261,7 @@ const CoachDashboard: React.FC = () => {
             <main className="flex-1 px-5 pt-6 space-y-5">
                 <PWAInstallPrompt />
                 {/* Quick Actions */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4">
                     <Link to="/coach/feedbacks" className="bg-gradient-to-br from-sky-50/80 to-white dark:from-sky-900/20 dark:to-slate-800 p-4 rounded-2xl shadow-sm border border-sky-100/50 dark:border-sky-700/30 flex flex-col items-center justify-center gap-3 group active:scale-95 transition-all h-28 relative card-hover overflow-hidden">
                         <div className="absolute top-0 right-0 w-20 h-20 bg-sky-100/20 rounded-full blur-xl -translate-y-1/2 translate-x-1/2"></div>
                         <div className="relative p-3 bg-white dark:bg-sky-900/40 text-primary rounded-xl group-hover:scale-110 transition-transform shadow-sm">
@@ -298,7 +302,7 @@ const CoachDashboard: React.FC = () => {
                 </Link>
 
                 {/* Library Cards - Added mt-8 for better spacing */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pb-12 mt-8">
+                <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4 pb-12 mt-8">
                     <Link to="/coach/library" className="bg-gradient-to-br from-amber-50/80 to-white dark:from-amber-900/20 dark:to-slate-800 p-5 rounded-2xl shadow-sm border border-amber-100/50 dark:border-amber-700/30 flex flex-col items-start gap-4 text-left group active:scale-95 transition-all card-hover overflow-hidden relative">
                         <div className="absolute top-0 right-0 w-24 h-24 bg-amber-100/20 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2"></div>
                         <div className="p-2.5 bg-white dark:bg-amber-900/40 rounded-xl text-warning shadow-sm relative z-10">

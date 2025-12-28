@@ -101,7 +101,7 @@ const Feedbacks: React.FC = () => {
     };
 
     return (
-        <MainLayout className="pb-24">
+        <MainLayout>
             <header className="px-5 py-6 flex items-center gap-4">
                 <Link to="/coach/dashboard" className="w-10 h-10 rounded-xl bg-white dark:bg-slate-800 flex items-center justify-center text-slate-500 shadow-sm border border-slate-100 dark:border-slate-700">
                     <span className="material-symbols-rounded">arrow_back</span>

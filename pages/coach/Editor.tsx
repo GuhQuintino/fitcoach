@@ -332,7 +332,7 @@ const Editor: React.FC = () => {
             </header>
 
             {/* List */}
-            <main className="px-3 sm:px-5 pt-6 max-w-2xl mx-auto pb-10">
+            <main className="w-full overflow-x-hidden px-2 sm:px-5 pt-6 max-w-2xl mx-auto pb-10">
                 <div className="flex justify-between items-center mb-4">
                     <p className="text-sm text-slate-500 font-medium">{items.length} exercícios</p>
                 </div>

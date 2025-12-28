@@ -59,9 +59,10 @@ const CoachStudents: React.FC = () => {
 
             // Client-side Search (Accent Insensitive)
             if (searchTerm.trim()) {
-                filteredData = filteredData.filter(s =>
-                    matchesSearch(s.profiles?.full_name || '', searchTerm)
-                );
+                filteredData = filteredData.filter(s => {
+                    const profile = s.profiles as any;
+                    return matchesSearch(profile?.full_name || '', searchTerm);
+                });
             }
 
             setStudents(filteredData);

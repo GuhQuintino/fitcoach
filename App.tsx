@@ -96,7 +96,7 @@ const AuthenticatedRedirect = () => {
 
     if (session) {
         if (role === 'admin') return <Navigate to="/admin/dashboard" replace />;
-        if (status === 'pending' && role !== 'admin') return <Navigate to="/waiting-approval" replace />;
+        if (status === 'pending') return <Navigate to="/waiting-approval" replace />;
 
         if (expiresAt) {
             const graceDate = new Date(expiresAt);
@@ -192,16 +192,16 @@ const AppContent = () => {
 
 const App = () => {
     return (
-        <ErrorBoundary>
-            <ThemeProvider>
-                <AuthProvider>
-                    <HashRouter>
+        <HashRouter>
+            <ErrorBoundary>
+                <ThemeProvider>
+                    <AuthProvider>
                         <Toaster position="top-right" />
                         <AppContent />
-                    </HashRouter>
-                </AuthProvider>
-            </ThemeProvider>
-        </ErrorBoundary>
+                    </AuthProvider>
+                </ThemeProvider>
+            </ErrorBoundary>
+        </HashRouter>
     );
 };
 

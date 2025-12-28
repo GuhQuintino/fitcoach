@@ -109,14 +109,14 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({ item, index, onUpdate, onDe
     return (
         <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 overflow-hidden mb-4">
             {/* Card Header */}
-            <div className="p-4 flex items-center gap-3 border-b border-slate-50 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/50">
-                <div {...dragHandleProps} className="cursor-grab active:cursor-grabbing p-1 text-slate-300 hover:text-slate-500">
-                    <span className="material-symbols-rounded">drag_indicator</span>
+            <div className="p-2 sm:p-4 flex items-center gap-1.5 sm:gap-3 border-b border-slate-50 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/50">
+                <div {...dragHandleProps} className="cursor-grab active:cursor-grabbing p-0.5 sm:p-1 text-slate-300 hover:text-slate-500 flex-shrink-0">
+                    <span className="material-symbols-rounded text-lg sm:text-2xl">drag_indicator</span>
                 </div>
 
                 {/* Thumbnail Area - Click to open Modal */}
                 <div
-                    className="w-12 h-12 rounded-lg bg-slate-200 dark:bg-slate-700 flex-shrink-0 overflow-hidden relative group cursor-pointer border border-slate-100 dark:border-slate-600"
+                    className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-slate-200 dark:bg-slate-700 flex-shrink-0 overflow-hidden relative group cursor-pointer border border-slate-100 dark:border-slate-600"
                     onClick={() => {
                         if (videoUrl) setShowVideoModal(true);
                     }}
@@ -158,15 +158,15 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({ item, index, onUpdate, onDe
                 {studentId && (
                     <button
                         onClick={() => setShowHistoryModal(true)}
-                        className="p-2 text-sky-500 hover:bg-sky-50 dark:hover:bg-sky-900/20 rounded-lg transition-colors"
+                        className="p-1 sm:p-2 text-sky-500 hover:bg-sky-50 dark:hover:bg-sky-900/20 rounded-lg transition-colors flex-shrink-0"
                         title="Ver histórico do aluno"
                     >
-                        <span className="material-symbols-rounded">history</span>
+                        <span className="material-symbols-rounded text-lg sm:text-2xl">history</span>
                     </button>
                 )}
 
-                <button onClick={onDelete} className="p-2 text-slate-400 hover:text-red-500 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
-                    <span className="material-symbols-rounded">delete</span>
+                <button onClick={onDelete} className="p-1 sm:p-2 text-slate-400 hover:text-red-500 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors flex-shrink-0">
+                    <span className="material-symbols-rounded text-lg sm:text-2xl">delete</span>
                 </button>
             </div>
 
@@ -196,127 +196,133 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({ item, index, onUpdate, onDe
                 </div>
             )}
 
-            {/* Sets Table */}
-            <div className="p-1 sm:p-4">
-                <div className="grid grid-cols-[1.8rem_1fr_1fr_1fr_1fr_1.5rem] sm:grid-cols-[2.5rem_1.2fr_1.2fr_1fr_1.2fr_auto] gap-0.5 sm:gap-2 mb-2 px-1 text-[9px] sm:text-[10px] items-center font-bold text-slate-400 uppercase tracking-wider text-center">
-                    <div className="text-center">#</div>
-                    <div>kg</div>
-                    <div>Reps</div>
-                    <div className="flex items-center justify-center gap-1 group/rest cursor-pointer hover:text-primary transition-colors" onClick={handleBulkApplyRest} title="Replicar descanso para todas as séries">
-                        Desc
-                        <span className="material-symbols-rounded text-[10px] opacity-0 group-hover/rest:opacity-100 transition-opacity">sync_alt</span>
+            {/* Sets Table - Super Compact Grid (< 400px optimized with minmax) */}
+            <div className="p-0.5 sm:p-4">
+                <div className="w-full">
+                    {/* Header Row - Short Text Headers for consistency */}
+                    <div className="grid grid-cols-[24px_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_20px] sm:grid-cols-[2.5rem_1.2fr_1.2fr_1fr_1.2fr_auto] gap-0.5 sm:gap-2 mb-1 sm:mb-2 px-0 text-[8px] sm:text-[10px] items-center font-bold text-slate-400 uppercase tracking-wider text-center">
+                        <div className="text-center">#</div>
+                        <div className="text-center">KG</div>
+                        <div className="text-center">REPS</div>
+                        <div className="flex items-center justify-center gap-1 group/rest cursor-pointer hover:text-primary transition-colors" onClick={handleBulkApplyRest} title="Replicar descanso">
+                            <span className="hidden sm:inline">DESC</span>
+                            <span className="sm:hidden">DESC</span>
+                            <span className="material-symbols-rounded text-[10px] opacity-0 group-hover/rest:opacity-100 transition-opacity hidden sm:inline">sync_alt</span>
+                        </div>
+                        <div className="flex items-center justify-center gap-1 cursor-pointer hover:text-primary transition-colors" onClick={() => setRpeModalOpen(true)}>
+                            <span>PSE</span>
+                            <span className="hidden sm:inline material-symbols-rounded text-[10px]">help</span>
+                        </div>
+                        <div className="w-5"></div>
                     </div>
-                    <div className="flex items-center justify-center gap-1 cursor-pointer hover:text-primary transition-colors" onClick={() => setRpeModalOpen(true)}>
-                        PSE
-                        <span className="material-symbols-rounded text-[10px]">help</span>
-                    </div>
-                    <div className="w-6"></div>
-                </div>
 
-                <div className="space-y-2">
-                    {sets.map((set, i) => {
-                        // Calculate working set INDEX (1-based) relative to only working sets
-                        const workingSetIndex = sets.slice(0, i + 1).filter(s => s.type === 'working').length;
+                    <div className="space-y-1 sm:space-y-2">
+                        {sets.map((set, i) => {
+                            // Calculate working set INDEX (1-based) relative to only working sets
+                            const workingSetIndex = sets.slice(0, i + 1).filter(s => s.type === 'working').length;
 
-                        return (
-                            <div key={set.id} className="grid grid-cols-[1.8rem_1fr_1fr_1fr_1fr_1.5rem] sm:grid-cols-[2.5rem_1.2fr_1.2fr_1fr_1.2fr_auto] gap-0.5 sm:gap-2 items-center">
-                                {/* Type Selector */}
-                                <button
-                                    onClick={() => setTypeModal({ isOpen: true, setIndex: i })}
-                                    className={`w-full h-10 rounded-xl border flex items-center justify-center transition-all duration-300 ${set.type === 'warmup'
-                                        ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800/50 text-amber-600'
-                                        : set.type === 'failure'
-                                            ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800/50 text-red-600'
-                                            : set.type === 'dropset'
-                                                ? 'bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-800/50 text-purple-600'
-                                                : 'bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-sky-600'
-                                        } hover:scale-105 active:scale-95 shadow-sm`}
-                                >
-                                    {(set.type === 'working') ? (
-                                        <span className="font-black text-xs uppercase tracking-tighter">{workingSetIndex}ª</span>
-                                    ) : (
-                                        getSetTypeIcon(set.type, false)
-                                    )}
-                                </button>
+                            return (
+                                <div key={set.id} className="grid grid-cols-[24px_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_20px] sm:grid-cols-[2.5rem_1.2fr_1.2fr_1fr_1.2fr_auto] gap-0.5 sm:gap-2 items-center">
+                                    {/* Type Selector */}
+                                    <button
+                                        onClick={() => setTypeModal({ isOpen: true, setIndex: i })}
+                                        className={`w-full h-7 sm:h-10 rounded-md sm:rounded-xl border flex items-center justify-center transition-all duration-300 ${set.type === 'warmup'
+                                            ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800/50 text-amber-600'
+                                            : set.type === 'failure'
+                                                ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800/50 text-red-600'
+                                                : set.type === 'dropset'
+                                                    ? 'bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-800/50 text-purple-600'
+                                                    : 'bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-sky-600'
+                                            } hover:scale-105 active:scale-95 shadow-sm p-0`}
+                                    >
+                                        {(set.type === 'working') ? (
+                                            <span className="font-black text-[9px] sm:text-xs uppercase tracking-tighter">{workingSetIndex}</span>
+                                        ) : (
+                                            getSetTypeIcon(set.type, false)
+                                        )}
+                                    </button>
 
-                                {/* Weight Input */}
-                                <input
-                                    type="number"
-                                    placeholder="-"
-                                    className="w-full h-10 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-center font-bold text-slate-700 dark:text-slate-200 outline-none focus:ring-1 focus:ring-primary/50 px-0"
-                                    value={set.weight_target}
-                                    onChange={(e) => handleSetChange(i, 'weight_target', e.target.value)}
-                                />
-
-                                {/* Reps Input (Text) */}
-                                <input
-                                    type="text"
-                                    inputMode="numeric"
-                                    placeholder="10"
-                                    className="w-full h-10 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-center font-bold text-slate-700 dark:text-slate-200 outline-none focus:ring-1 focus:ring-primary/50 px-0"
-                                    value={set.reps_target}
-                                    onChange={(e) => handleSetChange(i, 'reps_target', e.target.value)}
-                                />
-
-                                {/* Rest Input */}
-                                <div className="relative">
+                                    {/* Weight Input */}
                                     <input
                                         type="number"
-                                        placeholder="60"
-                                        className="w-full h-10 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-center font-bold text-slate-700 dark:text-slate-200 outline-none focus:ring-1 focus:ring-primary/50 px-0"
-                                        value={set.rest_seconds}
-                                        onChange={(e) => handleSetChange(i, 'rest_seconds', e.target.value)}
+                                        placeholder="-"
+                                        className="w-full h-7 sm:h-10 rounded-md sm:rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-center font-bold text-slate-700 dark:text-slate-200 outline-none focus:ring-1 focus:ring-primary/50 px-0 text-[10px] sm:text-base min-w-0"
+                                        value={set.weight_target}
+                                        onChange={(e) => handleSetChange(i, 'weight_target', e.target.value)}
                                     />
-                                </div>
 
-                                {/* RPE Selector */}
-                                <div className="relative group/rpe">
-                                    <select
-                                        className={`w-full h-10 rounded-xl border text-center font-bold outline-none focus:ring-2 focus:ring-primary/20 appearance-none px-0 transition-all duration-300
+                                    {/* Reps Input (Text) */}
+                                    <input
+                                        type="text"
+                                        inputMode="numeric"
+                                        placeholder="10"
+                                        className="w-full h-7 sm:h-10 rounded-md sm:rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-center font-bold text-slate-700 dark:text-slate-200 outline-none focus:ring-1 focus:ring-primary/50 px-0 text-[10px] sm:text-base min-w-0"
+                                        value={set.reps_target}
+                                        onChange={(e) => handleSetChange(i, 'reps_target', e.target.value)}
+                                    />
+
+                                    {/* Rest Input */}
+                                    <div className="relative min-w-0">
+                                        <input
+                                            type="number"
+                                            placeholder="60"
+                                            className="w-full h-7 sm:h-10 rounded-md sm:rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-center font-bold text-slate-700 dark:text-slate-200 outline-none focus:ring-1 focus:ring-primary/50 px-0 text-[10px] sm:text-base min-w-0"
+                                            value={set.rest_seconds}
+                                            onChange={(e) => handleSetChange(i, 'rest_seconds', e.target.value)}
+                                        />
+                                    </div>
+
+                                    {/* RPE Selector */}
+                                    <div className="relative group/rpe min-w-0">
+                                        <select
+                                            className={`w-full h-7 sm:h-10 rounded-md sm:rounded-xl border text-center font-bold outline-none focus:ring-2 focus:ring-primary/20 appearance-none px-0 transition-all duration-300 text-[10px] sm:text-base min-w-0
                                 ${parseFloat(set.rpe_target) >= 9
-                                                ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800/50 text-red-600'
-                                                : parseFloat(set.rpe_target) >= 7
-                                                    ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800/50 text-amber-600'
-                                                    : 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800/50 text-emerald-600'
-                                            }
+                                                    ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800/50 text-red-600'
+                                                    : parseFloat(set.rpe_target) >= 7
+                                                        ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800/50 text-amber-600'
+                                                        : 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800/50 text-emerald-600'
+                                                }
                                         `}
-                                        value={set.rpe_target}
-                                        onChange={(e) => handleSetChange(i, 'rpe_target', e.target.value)}
-                                    >
-                                        {Array.from({ length: 11 }, (_, k) => 5 + k * 0.5).map(val => (
-                                            <option key={val} value={val} className="text-slate-900 dark:text-white bg-white dark:bg-slate-800">{val}</option>
-                                        ))}
-                                    </select>
-                                    <span className="absolute right-1 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 material-symbols-rounded text-[12px] opacity-0 group-hover/rpe:opacity-100 transition-opacity">unfold_more</span>
+                                            value={set.rpe_target}
+                                            onChange={(e) => handleSetChange(i, 'rpe_target', e.target.value)}
+                                        >
+                                            {Array.from({ length: 11 }, (_, k) => 5 + k * 0.5).map(val => (
+                                                <option key={val} value={val} className="text-slate-900 dark:text-white bg-white dark:bg-slate-800">{val}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+
+                                    {/* Delete Set */}
+                                    <button onClick={() => handleRemoveSet(i)} className="p-0 text-slate-300 hover:text-red-500 transition-colors flex justify-center items-center w-full h-full hover:rotate-90 transition-transform">
+                                        <span className="material-symbols-rounded text-xs sm:text-lg">close</span>
+                                    </button>
                                 </div>
+                            )
+                        })}
 
-                                {/* Delete Set */}
-                                <button onClick={() => handleRemoveSet(i)} className="p-1 text-slate-300 hover:text-red-500 transition-colors flex justify-center w-6 hover:rotate-90 transition-transform">
-                                    <span className="material-symbols-rounded text-lg">close</span>
-                                </button>
-                            </div>
-                        )
-                    })}
-
-                    <button onClick={handleAddSet} className="w-full py-2.5 mt-2 border border-dashed border-primary/30 text-primary rounded-xl font-bold text-sm bg-primary/5 hover:bg-primary/10 transition-colors flex items-center justify-center gap-2">
-                        <span className="material-symbols-rounded text-lg">add</span>
-                        Adicionar Série
-                    </button>
+                        <button onClick={handleAddSet} className="w-full py-2 sm:py-2.5 mt-2 border border-dashed border-primary/30 text-primary rounded-xl font-bold text-xs sm:text-sm bg-primary/5 hover:bg-primary/10 transition-colors flex items-center justify-center gap-2">
+                            <span className="material-symbols-rounded text-base sm:text-lg">add</span>
+                            Adicionar Série
+                        </button>
+                    </div>
                 </div>
+            </div>
 
-                {/* Coach Notes */}
-                <div className="mt-4 pt-3 border-t border-slate-50 dark:border-slate-700/50">
-                    <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Notas do Treinador</label>
-                    <textarea
-                        placeholder="Ex: Controlar a excêntrica, pausa de 1s embaixo..."
-                        className="w-full mt-1 bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-700/50 rounded-xl p-3 text-sm focus:ring-1 focus:ring-primary/50 outline-none resize-none h-20"
-                        value={notes}
-                        onChange={(e) => {
-                            setNotes(e.target.value);
-                            updateParent(sets, e.target.value);
-                        }}
-                    />
-                </div>
+            {/* Coach Notes */}
+            <div className="mt-2 px-3 pb-3 pt-2 border-t border-slate-50 dark:border-slate-700/50">
+                <label className="text-[10px] font-bold text-slate-400 uppercase ml-1 flex items-center gap-1">
+                    <span className="material-symbols-rounded text-sm">edit_note</span>
+                    Notas do Treinador
+                </label>
+                <textarea
+                    placeholder="Ex: Controlar a excêntrica..."
+                    className="w-full mt-1 bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-700/50 rounded-xl p-3 text-sm focus:ring-1 focus:ring-primary/50 outline-none resize-none h-16 sm:h-20"
+                    value={notes}
+                    onChange={(e) => {
+                        setNotes(e.target.value);
+                        updateParent(sets, e.target.value);
+                    }}
+                />
             </div>
 
             <TypeSelectionModal

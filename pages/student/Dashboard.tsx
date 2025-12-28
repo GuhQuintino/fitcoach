@@ -88,10 +88,10 @@ const StudentDashboard: React.FC = () => {
             // Fetch Workout Count & Logs for Gamification
             const { data: logs, error: logsError, count } = await supabase
                 .from('workout_logs')
-                .select('completed_at', { count: 'exact', head: false })
+                .select('finished_at', { count: 'exact', head: false })
                 .eq('student_id', user!.id)
-                .eq('completed', true)
-                .order('completed_at', { ascending: false });
+                .not('finished_at', 'is', null)
+                .order('finished_at', { ascending: false });
 
             setWorkoutCount(count || 0);
 
@@ -106,7 +106,7 @@ const StudentDashboard: React.FC = () => {
                 // 2. Streak Calculation
                 let streak = 0;
                 if (logs.length > 0) {
-                    const uniqueDates = [...new Set(logs.map(log => new Date(log.completed_at).toDateString()))];
+                    const uniqueDates = [...new Set(logs.map(log => new Date(log.finished_at).toDateString()))];
 
                     if (uniqueDates.length > 0) {
                         const today = new Date().toDateString();
@@ -389,7 +389,7 @@ const StudentDashboard: React.FC = () => {
                         <h3 className="font-display font-bold text-lg text-slate-900 dark:text-white">Acesso Rápido</h3>
                     </div>
 
-                    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                    <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-4">
                         <Link to="/student/history" className="bg-gradient-to-br from-emerald-50/80 to-white dark:from-emerald-900/20 dark:to-slate-800 p-5 rounded-2xl shadow-sm border border-emerald-100/50 dark:border-emerald-700/30 active:scale-[0.98] transition-all hover:shadow-emerald-100/50 dark:hover:shadow-none group relative overflow-hidden">
                             <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-100/20 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2"></div>
                             <div className="w-12 h-12 bg-white dark:bg-emerald-900/40 rounded-2xl flex items-center justify-center text-emerald-500 dark:text-emerald-400 mb-4 group-hover:scale-110 transition-transform shadow-sm relative z-10">

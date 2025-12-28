@@ -197,8 +197,8 @@ const History: React.FC = () => {
                     </div>
 
                     <div className="grid grid-cols-7 gap-1 text-center mb-2">
-                        {['D', 'S', 'T', 'Q', 'Q', 'S', 'S'].map(d => (
-                            <span key={d} className="text-[10px] font-bold text-slate-400">{d}</span>
+                        {['D', 'S', 'T', 'Q', 'Q', 'S', 'S'].map((d, i) => (
+                            <span key={i} className="text-[10px] font-bold text-slate-400">{d}</span>
                         ))}
                     </div>
 

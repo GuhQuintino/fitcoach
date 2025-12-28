@@ -12,3 +12,12 @@ UPDATE exercises SET video_url = 'https://www.youtube.com/shorts/j4nJJ0ol12I' WH
 UPDATE exercises SET video_url = 'https://www.youtube.com/shorts/j4nJJ0ol12I' WHERE id = 'c2b15a50-820a-4f6a-a732-a10607466db1';
 UPDATE exercises SET video_url = 'https://www.youtube.com/shorts/lDL9e72NIT4' WHERE id = 'f5be3201-85ea-442b-8e9c-8363662fd81e';
 UPDATE exercises SET video_url = 'https://www.youtube.com/shorts/lDL9e72NIT4' WHERE id = '4476ae85-434c-44c9-a6d6-bdd4c0d646b0';
+UPDATE exercises SET video_url = 'https://www.youtube.com/shorts/ULcxTY1lOPI' WHERE id = '402ab453-056e-424c-afab-f6ea4e822e5c';
+UPDATE exercises SET video_url = 'https://www.youtube.com/shorts/kPzrveGwk34' WHERE id = 'cb3b0f0f-b985-4a0b-aa37-fb575a876df6';
+UPDATE exercises SET video_url = 'https://www.youtube.com/shorts/JaHLz_frG6A' WHERE id = 'cb42dcd8-78d8-4344-b145-d86ba31b7feb';
+UPDATE exercises SET video_url = 'https://www.youtube.com/shorts/WDxGI_9pHUo' WHERE id = '44eb1999-7226-4ebe-b7fe-f017d9a75fd1';
+UPDATE exercises SET video_url = 'https://www.youtube.com/shorts/IDagFKgU3eA' WHERE id = '1909163e-571d-4348-953b-ef072648afd8';
+UPDATE exercises SET video_url = 'https://www.youtube.com/shorts/Tv7Tcrv_cFM' WHERE id = 'a27e9ee4-471d-4fcc-babc-ed2f64193779';
+UPDATE exercises SET video_url = 'https://www.youtube.com/shorts/E_tbqT60gCY' WHERE id = '21bd2b8f-f649-43fe-9adb-85d90c7e4bb5';
+UPDATE exercises SET video_url = 'https://www.youtube.com/shorts/RcuanykQkI4' WHERE id = 'fa84562a-615d-4356-96ff-9e44e08198b4';
+UPDATE exercises SET video_url = 'https://www.youtube.com/shorts/baZRy7RLhqs' WHERE id = '07319f3d-0c9e-45ff-a561-d630d2e4c1b1';
