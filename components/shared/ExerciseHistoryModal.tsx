@@ -23,6 +23,8 @@ const ExerciseHistoryModal: React.FC<ExerciseHistoryModalProps> = ({ isOpen, onC
         try {
             setLoading(true);
 
+            console.log('[ExerciseHistoryModal] Buscando histórico:', { exerciseId, studentId, exerciseName });
+
             // Abordagem alternativa: buscar workout_logs do aluno e filtrar set_logs pelo exercise_id
             const { data, error } = await supabase
                 .from('workout_logs')
@@ -44,6 +46,11 @@ const ExerciseHistoryModal: React.FC<ExerciseHistoryModalProps> = ({ isOpen, onC
 
             if (error) throw error;
 
+            console.log('[ExerciseHistoryModal] Dados brutos:', data);
+            console.log('[ExerciseHistoryModal] Todos os exercise_ids encontrados:',
+                data?.flatMap(log => log.set_logs?.map((s: any) => s.exercise_id) || [])
+            );
+
             // Filtrar e achatar os set_logs que correspondem ao exerciseId
             const filteredLogs: any[] = [];
             data?.forEach(log => {
@@ -56,6 +63,8 @@ const ExerciseHistoryModal: React.FC<ExerciseHistoryModalProps> = ({ isOpen, onC
                     }
                 });
             });
+
+            console.log('[ExerciseHistoryModal] Logs filtrados:', filteredLogs);
 
             // Ordenar por data mais recente
             filteredLogs.sort((a, b) =>
