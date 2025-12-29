@@ -36,8 +36,7 @@ const ExerciseHistoryModal: React.FC<ExerciseHistoryModalProps> = ({ isOpen, onC
                         weight_kg,
                         reps_completed,
                         rpe_actual,
-                        set_type,
-                        created_at
+                        set_type
                     )
                 `)
                 .eq('student_id', studentId)
