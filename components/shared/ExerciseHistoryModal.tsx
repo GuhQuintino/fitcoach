@@ -109,27 +109,54 @@ const ExerciseHistoryModal: React.FC<ExerciseHistoryModalProps> = ({ isOpen, onC
                             <p className="text-sm text-slate-500 font-medium">Nenhum registro anterior encontrado para este exercício.</p>
                         </div>
                     ) : (
-                        <div className="space-y-3">
-                            {history.map((log, idx) => (
-                                <div key={log.id + idx} className="flex items-center justify-between p-3 rounded-2xl bg-slate-50 dark:bg-slate-900/30 border border-slate-100 dark:border-slate-700/50">
-                                    <div className="flex items-center gap-3">
-                                        <div className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase flex flex-col items-center leading-none">
-                                            <span>{new Date(log.workout_logs.finished_at).getDate()}</span>
-                                            <span>{new Date(log.workout_logs.finished_at).toLocaleDateString('pt-BR', { month: 'short' }).slice(0, 3)}</span>
+                        <div className="space-y-4">
+                            {(() => {
+                                // Agrupar por data (dia)
+                                const grouped: { [key: string]: any[] } = {};
+                                history.forEach(log => {
+                                    const dateKey = new Date(log.workout_logs.finished_at).toISOString().split('T')[0];
+                                    if (!grouped[dateKey]) grouped[dateKey] = [];
+                                    grouped[dateKey].push(log);
+                                });
+
+                                return Object.entries(grouped).map(([dateKey, logs]) => {
+                                    const date = new Date(dateKey);
+                                    return (
+                                        <div key={dateKey} className="bg-slate-50 dark:bg-slate-900/30 rounded-2xl border border-slate-100 dark:border-slate-700/50 overflow-hidden">
+                                            {/* Date Header */}
+                                            <div className="px-4 py-2 bg-slate-100/50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-700/50 flex items-center gap-2">
+                                                <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                                                    <span className="text-xs font-black text-primary">{date.getDate()}</span>
+                                                </div>
+                                                <div>
+                                                    <span className="text-xs font-bold text-slate-600 dark:text-slate-300 capitalize">
+                                                        {date.toLocaleDateString('pt-BR', { weekday: 'long', month: 'short' })}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            {/* Sets */}
+                                            <div className="p-3 space-y-2">
+                                                {logs.map((log, idx) => (
+                                                    <div key={log.id + idx} className="flex items-center justify-between p-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700">
+                                                        <div className="flex items-center gap-3">
+                                                            <span className="w-6 h-6 rounded-lg bg-slate-100 dark:bg-slate-700 flex items-center justify-center text-[10px] font-bold text-slate-500">{idx + 1}</span>
+                                                            <div className="flex flex-col">
+                                                                <span className="text-sm font-bold text-slate-800 dark:text-slate-200">{log.weight_kg}kg <span className="text-slate-400 font-normal">x {log.reps_completed}</span></span>
+                                                                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wide">{log.set_type === 'working' ? 'Série Normal' : log.set_type === 'warmup' ? 'Aquecimento' : log.set_type === 'failure' ? 'Até a Falha' : 'Drop-set'}</span>
+                                                            </div>
+                                                        </div>
+                                                        {log.rpe_actual && (
+                                                            <div className="px-2 py-1 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-700">
+                                                                <span className="text-[10px] font-black text-slate-400">@{log.rpe_actual}</span>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                ))}
+                                            </div>
                                         </div>
-                                        <div className="w-[1px] h-6 bg-slate-200 dark:bg-slate-700"></div>
-                                        <div className="flex flex-col">
-                                            <span className="text-sm font-bold text-slate-800 dark:text-slate-200">{log.weight_kg}kg <span className="text-slate-400 font-normal">x {log.reps_completed}</span></span>
-                                            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wide">{log.set_type === 'working' ? 'Série Normal' : log.set_type === 'warmup' ? 'Aquecimento' : log.set_type === 'failure' ? 'Até a Falha' : 'Drop-set'}</span>
-                                        </div>
-                                    </div>
-                                    {log.rpe_actual && (
-                                        <div className="px-2 py-1 rounded-lg bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 shadow-sm">
-                                            <span className="text-[10px] font-black text-slate-400">@{log.rpe_actual}</span>
-                                        </div>
-                                    )}
-                                </div>
-                            ))}
+                                    );
+                                });
+                            })()}
                         </div>
                     )}
                 </div>
