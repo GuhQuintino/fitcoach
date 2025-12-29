@@ -27,8 +27,7 @@ const ExerciseHistoryModal: React.FC<ExerciseHistoryModalProps> = ({ isOpen, onC
                 .select(`
                     *,
                     workout_logs!inner (
-                        finished_at,
-                        student_id
+                        finished_at
                     )
                 `)
                 .eq('exercise_id', exerciseId)
