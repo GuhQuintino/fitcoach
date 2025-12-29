@@ -535,7 +535,7 @@ exercise_id,
 
                                             {/* Sets Flow */}
                                             <div className="divide-y divide-slate-50 dark:divide-slate-700/50">
-                                                <div className="grid grid-cols-[25px_1fr_42px_42px_35px_30px] sm:grid-cols-[40px_1fr_70px_70px_45px_45px] gap-1 sm:gap-2 px-2 sm:px-3 py-2 bg-slate-50 dark:bg-slate-800/50 text-[9px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-wider text-center">
+                                                <div className="grid grid-cols-[22px_1fr_54px_44px_36px_28px] sm:grid-cols-[40px_1fr_75px_70px_50px_45px] gap-0.5 sm:gap-2 px-2 sm:px-3 py-2 bg-slate-50 dark:bg-slate-800/50 text-[9px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-wider text-center">
                                                     <div>#</div>
                                                     <div className="text-left">Anterior</div>
                                                     <div>kg</div>
@@ -566,7 +566,7 @@ exercise_id,
                                                             };
 
                                                             return (
-                                                                <div key={set.id + setIndex} className={`grid grid-cols-[25px_1fr_42px_42px_35px_30px] sm:grid-cols-[40px_1fr_70px_70px_45px_45px] gap-1 sm:gap-2 px-2 sm:px-3 py-1 sm:py-2 items-center transition-all duration-300 ${rowBg}`}>
+                                                                <div key={set.id + setIndex} className={`grid grid-cols-[22px_1fr_54px_44px_36px_28px] sm:grid-cols-[40px_1fr_75px_70px_50px_45px] gap-0.5 sm:gap-2 px-2 sm:px-3 py-1.5 sm:py-2 items-center transition-all duration-300 ${rowBg}`}>
                                                                     <div className="flex items-center justify-center">
                                                                         {getSetIcon()}
                                                                     </div>
@@ -580,13 +580,13 @@ exercise_id,
                                                                         </button>
                                                                         <div className="flex flex-wrap items-center gap-0.5 sm:gap-1">
                                                                             {set.weight_target && (
-                                                                                <span className="text-[7px] sm:text-[9px] bg-sky-100 dark:bg-sky-900/40 text-sky-600 dark:text-sky-400 px-1 sm:px-1.5 py-0 rounded-full font-bold uppercase tracking-tight">{set.weight_target}kg</span>
+                                                                                <span className="text-[9px] sm:text-[10px] bg-sky-100 dark:bg-sky-900/40 text-sky-600 dark:text-sky-400 px-1.5 sm:px-2 py-0.5 rounded-full font-bold uppercase tracking-tight">{set.weight_target}kg</span>
                                                                             )}
                                                                             {set.reps_target && (
-                                                                                <span className="text-[7px] sm:text-[9px] bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 px-1 sm:px-1.5 py-0 rounded-full font-bold uppercase tracking-tight">{set.reps_target}r</span>
+                                                                                <span className="text-[9px] sm:text-[10px] bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 px-1.5 sm:px-2 py-0.5 rounded-full font-bold uppercase tracking-tight">{set.reps_target}r</span>
                                                                             )}
                                                                             {set.rpe_target && (
-                                                                                <span className="text-[7px] sm:text-[9px] bg-purple-100 dark:bg-purple-900/40 text-purple-600 dark:text-purple-400 px-1 sm:px-1.5 py-0 rounded-full font-bold uppercase tracking-tight">@{set.rpe_target}</span>
+                                                                                <span className="text-[9px] sm:text-[10px] bg-purple-100 dark:bg-purple-900/40 text-purple-600 dark:text-purple-400 px-1.5 sm:px-2 py-0.5 rounded-full font-bold uppercase tracking-tight">@{set.rpe_target}</span>
                                                                             )}
                                                                         </div>
                                                                     </div>
@@ -594,7 +594,7 @@ exercise_id,
                                                                         <input
                                                                             type="number"
                                                                             inputMode="decimal"
-                                                                            className={`w-full h-7 sm:h-9 text-center text-xs sm:text-sm font-bold bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg sm:rounded-xl focus:border-sky-500 focus:ring-1 focus:ring-sky-500 p-0 text-slate-900 dark:text-white transition-all shadow-sm ${set.completed ? 'opacity-60' : ''}`}
+                                                                            className={`w-full h-8 sm:h-10 text-center text-[11px] sm:text-sm font-bold bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg sm:rounded-xl focus:border-sky-500 focus:ring-1 focus:ring-sky-500 px-1 text-slate-900 dark:text-white transition-all shadow-sm ${set.completed ? 'opacity-60' : ''}`}
                                                                             placeholder={set.prev_log !== '-' ? set.prev_log.split('kg')[0] : (set.weight_target ? String(set.weight_target) : '-')}
                                                                             value={set.weight}
                                                                             onChange={(e) => handleInputChange(exIndex, setIndex, 'weight', e.target.value)}
