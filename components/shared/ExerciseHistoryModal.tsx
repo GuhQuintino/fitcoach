@@ -22,21 +22,47 @@ const ExerciseHistoryModal: React.FC<ExerciseHistoryModalProps> = ({ isOpen, onC
     const fetchHistory = async () => {
         try {
             setLoading(true);
+
+            // Abordagem alternativa: buscar workout_logs do aluno e filtrar set_logs pelo exercise_id
             const { data, error } = await supabase
-                .from('set_logs')
+                .from('workout_logs')
                 .select(`
-                    *,
-                    workout_logs!inner (
-                        finished_at
+                    finished_at,
+                    set_logs (
+                        id,
+                        exercise_id,
+                        weight_kg,
+                        reps_completed,
+                        rpe_actual,
+                        set_type,
+                        created_at
                     )
                 `)
-                .eq('exercise_id', exerciseId)
-                .eq('workout_logs.student_id', studentId)
-                .order('created_at', { ascending: false })
-                .limit(20);
+                .eq('student_id', studentId)
+                .order('finished_at', { ascending: false })
+                .limit(10);
 
             if (error) throw error;
-            setHistory(data || []);
+
+            // Filtrar e achatar os set_logs que correspondem ao exerciseId
+            const filteredLogs: any[] = [];
+            data?.forEach(log => {
+                log.set_logs?.forEach((setLog: any) => {
+                    if (setLog.exercise_id === exerciseId) {
+                        filteredLogs.push({
+                            ...setLog,
+                            workout_logs: { finished_at: log.finished_at }
+                        });
+                    }
+                });
+            });
+
+            // Ordenar por data mais recente
+            filteredLogs.sort((a, b) =>
+                new Date(b.workout_logs.finished_at).getTime() - new Date(a.workout_logs.finished_at).getTime()
+            );
+
+            setHistory(filteredLogs.slice(0, 20));
         } catch (err) {
             console.error('Error fetching exercise history:', err);
         } finally {
