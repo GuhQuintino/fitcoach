@@ -66,8 +66,8 @@ const WaitingApproval: React.FC = () => {
                 },
                 (payload: any) => {
                     if (payload.new.status === 'active') {
-                        // Redirecionar para dashboard quando aprovado
-                        navigate(role === 'coach' ? '/coach/dashboard' : '/student/dashboard');
+                        // Forçar reload completo para atualizar AuthContext
+                        window.location.href = role === 'coach' ? '/#/coach/dashboard' : '/#/student/dashboard';
                     }
                 }
             )

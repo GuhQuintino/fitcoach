@@ -1,11 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabaseClient';
-import { useNavigate, Link, useSearchParams } from 'react-router-dom';
+import { useNavigate, Link, useSearchParams, Navigate } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
+import { useAuth } from '../contexts/AuthContext';
 
 const Register: React.FC = () => {
+    const { session, loading: authLoading } = useAuth();
     const [searchParams] = useSearchParams();
     const coachId = searchParams.get('coach');
+
+    // Se já estiver logado, redirecionar para home (routing inteligente)
+    if (!authLoading && session) {
+        return <Navigate to="/" replace />;
+    }
     const [role, setRole] = useState<'student' | 'coach'>(coachId ? 'student' : 'coach');
     const [loading, setLoading] = useState(false);
     const [fullName, setFullName] = useState('');
