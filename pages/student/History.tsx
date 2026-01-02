@@ -258,7 +258,9 @@ const History: React.FC = () => {
                                         <div className="flex items-center gap-3 mt-1 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
                                             <span className="flex items-center gap-1">
                                                 <span className="material-symbols-rounded text-[14px]">schedule</span>
-                                                {formatDuration(log.duration_seconds || 0)}
+                                                {log.finished_at && log.started_at
+                                                    ? `${Math.floor((new Date(log.finished_at).getTime() - new Date(log.started_at).getTime()) / 60000)} min`
+                                                    : '-'}
                                             </span>
                                             <span className="flex items-center gap-1">
                                                 <span className="material-symbols-rounded text-[14px]">fitness_center</span>
@@ -317,9 +319,10 @@ const History: React.FC = () => {
                             </div>
                         ))}
                     </div>
-                )}
-            </main>
-        </MainLayout>
+                )
+                }
+            </main >
+        </MainLayout >
     );
 };
 
