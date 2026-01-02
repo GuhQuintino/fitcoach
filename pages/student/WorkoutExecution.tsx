@@ -341,6 +341,21 @@ exercise_id,
         }
     };
 
+    // Monitorar fim do timer com useEffect (seguro contra crash em mobile)
+    useEffect(() => {
+        if (timerActive && timeLeft === 0) {
+            stopRestTimer();
+            playBeep();
+
+            // Notification segura
+            try {
+                sendRestNotification();
+            } catch (e) {
+                console.warn('Erro ao enviar notificação:', e);
+            }
+        }
+    }, [timeLeft, timerActive]);
+
     const startRestTimer = (duration: number) => {
         if (timerRef.current) clearInterval(timerRef.current);
         setTimeLeft(duration);
@@ -348,19 +363,19 @@ exercise_id,
         setTimerActive(true);
         setToastVisible(true);
 
-        // Pedir permissão de notificação (só aparece 1x)
-        if ('Notification' in window && Notification.permission === 'default') {
-            Notification.requestPermission();
+        // Pedir permissão de notificação de forma segura
+        try {
+            if ('Notification' in window && Notification.permission === 'default') {
+                Notification.requestPermission().catch(err => console.log('Notification permission error:', err));
+            }
+        } catch (e) {
+            console.log('Notification API not supported');
         }
 
         timerRef.current = setInterval(() => {
             setTimeLeft(prev => {
-                if (prev <= 1) {
-                    stopRestTimer();
-                    playBeep();
-                    sendRestNotification();
-                    return 0;
-                }
+                // Apenas atualizar o estado, SEM side effects aqui
+                if (prev <= 0) return 0;
                 return prev - 1;
             });
         }, 1000);
