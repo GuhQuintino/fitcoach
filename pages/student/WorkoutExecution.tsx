@@ -56,6 +56,47 @@ const WorkoutExecution: React.FC = () => {
     const [toastVisible, setToastVisible] = useState(false);
     const [currentExerciseIndex, setCurrentExerciseIndex] = useState(0);
     const timerRef = useRef<NodeJS.Timeout | null>(null);
+    const audioContextRef = useRef<AudioContext | null>(null);
+
+    // Sound beep quando timer termina
+    const playBeep = () => {
+        try {
+            if (!audioContextRef.current) {
+                audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+            }
+            const ctx = audioContextRef.current;
+            // Resume se estiver suspenso (iOS requer interação)
+            if (ctx.state === 'suspended') ctx.resume();
+
+            // Beep triplo
+            [0, 0.15, 0.3].forEach(delay => {
+                const oscillator = ctx.createOscillator();
+                const gain = ctx.createGain();
+                oscillator.connect(gain);
+                gain.connect(ctx.destination);
+                oscillator.frequency.value = 800;
+                oscillator.type = 'sine';
+                gain.gain.setValueAtTime(0.3, ctx.currentTime + delay);
+                gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + delay + 0.12);
+                oscillator.start(ctx.currentTime + delay);
+                oscillator.stop(ctx.currentTime + delay + 0.12);
+            });
+        } catch (e) {
+            console.error('Audio error:', e);
+        }
+    };
+
+    // Notificação push (funciona em background)
+    const sendRestNotification = () => {
+        if ('Notification' in window && Notification.permission === 'granted') {
+            new Notification('FitCoach Pro', {
+                body: 'Descanso finalizado! Hora da próxima série 💪',
+                icon: '/icon-192.png',
+                tag: 'rest-timer',
+                requireInteraction: false
+            });
+        }
+    };
 
     // PSE Modal
     const [pseModal, setPseModal] = useState<{ open: boolean, exerciseIndex: number | null, setIndex: number | null }>({
@@ -307,11 +348,17 @@ exercise_id,
         setTimerActive(true);
         setToastVisible(true);
 
+        // Pedir permissão de notificação (só aparece 1x)
+        if ('Notification' in window && Notification.permission === 'default') {
+            Notification.requestPermission();
+        }
+
         timerRef.current = setInterval(() => {
             setTimeLeft(prev => {
                 if (prev <= 1) {
                     stopRestTimer();
-                    // Audio beep?
+                    playBeep();
+                    sendRestNotification();
                     return 0;
                 }
                 return prev - 1;
