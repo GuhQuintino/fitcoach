@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabaseClient';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { formatToWhatsappUrl } from '../utils/phoneUtils';
 
 const SubscriptionExpired: React.FC = () => {
     const { role, expiresAt, coachExpiresAt, signOut, user } = useAuth();
@@ -53,9 +54,7 @@ const SubscriptionExpired: React.FC = () => {
     const whatsappNumber = role === 'coach' ? ADMIN_WHATSAPP : coachPhone;
     const contactName = role === 'coach' ? 'Administrador' : 'seu Treinador';
 
-    const whatsappLink = whatsappNumber
-        ? `https://wa.me/${whatsappNumber}?text=Olá! Meu acesso ao Fitcoach expirou e gostaria de renovar.`
-        : null;
+    const whatsappLink = formatToWhatsappUrl(whatsappNumber, 'Olá! Meu acesso ao Fitcoach expirou e gostaria de renovar.');
 
     const formattedDate = (() => {
         const dateToFormat = isCoachBlock ? coachExpiresAt : expiresAt;

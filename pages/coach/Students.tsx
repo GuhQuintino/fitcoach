@@ -4,6 +4,7 @@ import { supabase } from '../../lib/supabaseClient';
 import { useAuth } from '../../contexts/AuthContext';
 import { Link } from 'react-router-dom';
 import { matchesSearch } from '../../utils/textUtils';
+import { formatToWhatsappUrl } from '../../utils/phoneUtils';
 
 const CoachStudents: React.FC = () => {
     const { user } = useAuth();
@@ -264,9 +265,7 @@ const CoachStudents: React.FC = () => {
                         students.map((student) => {
                             const state = getStudentState(student);
                             const isPending = state === 'pending';
-                            const whatsappLink = student.profiles?.phone
-                                ? `https://wa.me/${student.profiles?.phone?.replace(/\D/g, '')}`
-                                : null;
+                            const whatsappLink = formatToWhatsappUrl(student.profiles?.phone);
 
                             return (
                                 <div key={student.id} className="bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-soft border border-slate-100 dark:border-slate-700 flex items-center gap-4">

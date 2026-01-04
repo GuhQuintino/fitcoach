@@ -8,6 +8,7 @@ import toast from 'react-hot-toast';
 import EvolutionGallery from '../../components/student/EvolutionGallery';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import InstallTutorial from '../../components/shared/InstallTutorial';
+import { formatToWhatsappUrl } from '../../utils/phoneUtils';
 
 const StudentProfile: React.FC = () => {
     const { user, signOut, preferences, updatePreferences } = useAuth();
@@ -172,9 +173,8 @@ const StudentProfile: React.FC = () => {
 
     const getWhatsappUrl = () => {
         if (!coachProfile?.phone) return '#';
-        const phone = coachProfile.phone.replace(/\D/g, '');
-        const message = encodeURIComponent(`Olá ${coachProfile.full_name}, sou o aluno ${profile?.full_name} e gostaria de tirar uma dúvida.`);
-        return `https://wa.me/55${phone}?text=${message}`;
+        const message = `Olá ${coachProfile.full_name}, sou o aluno ${profile?.full_name} e gostaria de tirar uma dúvida.`;
+        return formatToWhatsappUrl(coachProfile.phone, message) || '#';
     };
 
     const tmb = calculateTMB();

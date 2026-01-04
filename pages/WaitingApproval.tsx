@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabaseClient';
 import { useNavigate } from 'react-router-dom';
+import { formatToWhatsappUrl } from '../utils/phoneUtils';
 
 const WaitingApproval: React.FC = () => {
     const { signOut, role, user } = useAuth();
@@ -89,9 +90,7 @@ const WaitingApproval: React.FC = () => {
         `Olá ${contactName || ''}! Meu nome é ${userName} e acabei de criar minha conta no Fitcoach. Poderia liberar meu acesso?`
     );
 
-    const whatsappLink = contactPhone
-        ? `https://wa.me/${contactPhone}?text=${whatsappMessage}`
-        : null;
+    const whatsappLink = formatToWhatsappUrl(contactPhone, whatsappMessage);
 
     return (
         <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-slate-50 dark:bg-slate-900 text-center">

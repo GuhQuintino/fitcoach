@@ -2,6 +2,7 @@ import React from 'react';
 import MainLayout from '../../components/Layout/MainLayout';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import { formatToWhatsappUrl } from '../../utils/phoneUtils';
 
 const Plans: React.FC = () => {
     const { expiresAt } = useAuth();
@@ -48,10 +49,10 @@ const Plans: React.FC = () => {
                     {/* Current Subscription Card */}
                     {expInfo && (
                         <div className={`relative overflow-hidden rounded-3xl p-6 border ${expInfo.isExpired
-                                ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800/30'
-                                : expInfo.isUrgent
-                                    ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800/30'
-                                    : 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800/30'
+                            ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800/30'
+                            : expInfo.isUrgent
+                                ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800/30'
+                                : 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800/30'
                             }`}>
                             {expInfo.isUrgent && !expInfo.isExpired && (
                                 <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-amber-400 to-red-400 animate-pulse"></div>
@@ -127,7 +128,7 @@ const Plans: React.FC = () => {
                                 </p>
 
                                 <a
-                                    href="https://wa.me/5511999999999"
+                                    href={formatToWhatsappUrl('11992616777', 'Olá, gostaria de falar sobre minha assinatura.')!}
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className="w-full bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white py-3.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20 active:scale-[0.98] transition-all"

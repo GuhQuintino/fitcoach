@@ -5,6 +5,7 @@ import { supabase } from '../../lib/supabaseClient';
 import { Link, useNavigate } from 'react-router-dom';
 import ThemeToggle from '../../components/ThemeToggle';
 import PWAInstallPrompt from '../../components/shared/PWAInstallPrompt';
+import { formatToWhatsappUrl } from '../../utils/phoneUtils';
 
 const StudentDashboard: React.FC = () => {
     const { user, expiresAt } = useAuth();
@@ -185,9 +186,9 @@ const StudentDashboard: React.FC = () => {
                         </p>
                     </div>
 
-                    {coach?.phone && (
+                    {coach?.phone && formatToWhatsappUrl(coach.phone) && (
                         <a
-                            href={`https://wa.me/${coach.phone.replace(/\D/g, '')}`}
+                            href={formatToWhatsappUrl(coach.phone)!}
                             target="_blank"
                             rel="noreferrer"
                             className="flex items-center gap-2 px-6 py-3 bg-[#25D366] text-white font-bold rounded-xl shadow-lg hover:shadow-xl hover:bg-[#20bd5a] transition-all transform active:scale-95"
@@ -217,9 +218,9 @@ const StudentDashboard: React.FC = () => {
                         </p>
                     </div>
 
-                    {coach?.phone && (
+                    {coach?.phone && formatToWhatsappUrl(coach.phone) && (
                         <a
-                            href={`https://wa.me/${coach.phone.replace(/\D/g, '')}`}
+                            href={formatToWhatsappUrl(coach.phone)!}
                             target="_blank"
                             rel="noreferrer"
                             className="flex items-center gap-2 px-6 py-3 bg-[#25D366] text-white font-bold rounded-xl shadow-lg hover:shadow-xl hover:bg-[#20bd5a] transition-all transform active:scale-95"
@@ -409,9 +410,9 @@ const StudentDashboard: React.FC = () => {
                         </div>
 
                         {/* Card: Falar com Coach */}
-                        {coach?.phone && (
+                        {coach?.phone && formatToWhatsappUrl(coach.phone) && (
                             <a
-                                href={`https://wa.me/${coach.phone.replace(/\D/g, '')}?text=${encodeURIComponent(`Olá ${coach.full_name || 'Coach'}! Sou o(a) ${profile?.full_name?.split(' ')[0] || 'aluno(a)'}.`)}`}
+                                href={formatToWhatsappUrl(coach.phone, `Olá ${coach.full_name || 'Coach'}! Sou o(a) ${profile?.full_name?.split(' ')[0] || 'aluno(a)'}.`)!}
                                 target="_blank"
                                 rel="noreferrer"
                                 className="bg-gradient-to-br from-[#25D366]/10 to-white dark:from-[#25D366]/20 dark:to-slate-800 p-5 rounded-2xl shadow-sm border border-[#25D366]/20 dark:border-[#25D366]/30 active:scale-[0.98] transition-all hover:shadow-[#25D366]/10 dark:hover:shadow-none group relative overflow-hidden"

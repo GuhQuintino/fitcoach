@@ -5,6 +5,7 @@ import { supabase } from '../../lib/supabaseClient';
 import toast from 'react-hot-toast';
 import EvolutionGallery from '../../components/student/EvolutionGallery';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Cell } from 'recharts';
+import { formatToWhatsappUrl } from '../../utils/phoneUtils';
 
 const StudentProfileView: React.FC = () => {
     const { id } = useParams<{ id: string }>();
@@ -375,10 +376,10 @@ const StudentProfileView: React.FC = () => {
                 </section>
 
                 <section className="px-6 py-4">
-                    {profile?.phone && (
+                    {profile?.phone && formatToWhatsappUrl(profile.phone) && (
                         <a
                             className="flex items-center justify-center w-full bg-[#25D366] hover:bg-[#128C7E] text-white font-bold h-12 rounded-xl gap-2 transition-all active:scale-[0.98] shadow-lg shadow-green-500/20"
-                            href={`https://wa.me/${profile.phone.replace(/\D/g, '')}`}
+                            href={formatToWhatsappUrl(profile.phone)!}
                             target="_blank"
                             rel="noreferrer"
                         >

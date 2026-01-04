@@ -178,7 +178,8 @@ const Editor: React.FC = () => {
             }
 
             // 2. Upsert Items & Sets
-            const updatedItems = [...items]; // Clone to update IDs locally
+            const itemIdMap = new Map<string, string>();
+            const setIdMap = new Map<string, string>();
 
             for (let i = 0; i < items.length; i++) {
                 const item = items[i];
@@ -199,8 +200,10 @@ const Editor: React.FC = () => {
                         .select()
                         .single();
                     if (iError) throw iError;
-                    itemId = insertedItem.id; // Capture new real ID
-                    updatedItems[i].id = itemId; // Update local state clone
+
+                    // Track ID mapping
+                    itemIdMap.set(item.id, insertedItem.id);
+                    itemId = insertedItem.id;
                 } else {
                     const { error: uError } = await supabase
                         .from('workout_items')
@@ -243,8 +246,9 @@ const Editor: React.FC = () => {
                             .select()
                             .single();
                         if (sInsertError) throw sInsertError;
-                        // Update local set ID
-                        updatedItems[i].sets[j].id = insertedSet.id;
+
+                        // Track Set ID mapping
+                        setIdMap.set(set.id, insertedSet.id);
                     } else {
                         const { error: sUpdateError } = await supabase.from('workout_sets').update(setPayload).eq('id', set.id);
                         if (sUpdateError) throw sUpdateError;
@@ -252,8 +256,27 @@ const Editor: React.FC = () => {
                 }
             }
 
-            // Sync state with new IDs to prevent future duplicate inserts if user saves again
-            setItems(updatedItems);
+            // Sync state with new IDs functionally
+            // This preserves items added by the user while the save was in progress
+            setItems(currentItems => {
+                return currentItems.map(item => {
+                    // Update Item ID if it was just saved (temp -> real)
+                    const newItemId = itemIdMap.get(item.id) || item.id;
+
+                    // Update Set IDs
+                    const newSets = item.sets.map((set: any) => ({
+                        ...set,
+                        id: setIdMap.get(set.id) || set.id,
+                        workout_item_id: newItemId // Ensure consistency
+                    }));
+
+                    return {
+                        ...item,
+                        id: newItemId,
+                        sets: newSets
+                    };
+                });
+            });
 
             // Success
             setHasUnsavedChanges(false);
