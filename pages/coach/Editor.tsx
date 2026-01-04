@@ -142,9 +142,22 @@ const Editor: React.FC = () => {
     };
 
 
+    // Race condition lock
+    const isSavingRef = useRef(false);
+
     // --- Saving ---
     const handleSave = async (isManual = true) => {
+        // Prevent overlapping saves
+        if (isSavingRef.current) return;
+
+        // Immediately cancel any pending auto-save to prevent race
+        if (saveTimerRef.current) {
+            clearTimeout(saveTimerRef.current);
+            saveTimerRef.current = null;
+        }
+
         try {
+            isSavingRef.current = true;
             if (isManual) setSaving(true);
             else setIsAutoSaving(true);
 
@@ -157,17 +170,6 @@ const Editor: React.FC = () => {
                 // If list empty, delete all
                 await supabase.from('workout_items').delete().eq('workout_id', workoutId);
             } else {
-                // If all items are new (temp ids only), we might still want to delete old items if they existed?
-                // In this case, since we don't have existing IDs in our state (maybe we loaded empty?), let's trust the state.
-                // But if we loaded existing items and user deleted all of them, currentIds is empty.
-                // Wait, if we loaded items, they have real IDs. If user deleted them, they are gone from 'items' state.
-                // So currentIds ONLY has real IDs that survived.
-                // If currentIds is empty, it means either we started with empty, OR we deleted all real items.
-                // So we should delete all items for this workout that are NOT in empty list => Delete All.
-                // The check `if (items.length === 0)` covers one case. 
-                // But if we have only NEW items, currentIds is empty. But we should still delete OLD items.
-                // So: Delete all items where workout_id = ID AND id NOT IN (currentIds).
-                // If currentIds empty, delete all.
                 if (currentIds.length === 0) {
                     await supabase.from('workout_items').delete().eq('workout_id', workoutId);
                 } else {
@@ -176,6 +178,8 @@ const Editor: React.FC = () => {
             }
 
             // 2. Upsert Items & Sets
+            const updatedItems = [...items]; // Clone to update IDs locally
+
             for (let i = 0; i < items.length; i++) {
                 const item = items[i];
                 let itemId = item.id;
@@ -196,6 +200,7 @@ const Editor: React.FC = () => {
                         .single();
                     if (iError) throw iError;
                     itemId = insertedItem.id; // Capture new real ID
+                    updatedItems[i].id = itemId; // Update local state clone
                 } else {
                     const { error: uError } = await supabase
                         .from('workout_items')
@@ -232,14 +237,23 @@ const Editor: React.FC = () => {
                     };
 
                     if (set.id.toString().startsWith('new') || set.id.toString().startsWith('temp')) {
-                        const { error: sInsertError } = await supabase.from('workout_sets').insert(setPayload);
+                        const { data: insertedSet, error: sInsertError } = await supabase
+                            .from('workout_sets')
+                            .insert(setPayload)
+                            .select()
+                            .single();
                         if (sInsertError) throw sInsertError;
+                        // Update local set ID
+                        updatedItems[i].sets[j].id = insertedSet.id;
                     } else {
                         const { error: sUpdateError } = await supabase.from('workout_sets').update(setPayload).eq('id', set.id);
                         if (sUpdateError) throw sUpdateError;
                     }
                 }
             }
+
+            // Sync state with new IDs to prevent future duplicate inserts if user saves again
+            setItems(updatedItems);
 
             // Success
             setHasUnsavedChanges(false);
@@ -256,12 +270,14 @@ const Editor: React.FC = () => {
         } finally {
             setSaving(false);
             setIsAutoSaving(false);
+            isSavingRef.current = false;
         }
     };
 
     // Auto-save effect
     useEffect(() => {
-        if (!loading && hasUnsavedChanges) {
+        // Don't start timer if already saving
+        if (!loading && hasUnsavedChanges && !isSavingRef.current) {
             if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
 
             saveTimerRef.current = setTimeout(() => {
@@ -324,7 +340,7 @@ const Editor: React.FC = () => {
                 </div>
                 <button
                     onClick={() => handleSave(true)}
-                    disabled={saving || isAutoSaving}
+                    disabled={saving}
                     className="bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-bold px-6 py-2.5 rounded-2xl transition-all disabled:opacity-50 shadow-md hover:shadow-glow active:scale-95 text-sm"
                 >
                     {saving ? 'Salvando...' : 'Sair e Salvar'}
