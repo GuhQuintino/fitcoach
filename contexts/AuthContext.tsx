@@ -147,13 +147,20 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                     setStatus(metaRole === 'admin' ? 'active' : 'pending');
                 }
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error('Erro ao buscar perfil:', error);
-            // Fallback on error too
-            const metaRole = session?.user?.user_metadata?.role;
-            if (metaRole) {
-                setRole(metaRole as Role);
-                setStatus(metaRole === 'admin' ? 'active' : 'pending');
+
+            // Apenas usar fallback se o perfil não for encontrado (PGRST116)
+            // Se for outro erro (conexão, servidor), avisar o usuário
+            if (error.code === 'PGRST116') {
+                const metaRole = session?.user?.user_metadata?.role;
+                if (metaRole) {
+                    setRole(metaRole as Role);
+                    setStatus(metaRole === 'admin' ? 'active' : 'pending');
+                }
+            } else {
+                toast.error('Erro de conexão ao carregar perfil. Tente recarregar a página.');
+                // Não definimos status como pending aqui para evitar bloqueio indevido
             }
         } finally {
             setLoading(false);

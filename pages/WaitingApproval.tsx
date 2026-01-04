@@ -86,9 +86,7 @@ const WaitingApproval: React.FC = () => {
 
     const userName = user?.user_metadata?.full_name || 'Novo Usuário';
 
-    const whatsappMessage = encodeURIComponent(
-        `Olá ${contactName || ''}! Meu nome é ${userName} e acabei de criar minha conta no Fitcoach. Poderia liberar meu acesso?`
-    );
+    const whatsappMessage = `Olá ${contactName || ''}! Meu nome é ${userName} e acabei de criar minha conta no Fitcoach. Poderia liberar meu acesso?`;
 
     const whatsappLink = formatToWhatsappUrl(contactPhone, whatsappMessage);
 
