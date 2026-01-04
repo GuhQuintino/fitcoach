@@ -63,6 +63,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 // Stabilizer: Only re-fetch if the user ID actually changed
                 // This prevents heavy RPC/Select calls on every browser focus (which triggers session refreshes)
                 if (currentUser.id !== prevUserId.current) {
+                    setLoading(true); // Prevent rendering with incomplete profile data
                     prevUserId.current = currentUser.id;
                     fetchUserProfile(currentUser.id);
                 }
