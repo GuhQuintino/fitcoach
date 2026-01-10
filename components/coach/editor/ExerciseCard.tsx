@@ -5,11 +5,12 @@ import VideoPlayerModal from '../../shared/VideoPlayerModal';
 import ExerciseHistoryModal from '../../shared/ExerciseHistoryModal';
 import VideoThumbnail from '../../shared/VideoThumbnail';
 import toast from 'react-hot-toast';
+import SetTemplateManager from './SetTemplateManager';
 
 interface Set {
     id: string; // Temporarily just random string if new
     set_order: number;
-    type: 'warmup' | 'working' | 'failure' | 'dropset';
+    type: 'warmup' | 'working' | 'failure' | 'dropset' | 'preparation';
     weight_target?: string; // string to handle empty states easily
     reps_target: string;
     rest_seconds: string;
@@ -35,6 +36,8 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({ item, index, onUpdate, onDe
     const [showDescription, setShowDescription] = useState(false);
     const [showVideoModal, setShowVideoModal] = useState(false);
     const [showHistoryModal, setShowHistoryModal] = useState(false);
+    const [templateModal, setTemplateModal] = useState<{ isOpen: boolean; mode: 'save' | 'load' }>({ isOpen: false, mode: 'save' });
+    const [showMenu, setShowMenu] = useState(false);
 
     // Sync back to parent whenever local state changes (debounced could be better but direct for now)
     const updateParent = (newSets: Set[], newNotes: string) => {
@@ -84,6 +87,7 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({ item, index, onUpdate, onDe
             case 'warmup': return <span className="material-symbols-rounded text-amber-500 text-lg">local_fire_department</span>;
             case 'failure': return <span className="material-symbols-rounded text-red-600 text-lg">bolt</span>;
             case 'dropset': return <span className="material-symbols-rounded text-purple-500 text-lg">layers</span>;
+            case 'preparation': return <span className="material-symbols-rounded text-cyan-500 text-lg">publish</span>;
             default: return <span className="text-blue-600 font-bold text-sm">{index + 1}</span>; // Shows Set Number
         }
     };
@@ -168,6 +172,45 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({ item, index, onUpdate, onDe
                 <button onClick={onDelete} className="p-1 sm:p-2 text-slate-400 hover:text-red-500 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors flex-shrink-0">
                     <span className="material-symbols-rounded text-lg sm:text-2xl">delete</span>
                 </button>
+
+                {/* Menu Button (Templates) */}
+                <div className="relative">
+                    <button
+                        onClick={() => setShowMenu(!showMenu)}
+                        className="p-1 sm:p-2 text-slate-400 hover:text-primary rounded-lg hover:bg-primary/5 transition-colors flex-shrink-0"
+                    >
+                        <span className="material-symbols-rounded text-lg sm:text-2xl">more_vert</span>
+                    </button>
+
+                    {/* Dropdown */}
+                    {showMenu && (
+                        <>
+                            <div className="fixed inset-0 z-10" onClick={() => setShowMenu(false)}></div>
+                            <div className="absolute right-0 top-full mt-1 w-48 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-100 dark:border-slate-700 z-20 py-1 overflow-hidden animate-fade-in transform origin-top-right">
+                                <button
+                                    onClick={() => {
+                                        setTemplateModal({ isOpen: true, mode: 'load' });
+                                        setShowMenu(false);
+                                    }}
+                                    className="w-full text-left px-4 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-700 text-sm font-medium text-slate-700 dark:text-slate-200 flex items-center gap-2"
+                                >
+                                    <span className="material-symbols-rounded text-lg text-primary">download</span>
+                                    Carregar Template
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        setTemplateModal({ isOpen: true, mode: 'save' });
+                                        setShowMenu(false);
+                                    }}
+                                    className="w-full text-left px-4 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-700 text-sm font-medium text-slate-700 dark:text-slate-200 flex items-center gap-2 border-t border-slate-50 dark:border-slate-700/50"
+                                >
+                                    <span className="material-symbols-rounded text-lg text-emerald-500">save</span>
+                                    Salvar Sets
+                                </button>
+                            </div>
+                        </>
+                    )}
+                </div>
             </div>
 
             {/* Description Expandable Area */}
@@ -232,7 +275,9 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({ item, index, onUpdate, onDe
                                                 ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800/50 text-red-600'
                                                 : set.type === 'dropset'
                                                     ? 'bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-800/50 text-purple-600'
-                                                    : 'bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-sky-600'
+                                                    : set.type === 'preparation'
+                                                        ? 'bg-cyan-50 dark:bg-cyan-900/20 border-cyan-200 dark:border-cyan-800/50 text-cyan-600'
+                                                        : 'bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-sky-600'
                                             } hover:scale-105 active:scale-95 shadow-sm p-0`}
                                     >
                                         {(set.type === 'working') ? (
@@ -247,7 +292,7 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({ item, index, onUpdate, onDe
                                         type="number"
                                         placeholder="-"
                                         className="w-full h-7 sm:h-10 rounded-md sm:rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-center font-bold text-slate-700 dark:text-slate-200 outline-none focus:ring-1 focus:ring-primary/50 px-0 text-[10px] sm:text-base min-w-0"
-                                        value={set.weight_target}
+                                        value={set.weight_target ?? ''}
                                         onChange={(e) => handleSetChange(i, 'weight_target', e.target.value)}
                                     />
 
@@ -257,7 +302,7 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({ item, index, onUpdate, onDe
                                         inputMode="numeric"
                                         placeholder="10"
                                         className="w-full h-7 sm:h-10 rounded-md sm:rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-center font-bold text-slate-700 dark:text-slate-200 outline-none focus:ring-1 focus:ring-primary/50 px-0 text-[10px] sm:text-base min-w-0"
-                                        value={set.reps_target}
+                                        value={set.reps_target ?? ''}
                                         onChange={(e) => handleSetChange(i, 'reps_target', e.target.value)}
                                     />
 
@@ -267,7 +312,7 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({ item, index, onUpdate, onDe
                                             type="number"
                                             placeholder="60"
                                             className="w-full h-7 sm:h-10 rounded-md sm:rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-center font-bold text-slate-700 dark:text-slate-200 outline-none focus:ring-1 focus:ring-primary/50 px-0 text-[10px] sm:text-base min-w-0"
-                                            value={set.rest_seconds}
+                                            value={set.rest_seconds ?? ''}
                                             onChange={(e) => handleSetChange(i, 'rest_seconds', e.target.value)}
                                         />
                                     </div>
@@ -283,7 +328,7 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({ item, index, onUpdate, onDe
                                                         : 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800/50 text-emerald-600'
                                                 }
                                         `}
-                                            value={set.rpe_target}
+                                            value={set.rpe_target ?? ''}
                                             onChange={(e) => handleSetChange(i, 'rpe_target', e.target.value)}
                                         >
                                             {Array.from({ length: 11 }, (_, k) => 5 + k * 0.5).map(val => (
@@ -353,6 +398,17 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({ item, index, onUpdate, onDe
                     studentId={studentId}
                 />
             )}
+
+            <SetTemplateManager
+                isOpen={templateModal.isOpen}
+                onClose={() => setTemplateModal({ ...templateModal, isOpen: false })}
+                mode={templateModal.mode}
+                currentSets={sets}
+                onLoad={(newSets) => {
+                    setSets(newSets);
+                    updateParent(newSets, notes);
+                }}
+            />
         </div>
     );
 };

@@ -5,6 +5,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import ExerciseCard from '../../components/coach/editor/ExerciseCard';
 import Exercises from './Exercises'; // Correct component for exercises
+import WorkoutImportModal from '../../components/coach/editor/WorkoutImportModal';
 import toast from 'react-hot-toast';
 
 const Editor: React.FC = () => {
@@ -113,20 +114,25 @@ const Editor: React.FC = () => {
 
     // --- Adding Exercise (Library Modal) ---
     const [showLibrary, setShowLibrary] = useState(false);
+    const [showImport, setShowImport] = useState(false);
 
     // This function will be called by Library when user selects an exercise
     // We need to modify Library to accept an 'onSelect' prop or handle it here via a specialized Library component
     // For now assuming existing Library can work if modified or wrapped.
     // Let's implement a simple handler that we'll pass to the Library (which we will refactor next)
-    const handleAddExercise = (exercise: any) => {
-        const newItem = {
-            id: `temp-${Date.now()}`, // temp ID
+    // Let's implement a simple handler that we'll pass to the Library (which we will refactor next)
+    const handleAddExercise = (exercisesData: any | any[]) => {
+        // Normalize to array
+        const exercisesToAdd = Array.isArray(exercisesData) ? exercisesData : [exercisesData];
+
+        const newItemsToAdd = exercisesToAdd.map((exercise: any) => ({
+            id: `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`, // unique temp ID
             exercise_id: exercise.id,
             exercise: exercise,
             coach_notes: '',
             sets: [
                 {
-                    id: `temp-set-${Date.now()}`,
+                    id: `temp-set-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
                     set_order: 1,
                     type: 'working',
                     reps_target: '10',
@@ -135,10 +141,33 @@ const Editor: React.FC = () => {
                     weight_target: ''
                 }
             ]
-        };
-        setItems([...items, newItem]);
+        }));
+
+        setItems(prev => [...prev, ...newItemsToAdd]);
         setHasUnsavedChanges(true);
         setShowLibrary(false);
+    };
+
+    const handleImportExercises = (importedItems: any[]) => {
+        const newItemsToAdd = importedItems.map((item: any) => ({
+            id: `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+            exercise_id: item.exercise_id,
+            exercise: item.exercise, // Ensure exercise object is present
+            coach_notes: item.coach_notes || '',
+            sets: (item.sets || []).map((s: any) => ({
+                id: `temp-set-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                set_order: s.set_order, // Keep original order
+                type: s.type || 'working',
+                reps_target: s.reps_target,
+                rest_seconds: s.rest_seconds,
+                rpe_target: s.rpe_target,
+                weight_target: s.weight_target,
+                // Don't copy id, workout_item_id, etc.
+            }))
+        }));
+
+        setItems(prev => [...prev, ...newItemsToAdd]);
+        setHasUnsavedChanges(true);
     };
 
 
@@ -162,7 +191,7 @@ const Editor: React.FC = () => {
             else setIsAutoSaving(true);
 
             // 1. Clean up removed Items
-            const currentIds = items.filter(i => !i.id.toString().startsWith('temp')).map(i => i.id);
+            const currentIds = items.filter(i => !i.id.toString().startsWith('temp') && !i.id.toString().startsWith('loaded')).map(i => i.id);
             if (currentIds.length > 0) {
                 // Delete items that are NOT in the current list
                 await supabase.from('workout_items').delete().eq('workout_id', workoutId).not('id', 'in', `(${currentIds.join(',')})`);
@@ -177,7 +206,7 @@ const Editor: React.FC = () => {
                 }
             }
 
-            // 2. Upsert Items & Sets
+            // 2. Upsert Items & Sets - FULLY SEQUENTIAL (required for Supabase Free Tier stability)
             const itemIdMap = new Map<string, string>();
             const setIdMap = new Map<string, string>();
 
@@ -193,15 +222,13 @@ const Editor: React.FC = () => {
                 };
 
                 // A. Insert/Update Item
-                if (item.id.toString().startsWith('temp')) {
+                if (item.id.toString().startsWith('temp') || item.id.toString().startsWith('loaded')) {
                     const { data: insertedItem, error: iError } = await supabase
                         .from('workout_items')
                         .insert(itemPayload)
                         .select()
                         .single();
                     if (iError) throw iError;
-
-                    // Track ID mapping
                     itemIdMap.set(item.id, insertedItem.id);
                     itemId = insertedItem.id;
                 } else {
@@ -213,25 +240,23 @@ const Editor: React.FC = () => {
                 }
 
                 // B. Sync Sets for this Item
-                // First, identify sets to KEEP (real IDs)
                 const currentSetIds = item.sets
-                    .filter((s: any) => !s.id.toString().startsWith('new') && !s.id.toString().startsWith('temp'))
+                    .filter((s: any) => !s.id.toString().startsWith('new') && !s.id.toString().startsWith('temp') && !s.id.toString().startsWith('loaded'))
                     .map((s: any) => s.id);
 
-                // Delete sets that are not in our list for this item
                 if (currentSetIds.length === 0) {
                     await supabase.from('workout_sets').delete().eq('workout_item_id', itemId);
                 } else {
                     await supabase.from('workout_sets').delete().eq('workout_item_id', itemId).not('id', 'in', `(${currentSetIds.join(',')})`);
                 }
 
-                // C. Upsert Sets
+                // C. Upsert Sets - One by one
                 for (let j = 0; j < item.sets.length; j++) {
                     const set = item.sets[j];
                     const setPayload = {
-                        workout_item_id: itemId, // IMPORTANT: Use the potentially new itemId
+                        workout_item_id: itemId,
                         set_order: j + 1,
-                        order_index: j + 1, // Syncing with order_index too
+                        order_index: j + 1,
                         type: set.type,
                         reps_target: set.reps_target,
                         rest_seconds: parseInt(set.rest_seconds) || 60,
@@ -239,15 +264,13 @@ const Editor: React.FC = () => {
                         weight_target: set.weight_target ? parseFloat(set.weight_target) : null
                     };
 
-                    if (set.id.toString().startsWith('new') || set.id.toString().startsWith('temp')) {
+                    if (set.id.toString().startsWith('new') || set.id.toString().startsWith('temp') || set.id.toString().startsWith('loaded')) {
                         const { data: insertedSet, error: sInsertError } = await supabase
                             .from('workout_sets')
                             .insert(setPayload)
                             .select()
                             .single();
                         if (sInsertError) throw sInsertError;
-
-                        // Track Set ID mapping
                         setIdMap.set(set.id, insertedSet.id);
                     } else {
                         const { error: sUpdateError } = await supabase.from('workout_sets').update(setPayload).eq('id', set.id);
@@ -255,6 +278,8 @@ const Editor: React.FC = () => {
                     }
                 }
             }
+
+
 
             // Sync state with new IDs functionally
             // This preserves items added by the user while the save was in progress
@@ -403,13 +428,23 @@ const Editor: React.FC = () => {
                         ))}
 
                         {/* Relative Footer Button - Moves down as list grows */}
-                        <button
-                            onClick={() => setShowLibrary(true)}
-                            className="w-full py-4 rounded-2xl border-2 border-dashed border-primary/30 text-primary font-bold text-lg hover:bg-primary/5 transition-all flex items-center justify-center gap-2"
-                        >
-                            <span className="material-symbols-rounded">add_circle</span>
-                            Adicionar Exercício
-                        </button>
+                        <div className="grid grid-cols-2 gap-3">
+                            <button
+                                onClick={() => setShowImport(true)}
+                                className="w-full py-4 rounded-2xl border-2 border-dashed border-slate-300 dark:border-slate-700 text-slate-500 font-bold hover:bg-slate-50 dark:hover:bg-slate-800 transition-all flex flex-col items-center justify-center gap-1"
+                            >
+                                <span className="material-symbols-rounded">download</span>
+                                <span className="text-sm">Importar</span>
+                            </button>
+
+                            <button
+                                onClick={() => setShowLibrary(true)}
+                                className="w-full py-4 rounded-2xl border-2 border-dashed border-primary/30 text-primary font-bold hover:bg-primary/5 transition-all flex flex-col items-center justify-center gap-1"
+                            >
+                                <span className="material-symbols-rounded">add_circle</span>
+                                <span className="text-sm">Adicionar</span>
+                            </button>
+                        </div>
                     </div>
                 )}
             </main>
@@ -432,6 +467,12 @@ const Editor: React.FC = () => {
                     </div>
                 </div>
             )}
+
+            <WorkoutImportModal
+                isOpen={showImport}
+                onClose={() => setShowImport(false)}
+                onImport={handleImportExercises}
+            />
 
         </MainLayout>
     );

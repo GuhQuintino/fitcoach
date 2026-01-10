@@ -10,7 +10,7 @@ import toast from 'react-hot-toast';
 
 interface ExercisesProps {
     isModal?: boolean;
-    onSelect?: (exercise: any) => void;
+    onSelect?: (exercises: any[]) => void;
 }
 
 const Exercises: React.FC<ExercisesProps> = ({ isModal, onSelect }) => {
@@ -26,6 +26,9 @@ const Exercises: React.FC<ExercisesProps> = ({ isModal, onSelect }) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [debouncedSearch, setDebouncedSearch] = useState('');
     const [filterMuscle, setFilterMuscle] = useState('all');
+
+    // Selection State (for Modal Mode)
+    const [selectedExercises, setSelectedExercises] = useState<any[]>([]);
 
     // Create/Edit Modal
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -76,11 +79,6 @@ const Exercises: React.FC<ExercisesProps> = ({ isModal, onSelect }) => {
             } else {
                 setLoadingMore(true);
             }
-
-
-
-
-
 
             // Use RPC for popularity sorting
             const { data, error } = await supabase.rpc('get_popular_exercises', {
@@ -194,6 +192,25 @@ const Exercises: React.FC<ExercisesProps> = ({ isModal, onSelect }) => {
         }
     };
 
+    // Toggle selection for Bulk Mode
+    const toggleSelection = (exercise: any) => {
+        if (!isModal) return;
+
+        const isSelected = selectedExercises.some(e => e.id === exercise.id);
+        if (isSelected) {
+            setSelectedExercises(prev => prev.filter(e => e.id !== exercise.id));
+        } else {
+            setSelectedExercises(prev => [...prev, exercise]);
+        }
+    };
+
+    const confirmSelection = () => {
+        if (onSelect) {
+            onSelect(selectedExercises);
+            setSelectedExercises([]); // Clear after selection
+        }
+    };
+
     // Removed client-side filtering logic as we now do it server-side
     // Function kept if needed for other helpers, otherwise unused.
     const filteredExercises = exercises; // Direct usage since we filter on fetch
@@ -240,7 +257,7 @@ const Exercises: React.FC<ExercisesProps> = ({ isModal, onSelect }) => {
             </div>
 
             {/* List - Scrollable */}
-            <div className="flex-1 overflow-y-auto p-5 pt-2 pb-24">
+            <div className={`flex-1 overflow-y-auto p-5 pt-2 ${isModal ? 'pb-32' : 'pb-24'}`}>
                 <div className="space-y-3">
                     {loading ? (
                         <div className="text-center py-10"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div></div>
@@ -251,91 +268,96 @@ const Exercises: React.FC<ExercisesProps> = ({ isModal, onSelect }) => {
                                     <p className="text-slate-500">Nenhum exercício encontrado.</p>
                                 </div>
                             ) : (
-                                filteredExercises.map(ex => (
-                                    <div
-                                        key={ex.id}
-                                        onClick={() => {
-                                            if (isModal && onSelect) onSelect(ex);
-                                        }}
-                                        className={`
-                                            bg-white dark:bg-slate-800 p-3 rounded-xl border border-slate-100 dark:border-slate-700 flex items-center gap-4 transition-all
-                                            ${isModal ? 'cursor-pointer hover:border-primary active:scale-[0.98]' : ''}
-                                        `}
-                                    >
-                                        {/* Thumb - Clicável para abrir vídeo */}
+                                filteredExercises.map(ex => {
+                                    const isSelected = selectedExercises.some(s => s.id === ex.id);
+                                    return (
                                         <div
-                                            className="w-16 h-16 rounded-lg bg-slate-200 dark:bg-slate-700 flex-shrink-0 overflow-hidden relative cursor-pointer group"
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                if (ex.video_url) {
-                                                    setVideoModal({ open: true, url: ex.video_url, title: ex.name });
-                                                }
+                                            key={ex.id}
+                                            onClick={() => {
+                                                if (isModal) toggleSelection(ex);
                                             }}
+                                            className={`
+                                                bg-white dark:bg-slate-800 p-3 rounded-xl border flex items-center gap-4 transition-all
+                                                ${isModal
+                                                    ? `cursor-pointer ${isSelected ? 'border-primary ring-1 ring-primary bg-primary/5 dark:bg-primary/10' : 'border-slate-100 dark:border-slate-700 hover:border-primary/50'}`
+                                                    : 'border-slate-100 dark:border-slate-700'}
+                                            `}
                                         >
-                                            {getYoutubeId(ex.video_url) ? (
-                                                <>
-                                                    <img src={`https://img.youtube.com/vi/${getYoutubeId(ex.video_url)}/0.jpg`} className="w-full h-full object-cover" alt="" />
-                                                    <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                                        <span className="material-symbols-rounded text-white text-2xl">play_circle</span>
+                                            {/* Thumb - Clicável para abrir vídeo */}
+                                            <div
+                                                className="w-16 h-16 rounded-lg bg-slate-200 dark:bg-slate-700 flex-shrink-0 overflow-hidden relative cursor-pointer group"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    if (ex.video_url) {
+                                                        setVideoModal({ open: true, url: ex.video_url, title: ex.name });
+                                                    }
+                                                }}
+                                            >
+                                                {getYoutubeId(ex.video_url) ? (
+                                                    <>
+                                                        <img src={`https://img.youtube.com/vi/${getYoutubeId(ex.video_url)}/0.jpg`} className="w-full h-full object-cover" alt="" />
+                                                        <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                                            <span className="material-symbols-rounded text-white text-2xl">play_circle</span>
+                                                        </div>
+                                                    </>
+                                                ) : ex.video_url && ex.video_url.match(/\.(gif)$/i) ? (
+                                                    <img src={ex.video_url} className="w-full h-full object-cover" alt="" />
+                                                ) : ex.video_url && ex.video_url.match(/\.(jpeg|jpg|png)$/i) ? (
+                                                    <img src={ex.video_url} className="w-full h-full object-cover" alt="" />
+                                                ) : ex.video_url && ex.video_url.match(/\.mp4($|\?)/i) ? (
+                                                    <VideoThumbnail src={ex.video_url} className="w-full h-full rounded-lg" />
+                                                ) : (
+                                                    <div className="w-full h-full flex items-center justify-center text-slate-400">
+                                                        <span className="material-symbols-rounded">fitness_center</span>
                                                     </div>
-                                                </>
-                                            ) : ex.video_url && ex.video_url.match(/\.(gif)$/i) ? (
-                                                <img src={ex.video_url} className="w-full h-full object-cover" alt="" />
-                                            ) : ex.video_url && ex.video_url.match(/\.(jpeg|jpg|png)$/i) ? (
-                                                <img src={ex.video_url} className="w-full h-full object-cover" alt="" />
-                                            ) : ex.video_url && ex.video_url.match(/\.mp4($|\?)/i) ? (
-                                                <VideoThumbnail src={ex.video_url} className="w-full h-full rounded-lg" />
-                                            ) : (
-                                                <div className="w-full h-full flex items-center justify-center text-slate-400">
-                                                    <span className="material-symbols-rounded">fitness_center</span>
+                                                )}
+                                            </div>
+
+                                            <div className="flex-1 min-w-0">
+                                                <h4 className={`font-bold truncate ${isSelected ? 'text-primary' : 'text-slate-900 dark:text-white'}`}>{ex.name}</h4>
+                                                <div className="flex items-center gap-2 mt-0.5">
+                                                    <p className="text-xs text-slate-500">{muscleGroups.find(m => m.value === ex.muscle_group)?.label || ex.muscle_group}</p>
+                                                    {ex.usage_count > 0 && (
+                                                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-300 flex items-center gap-0.5">
+                                                            <span className="material-symbols-rounded text-[10px]">trending_up</span>
+                                                            {ex.usage_count}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </div>
+
+                                            {/* Actions (Only if NOT modal) */}
+                                            {!isModal && (role === 'admin' || ex.owner_id === user?.id) && (
+                                                <div className="flex items-center gap-2">
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setEditingExercise(ex);
+                                                            setIsModalOpen(true);
+                                                        }}
+                                                        className="p-2 text-slate-400 hover:text-primary bg-slate-50 dark:bg-slate-700/50 rounded-lg transition-colors"
+                                                        title="Editar"
+                                                    >
+                                                        <span className="material-symbols-rounded">edit</span>
+                                                    </button>
+                                                    <button
+                                                        onClick={(e) => handleDelete(ex.id, e)}
+                                                        className="p-2 text-slate-400 hover:text-red-500 bg-slate-50 dark:bg-slate-700/50 rounded-lg transition-colors"
+                                                        title="Excluir"
+                                                    >
+                                                        <span className="material-symbols-rounded">delete</span>
+                                                    </button>
+                                                </div>
+                                            )}
+                                            {/* Selection Indicator */}
+                                            {isModal && (
+                                                <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${isSelected ? 'bg-primary text-white shadow-md' : 'bg-slate-100 dark:bg-slate-700 text-slate-300'}`}>
+                                                    <span className="material-symbols-rounded">{isSelected ? 'check' : 'add'}</span>
                                                 </div>
                                             )}
                                         </div>
-
-                                        <div className="flex-1 min-w-0">
-                                            <h4 className="font-bold text-slate-900 dark:text-white truncate">{ex.name}</h4>
-                                            <div className="flex items-center gap-2 mt-0.5">
-                                                <p className="text-xs text-slate-500">{muscleGroups.find(m => m.value === ex.muscle_group)?.label || ex.muscle_group}</p>
-                                                {ex.usage_count > 0 && (
-                                                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-300 flex items-center gap-0.5">
-                                                        <span className="material-symbols-rounded text-[10px]">trending_up</span>
-                                                        {ex.usage_count}
-                                                    </span>
-                                                )}
-                                            </div>
-                                        </div>
-
-                                        {/* Actions (Only if NOT modal) */}
-                                        {!isModal && (role === 'admin' || ex.owner_id === user?.id) && (
-                                            <div className="flex items-center gap-2">
-                                                <button
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        setEditingExercise(ex);
-                                                        setIsModalOpen(true);
-                                                    }}
-                                                    className="p-2 text-slate-400 hover:text-primary bg-slate-50 dark:bg-slate-700/50 rounded-lg transition-colors"
-                                                    title="Editar"
-                                                >
-                                                    <span className="material-symbols-rounded">edit</span>
-                                                </button>
-                                                <button
-                                                    onClick={(e) => handleDelete(ex.id, e)}
-                                                    className="p-2 text-slate-400 hover:text-red-500 bg-slate-50 dark:bg-slate-700/50 rounded-lg transition-colors"
-                                                    title="Excluir"
-                                                >
-                                                    <span className="material-symbols-rounded">delete</span>
-                                                </button>
-                                            </div>
-                                        )}
-                                        {/* Selection Indicator */}
-                                        {isModal && (
-                                            <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-                                                <span className="material-symbols-rounded">add</span>
-                                            </div>
-                                        )}
-                                    </div>
-                                ))
+                                    );
+                                })
                             )}
 
                             {loadingMore && (
@@ -348,20 +370,36 @@ const Exercises: React.FC<ExercisesProps> = ({ isModal, onSelect }) => {
                             <div ref={observerTarget} className="h-4"></div>
 
                             {/* Create Button - Relative at bottom of List */}
-                            <button
-                                onClick={() => {
-                                    setEditingExercise(null);
-                                    setIsModalOpen(true);
-                                }}
-                                className="w-full mt-6 bg-slate-900 dark:bg-white text-white dark:text-slate-900 py-3 rounded-xl shadow-lg flex items-center justify-center gap-2 font-bold hover:opacity-90 transition-all active:scale-[0.98]"
-                            >
-                                <span className="material-symbols-rounded">add</span>
-                                Criar Exercício
-                            </button>
+                            {!isModal && (
+                                <button
+                                    onClick={() => {
+                                        setEditingExercise(null);
+                                        setIsModalOpen(true);
+                                    }}
+                                    className="w-full mt-6 bg-slate-900 dark:bg-white text-white dark:text-slate-900 py-3 rounded-xl shadow-lg flex items-center justify-center gap-2 font-bold hover:opacity-90 transition-all active:scale-[0.98]"
+                                >
+                                    <span className="material-symbols-rounded">add</span>
+                                    Criar Exercício
+                                </button>
+                            )}
                         </>
                     )}
                 </div>
             </div>
+
+            {isModal && selectedExercises.length > 0 && (
+                <div className="fixed bottom-24 left-0 right-0 p-4 z-50 animate-slide-up pointer-events-none">
+                    <div className="max-w-md mx-auto pointer-events-auto">
+                        <button
+                            onClick={confirmSelection}
+                            className="w-full bg-primary hover:bg-primary-dark text-white font-bold py-3.5 rounded-xl shadow-lg shadow-primary/25 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+                        >
+                            <span className="material-symbols-rounded">check_circle</span>
+                            Adicionar ({selectedExercises.length})
+                        </button>
+                    </div>
+                </div>
+            )}
 
             <ExerciseFormModal
                 isOpen={isModalOpen}
@@ -380,7 +418,6 @@ const Exercises: React.FC<ExercisesProps> = ({ isModal, onSelect }) => {
             />
         </div>
     );
-
 
     if (isModal) return <div className="h-full">{Content}</div>;
 

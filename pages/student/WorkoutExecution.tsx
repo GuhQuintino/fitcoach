@@ -76,7 +76,7 @@ const WorkoutExecution: React.FC = () => {
                 gain.connect(ctx.destination);
                 oscillator.frequency.value = 800;
                 oscillator.type = 'sine';
-                gain.gain.setValueAtTime(0.3, ctx.currentTime + delay);
+                gain.gain.setValueAtTime(1.0, ctx.currentTime + delay);
                 gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + delay + 0.12);
                 oscillator.start(ctx.currentTime + delay);
                 oscillator.stop(ctx.currentTime + delay + 0.12);
@@ -113,6 +113,11 @@ const WorkoutExecution: React.FC = () => {
 
     const [historyModal, setHistoryModal] = useState<{ open: boolean, exerciseId: string | null, exerciseName: string }>({
         open: false, exerciseId: null, exerciseName: ''
+    });
+
+    // Simple Explanation Modal
+    const [explanationModal, setExplanationModal] = useState<{ open: boolean, title: string, text: string }>({
+        open: false, title: '', text: ''
     });
 
     const [finishModalOpen, setFinishModalOpen] = useState(false);
@@ -163,15 +168,36 @@ const WorkoutExecution: React.FC = () => {
             ex.sets.forEach(set => {
                 if (set.completed) {
                     s++;
-                    const w = parseFloat(set.weight) || 0;
-                    const r = parseFloat(set.reps) || 0;
+
+                    // Volume Calculation Logic
+                    let w = parseFloat(set.weight);
+                    if (isNaN(w)) {
+                        /* Try implicit target if input empty */
+                        if (set.weight_target) {
+                            if (typeof set.weight_target === 'number') w = set.weight_target;
+                            else w = parseFloat(set.weight_target);
+                        }
+                    }
+                    if (isNaN(w)) w = 0;
+
+                    let r = parseFloat(set.reps);
+                    if (isNaN(r)) {
+                        /* Try implicit target if input empty */
+                        if (set.reps_target) {
+                            // Handle ranges "8-12" -> 8
+                            r = parseFloat(set.reps_target.toString());
+                        }
+                    }
+                    if (isNaN(r)) r = 0;
+
                     v += w * r;
                 }
             });
         });
-        setVolume(v);
+        setVolume(Math.round(v)); // Round to avoid floating point weirdness
         setSetsCompleted(s);
     }, [exercises]);
+
 
     const fetchWorkoutData = async () => {
         try {
@@ -322,10 +348,66 @@ exercise_id,
 
     const toggleSetCompletion = (exIndex: number, setIndex: number) => {
         const newExercises = [...exercises];
-        const set = newExercises[exIndex].sets[setIndex];
-        const wasCompleted = set.completed;
+        const currentSet = { ...newExercises[exIndex].sets[setIndex] }; // Create new object for React detection
+        const wasCompleted = currentSet.completed;
 
-        set.completed = !wasCompleted;
+        currentSet.completed = !wasCompleted;
+
+        // Implicit Logging: Fill with target/previous if empty when checking
+        if (!wasCompleted) {
+            // WEIGHT: First try previous session, then target
+            if (!currentSet.weight || currentSet.weight === '') {
+                // Try to get weight from previous log first (format: "50kg x 10 @8")
+                let prevWeight: number | null = null;
+                if (currentSet.prev_log && currentSet.prev_log !== '-') {
+                    const weightPart = currentSet.prev_log.split('kg')[0];
+                    if (weightPart) {
+                        const parsed = parseFloat(weightPart.trim());
+                        if (!isNaN(parsed)) prevWeight = parsed;
+                    }
+                }
+
+                if (prevWeight !== null) {
+                    currentSet.weight = String(prevWeight);
+                } else if (currentSet.weight_target) {
+                    currentSet.weight = String(currentSet.weight_target);
+                }
+            }
+
+            // REPS: More complex - handle ranges and previous logs
+            if (!currentSet.reps || currentSet.reps === '' || currentSet.reps === '-') {
+                const repsTarget = currentSet.reps_target ? String(currentSet.reps_target) : '';
+                const isRange = repsTarget.includes('-');
+
+                // Try to get reps from previous log first (format: "50kg x 10 @8")
+                let prevReps: number | null = null;
+                if (currentSet.prev_log && currentSet.prev_log !== '-') {
+                    const parts = currentSet.prev_log.split('x');
+                    if (parts.length > 1) {
+                        const parsed = parseInt(parts[1].trim());
+                        if (!isNaN(parsed)) prevReps = parsed;
+                    }
+                }
+
+                if (prevReps !== null) {
+                    // Use previous session's reps
+                    currentSet.reps = String(prevReps);
+                } else if (repsTarget) {
+                    // Use lower bound of range or exact number
+                    const lowerBound = parseFloat(repsTarget);
+                    currentSet.reps = isNaN(lowerBound) ? '0' : String(lowerBound);
+                } else {
+                    currentSet.reps = '0';
+                }
+            }
+        }
+
+        // Update with new object reference
+        newExercises[exIndex] = {
+            ...newExercises[exIndex],
+            sets: newExercises[exIndex].sets.map((s, i) => i === setIndex ? currentSet : s)
+        };
+
         setExercises(newExercises);
         saveToLocalStorage(newExercises);
 
@@ -337,7 +419,7 @@ exercise_id,
             }
 
             // Started Rest
-            startRestTimer(set.rest_seconds);
+            startRestTimer(currentSet.rest_seconds);
         }
     };
 
@@ -598,11 +680,11 @@ exercise_id,
                                             {/* Sets Flow */}
                                             <div className="divide-y divide-slate-50 dark:divide-slate-700/50">
                                                 <div className="grid grid-cols-[22px_1fr_54px_44px_36px_28px] sm:grid-cols-[40px_1fr_75px_70px_50px_45px] gap-0.5 sm:gap-2 px-2 sm:px-3 py-2 bg-slate-50 dark:bg-slate-800/50 text-[9px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-wider text-center">
-                                                    <div>#</div>
-                                                    <div className="text-left">Anterior</div>
-                                                    <div>kg</div>
-                                                    <div>Reps</div>
-                                                    <div>PSE</div>
+                                                    <div onClick={() => setSeriesHelpModal(true)} className="cursor-pointer hover:text-sky-500 transition-colors"># <span className="text-[9px]">?</span></div>
+                                                    <div className="text-left cursor-help" title="Carga usada no treino anterior">Anterior</div>
+                                                    <div onClick={() => setExplanationModal({ open: true, title: 'Carga (KG)', text: 'Peso que você vai usar. Se for barra, some o peso da barra + anilhas.' })} className="cursor-pointer hover:text-sky-500 transition-colors">kg <span className="text-[9px]">?</span></div>
+                                                    <div onClick={() => setExplanationModal({ open: true, title: 'Repetições', text: 'Quantas vezes fazer o movimento. Se tiver uma faixa (ex: 8-12), mire no mínimo 8. Se passar de 12 fácil, aumente o peso.' })} className="cursor-pointer hover:text-sky-500 transition-colors">Reps <span className="text-[9px]">?</span></div>
+                                                    <div onClick={() => setPseModal({ ...pseModal, open: true, exerciseIndex: null, setIndex: null })} className="cursor-pointer hover:text-sky-500 transition-colors">PSE <span className="text-[9px]">?</span></div>
                                                     <div>✓</div>
                                                 </div>
 
@@ -613,17 +695,19 @@ exercise_id,
                                                             const isWarmup = set.type === 'warmup';
                                                             const isFailure = set.type === 'failure';
                                                             const isDropset = set.type === 'dropset';
+                                                            const isPreparation = set.type === 'preparation';
 
                                                             if (set.type === 'working') workingSetCount++;
 
                                                             const rowBg = set.completed
                                                                 ? 'bg-emerald-50/40 dark:bg-emerald-900/10'
-                                                                : (isWarmup ? 'bg-amber-50/30 dark:bg-amber-900/5' : (isFailure ? 'bg-red-50/30 dark:bg-red-900/5' : (isDropset ? 'bg-purple-50/30 dark:bg-purple-900/5' : '')));
+                                                                : (isWarmup ? 'bg-amber-50/30 dark:bg-amber-900/5' : (isFailure ? 'bg-red-50/30 dark:bg-red-900/5' : (isDropset ? 'bg-purple-50/30 dark:bg-purple-900/5' : (isPreparation ? 'bg-cyan-50/30 dark:bg-cyan-900/5' : ''))));
 
                                                             const getSetIcon = () => {
                                                                 if (isWarmup) return <button onClick={() => setSeriesHelpModal(true)} className="flex items-center justify-center w-full"><span className="material-symbols-rounded text-amber-500 text-sm">local_fire_department</span></button>;
                                                                 if (isFailure) return <button onClick={() => setSeriesHelpModal(true)} className="flex items-center justify-center w-full"><span className="material-symbols-rounded text-red-600 text-sm">bolt</span></button>;
                                                                 if (isDropset) return <button onClick={() => setSeriesHelpModal(true)} className="flex items-center justify-center w-full"><span className="material-symbols-rounded text-purple-500 text-sm">layers</span></button>;
+                                                                if (isPreparation) return <button onClick={() => setSeriesHelpModal(true)} className="flex items-center justify-center w-full"><span className="material-symbols-rounded text-cyan-500 text-sm">publish</span></button>;
                                                                 return <button onClick={() => setSeriesHelpModal(true)} className="text-sky-600 dark:text-sky-400 font-bold text-xs w-full font-mono">{workingSetCount}</button>;
                                                             };
 
@@ -667,7 +751,25 @@ exercise_id,
                                                                             type="number"
                                                                             inputMode="numeric"
                                                                             className={`w-full h-7 sm:h-9 text-center text-xs sm:text-sm font-bold bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg sm:rounded-xl focus:border-sky-500 focus:ring-1 focus:ring-sky-500 p-0 text-slate-900 dark:text-white transition-all shadow-sm ${set.completed ? 'opacity-60' : ''}`}
-                                                                            placeholder={set.reps_target && !set.reps_target.includes('-') ? set.reps_target : '-'}
+                                                                            placeholder={(() => {
+                                                                                // Try to get reps from prev_log first (format: "50kg x 10 @8")
+                                                                                if (set.prev_log && set.prev_log !== '-') {
+                                                                                    const parts = set.prev_log.split('x');
+                                                                                    if (parts.length > 1) {
+                                                                                        const prevReps = parseInt(parts[1].trim());
+                                                                                        if (!isNaN(prevReps)) return String(prevReps);
+                                                                                    }
+                                                                                }
+                                                                                // Fallback to target (if not a range) or lower bound
+                                                                                if (set.reps_target) {
+                                                                                    const isRange = String(set.reps_target).includes('-');
+                                                                                    if (!isRange) return String(set.reps_target);
+                                                                                    // For range, show lower bound
+                                                                                    const lower = parseFloat(String(set.reps_target));
+                                                                                    if (!isNaN(lower)) return String(lower);
+                                                                                }
+                                                                                return '-';
+                                                                            })()}
                                                                             value={set.reps}
                                                                             onChange={(e) => handleInputChange(exIndex, setIndex, 'reps', e.target.value)}
                                                                         />
@@ -781,6 +883,23 @@ exercise_id,
                     exerciseName={historyModal.exerciseName}
                     studentId={user!.id}
                 />
+
+                {/* Generic Explanation Modal */}
+                {explanationModal.open && (
+                    <div className="fixed inset-0 z-[220] bg-black/80 flex items-center justify-center p-4 animate-fade-in" onClick={() => setExplanationModal({ ...explanationModal, open: false })}>
+                        <div className="bg-white dark:bg-slate-800 w-full max-w-sm rounded-3xl p-6 shadow-2xl animate-scale-up" onClick={e => e.stopPropagation()}>
+                            <div className="flex justify-between items-center mb-4">
+                                <h3 className="text-lg font-bold text-slate-900 dark:text-white">{explanationModal.title}</h3>
+                                <button onClick={() => setExplanationModal({ ...explanationModal, open: false })} className="p-1 rounded-full text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700">
+                                    <span className="material-symbols-rounded">close</span>
+                                </button>
+                            </div>
+                            <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+                                {explanationModal.text}
+                            </p>
+                        </div>
+                    </div>
+                )}
 
                 <FinishWorkoutModal
                     isOpen={finishModalOpen}
@@ -907,6 +1026,21 @@ const RPEGuideModal: React.FC<{ isOpen: boolean, onClose: () => void, onSelect: 
                     })}
                 </div>
                 <p className="mt-4 text-[10px] text-slate-400 text-center uppercase tracking-widest font-bold">5-6 = Aquecimento | 10 = Falha Total</p>
+
+                <div className="mt-6 space-y-3 bg-slate-50 dark:bg-slate-900/50 p-4 rounded-2xl border border-slate-100 dark:border-slate-700/50">
+                    <div className="flex gap-3 items-center">
+                        <span className="font-bold text-sky-500 w-10 text-right">9-10</span>
+                        <p className="text-xs text-slate-600 dark:text-slate-300 flex-1">Extremamente difícil. <span className="font-bold">10 é falha total</span> (não consegue mais mover a carga).</p>
+                    </div>
+                    <div className="flex gap-3 items-center">
+                        <span className="font-bold text-sky-500 w-10 text-right">7-8</span>
+                        <p className="text-xs text-slate-600 dark:text-slate-300 flex-1">Difícil. Sobrariam 1 a 3 repetições (RIR 1-3).</p>
+                    </div>
+                    <div className="flex gap-3 items-center">
+                        <span className="font-bold text-sky-500 w-10 text-right">5-6</span>
+                        <p className="text-xs text-slate-600 dark:text-slate-300 flex-1">Médio/Moderado. Carga de aquecimento ou técnica.</p>
+                    </div>
+                </div>
             </div>
         </div>
     );
@@ -930,6 +1064,14 @@ const SeriesHelpModal: React.FC<{ isOpen: boolean, onClose: () => void }> = ({ i
                         <div>
                             <h4 className="font-bold text-amber-900 dark:text-amber-200 text-sm">Aquecimento (Warm-up)</h4>
                             <p className="text-[11px] text-amber-800/70 dark:text-amber-300/60 leading-relaxed">Séries com carga leve para preparar as articulações e o sistema nervoso. Não contam para o volume total de trabalho.</p>
+                        </div>
+                    </div>
+
+                    <div className="flex gap-4 p-3 rounded-2xl bg-cyan-50 dark:bg-cyan-900/10 border border-cyan-100 dark:border-cyan-900/20">
+                        <span className="material-symbols-rounded text-cyan-500 text-2xl shrink-0">publish</span>
+                        <div>
+                            <h4 className="font-bold text-cyan-900 dark:text-cyan-200 text-sm">Preparação (Feeder)</h4>
+                            <p className="text-[11px] text-cyan-800/70 dark:text-cyan-300/60 leading-relaxed">Séries com poucas repetições para aclimatar com a carga, sem gerar fadiga. Aumente a carga gradualmente até a carga de trabalho.</p>
                         </div>
                     </div>
 

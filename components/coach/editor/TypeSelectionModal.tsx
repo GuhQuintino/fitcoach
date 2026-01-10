@@ -3,7 +3,7 @@ import React from 'react';
 interface TypeSelectionModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onSelect: (type: 'warmup' | 'working' | 'failure' | 'dropset') => void;
+    onSelect: (type: 'warmup' | 'working' | 'failure' | 'dropset' | 'preparation') => void;
     currentType: string;
 }
 
@@ -17,6 +17,13 @@ const TypeSelectionModal: React.FC<TypeSelectionModalProps> = ({ isOpen, onClose
             icon: 'local_fire_department',
             color: 'text-amber-500 bg-amber-100 dark:bg-amber-900/30',
             desc: 'Série com carga reduzida para preparar a articulação e o músculo.'
+        },
+        {
+            id: 'preparation',
+            label: 'Preparação / Feeder',
+            icon: 'publish', // Icon for ramping up
+            color: 'text-cyan-500 bg-cyan-100 dark:bg-cyan-900/30',
+            desc: 'Série com poucas repetições para aclimatar com a carga, sem gerar fadiga.'
         },
         {
             id: 'working',

@@ -14,11 +14,20 @@ dotenv.config({ path: envLocalPath }); // Load local override/additional
 dotenv.config();
 
 const SUPABASE_URL = process.env.VITE_SUPABASE_URL;
-const SUPABASE_KEY = process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_SERVICE_KEY; // Prefer service key if available for updates, but anon might work if RLS allows or we use service role
+// Prioritize Service Key for admin updates over Anon Key
+const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
 
 if (!SUPABASE_URL || !SUPABASE_KEY) {
-    console.error('Error: VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY (or SUPABASE_SERVICE_KEY) must be set in .env');
+    console.error('Erro: VITE_SUPABASE_URL e SUPABASE_SERVICE_KEY (ou VITE_SUPABASE_ANON_KEY) devem ser definidos no .env');
     process.exit(1);
+}
+
+if (!process.env.SUPABASE_SERVICE_KEY) {
+    console.warn('\n[AVISO] SUPABASE_SERVICE_KEY não encontrada. Usando VITE_SUPABASE_ANON_KEY.');
+    console.warn('[AVISO] Atualizações no banco de dados podem falhar se houver restrições de segurança (RLS).');
+    console.warn('[AVISO] Adicione SUPABASE_SERVICE_KEY=... ao seu arquivo .env.local para corrigir isso.\n');
+} else {
+    console.log('[INFO] Rodando com permissões de Admin (Service Key detectada).');
 }
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -73,20 +82,68 @@ async function getNewToken(oAuth2Client: any) {
         access_type: 'offline',
         scope: SCOPES,
     });
-    console.log('Authorize this app by visiting this url:', authUrl);
-    const code = readline.question('Enter the code from that page here: ');
+    console.log('Autorize este app visitando esta URL:', authUrl);
+    console.log('\n---------------------------------------------------------');
+    console.log('IMPORTANTE:');
+    console.log('1. Após autorizar, você será redirecionado para uma página que pode falhar (localhost).');
+    console.log('2. ISSO É NORMAL. Copie o código da barra de endereço do navegador.');
+    console.log('3. O código começa depois de "code=" e vai até o "&" (se houver).');
+    console.log('   Exemplo: http://localhost/?code=4/0ATX...&scope=...');
+    console.log('   Copie apenas: 4/0ATX...');
+    console.log('---------------------------------------------------------\n');
+
+    const input = readline.question('Cole o código dessa página (ou a URL inteira) aqui: ');
+
+    // Clean up input
+    let code = input.trim();
+
+    // Auto-extract code if user pasted the full URL
+    if (code.includes('code=')) {
+        const match = code.match(/code=([^&]+)/);
+        if (match && match[1]) {
+            code = match[1];
+            console.log('Código detectado na URL: ' + code.substring(0, 10) + '...');
+        }
+    }
+
+    // Decode generic URL encoding just in case (e.g. %2F -> /)
+    if (code.includes('%')) {
+        try {
+            code = decodeURIComponent(code);
+            console.log('Código decodificado (URL encoded).');
+        } catch (e) {
+            // Ignore if decode fails, use raw
+        }
+    }
+
+    console.log(`Usando código: ${code.substring(0, 5)}...${code.substring(code.length - 5)}`);
+
     const { tokens } = await oAuth2Client.getToken(code);
     oAuth2Client.setCredentials(tokens);
     fs.writeFileSync(TOKEN_PATH, JSON.stringify(tokens));
-    console.log('Token stored to', TOKEN_PATH);
+    console.log('Token armazenado em', TOKEN_PATH);
     return oAuth2Client;
+}
+
+const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+async function retryOperation<T>(operation: () => Promise<T>, retries = 3, delayMs = 2000): Promise<T> {
+    for (let i = 0; i < retries; i++) {
+        try {
+            return await operation();
+        } catch (error) {
+            if (i === retries - 1) throw error;
+            console.log(`Operação falhou, tentando novamente em ${delayMs}ms... (Tentativa ${i + 1}/${retries})`);
+            await delay(delayMs);
+        }
+    }
+    throw new Error('Inacessível'); // Unreachable
 }
 
 async function uploadVideo(auth: any, filePath: string, title: string) {
     const service = google.youtube({ version: 'v3', auth });
-    const fileSize = fs.statSync(filePath).size;
 
-    console.log(`Uploading ${title}...`);
+    console.log(`Enviando ${title}...`);
 
     try {
         const res = await service.videos.insert({
@@ -105,10 +162,19 @@ async function uploadVideo(auth: any, filePath: string, title: string) {
                 body: fs.createReadStream(filePath),
             },
         });
-        console.log(`Uploaded! ID: ${res.data.id}`);
+        console.log(`Enviado! ID: ${res.data.id}`);
         return res.data;
-    } catch (err) {
-        console.error('The API returned an error: ' + err);
+    } catch (err: any) {
+        console.error('A API retornou um erro: ' + err);
+        // Handle invalid_grant (expired token)
+        if (err.message && (err.message.includes('invalid_grant') || err.message.includes('No refresh token'))) {
+            console.log('\n[!] Token expirado ou inválido. Deletando token armazenado para forçar reautenticação na próxima vez.\n');
+            if (fs.existsSync(TOKEN_PATH)) {
+                fs.unlinkSync(TOKEN_PATH);
+                console.log(`[!] ${TOKEN_PATH} deletado. Por favor, execute o script novamente para reautenticar.`);
+            }
+            process.exit(1); // Exit to let user restart
+        }
         throw err;
     }
 }
@@ -118,42 +184,62 @@ async function updateDatabase(videoFileName: string, youtubeUrl: string) {
     // We try to match by the path stored in DB.
     // The DB stores paths like "/exercises/hevy/video.mp4"
 
-    const searchPath = `/exercises/hevy/${videoFileName}`;
+    console.log(`Procurando exercício com video_url terminando em: ${videoFileName}`);
 
-    console.log(`Searching for exercise with video_url ending in: ${videoFileName}`);
+    // Initial search
+    let exercises;
+    try {
+        const { data, error: searchError } = await retryOperation(async () => {
+            return await supabase
+                .from('exercises')
+                .select('id, name, video_url')
+                .ilike('video_url', `%${videoFileName}`);
+        });
 
-    // First, find the exercise(s)
-    const { data: exercises, error: searchError } = await supabase
-        .from('exercises')
-        .select('id, name, video_url')
-        .ilike('video_url', `%${videoFileName}`);
-
-    if (searchError) {
-        console.error('Error finding exercise:', searchError);
+        if (searchError) {
+            console.error('Erro ao encontrar exercício:', searchError);
+            return false;
+        }
+        exercises = data;
+    } catch (e) {
+        console.error('Falha ao buscar exercício após tentativas:', e);
         return false;
     }
 
     if (!exercises || exercises.length === 0) {
-        console.log(`No exercise found for file ${videoFileName}`);
+        console.log(`Nenhum exercício encontrado para o arquivo ${videoFileName}`);
         return false;
     }
 
     let success = true;
     for (const ex of exercises) {
-        console.log(`Updating exercise: ${ex.name} (${ex.id})`);
-        const { error: updateError } = await supabase
-            .from('exercises')
-            .update({ video_url: youtubeUrl })
-            .eq('id', ex.id);
+        console.log(`Atualizando exercício: ${ex.name} (${ex.id})`);
 
-        if (updateError) {
-            console.error(`Failed to update ${ex.name}:`, updateError);
-            success = false;
-        } else {
-            console.log(`Successfully updated ${ex.name}`);
+        try {
+            await retryOperation(async () => {
+                const { data: updatedRows, error: updateError } = await supabase
+                    .from('exercises')
+                    .update({ video_url: youtubeUrl })
+                    .eq('id', ex.id)
+                    .select();
+
+                if (updateError) throw updateError;
+
+                // If no rows returned, RLS probably blocked it
+                if (!updatedRows || updatedRows.length === 0) {
+                    throw new Error('ATUALIZAÇÃO BLOQUEADA PELO BANCO (Provável erro de permissão/RLS). O script precisa da SUPABASE_SERVICE_KEY.');
+                }
+                return true;
+            });
+
+            console.log(`Sucesso ao atualizar ${ex.name}`);
             // Append to SQL file as backup/primary method if RLS fails
             const sql = `UPDATE exercises SET video_url = '${youtubeUrl.replace("watch?v=", "shorts/")}' WHERE id = '${ex.id}';\n`;
             fs.appendFileSync(path.join(__dirname, 'updates.sql'), sql);
+
+        } catch (error) {
+            console.error(`Falha ao atualizar ${ex.name} após tentativas:`, error);
+            success = false;
         }
     }
     return success;
@@ -165,11 +251,12 @@ async function main() {
 
     const files = fs.readdirSync(VIDEOS_DIR).filter(f => f.endsWith('.mp4'));
 
-    console.log(`Found ${files.length} video files.`);
+    console.log(`Encontrados ${files.length} arquivos de vídeo.`);
 
     for (const file of files) {
+        // Performance optimization: Skip files that are fully processed and synced
         if (processed[file] && processed[file].dbUpdated) {
-            console.log(`Skipping ${file} (already processed)`);
+            console.log(`Pulando ${file} (já processado e sincronizado)`);
             continue;
         }
 
@@ -179,7 +266,7 @@ async function main() {
         let youtubeId = processed[file]?.youtubeId;
         let youtubeUrl = processed[file]?.youtubeUrl;
 
-        // Upload if not already uploaded
+        // Upload if not already uploaded (and we don't have an ID)
         if (!youtubeId) {
             try {
                 const data = await uploadVideo(auth, filePath, title);
@@ -193,31 +280,38 @@ async function main() {
                     dbUpdated: false
                 };
                 saveProcessed(processed);
-            } catch (e) {
-                console.error(`Failed to upload ${file}, items left: skipped`);
+            } catch (e: any) {
+                // Handle Quota Exceeded specifically
+                if (e.message && (e.message.includes('quota') || e.message.includes('exceeded'))) {
+                    console.log('\n========================================================');
+                    console.log('[!] COTA DO YOUTUBE ATINGIDA PARA HOJE.');
+                    console.log('    O script vai parar agora. Tente novamente amanhã.');
+                    console.log('========================================================\n');
+                    process.exit(0);
+                }
+
+                console.error(`Falha ao enviar ${file}, pulando. Erro: ${e.message}`);
                 continue;
             }
+        } else {
+            console.log(`[INFO] Vídeo já enviado: ${file} (${youtubeId})`);
         }
 
-        // Update DB
-        if (!processed[file].dbUpdated) {
+        // Force attempt to update DB if we have a URL, regardless of flag
+        if (youtubeUrl) {
             const updated = await updateDatabase(file, youtubeUrl);
             if (updated) {
-                processed[file].dbUpdated = true;
-                saveProcessed(processed);
-            } else {
-                // Determine if we should mark as processed even if not found in DB?
-                // Probably yes, otherwise we keep trying. But maybe we want to keep trying if it was a network error.
-                // If it was "No exercise found", we should probably mark it as done effectively (or ignore).
-                // For now, if "No exercise found", we can treat it as 'dbUpdated = true' (nothing to update).
-                // But I'll leave it false to retry manual verification, UNLESS I explicitly check again.
-                // Let's re-run the search logic in updateDatabase to return specific status.
-                // Actually, if simply not found, we can say "skipped update" but record it.
+                // Only mark as true if currently false to save disk I/O
+                if (!processed[file] || !processed[file].dbUpdated) {
+                    if (!processed[file]) processed[file] = { file, youtubeId, youtubeUrl, dbUpdated: true };
+                    processed[file].dbUpdated = true;
+                    saveProcessed(processed);
+                }
             }
         }
     }
 
-    console.log('Done!');
+    console.log('Concluído!');
 }
 
 main().catch(console.error);

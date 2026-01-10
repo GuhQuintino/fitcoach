@@ -200,6 +200,116 @@ export interface Database {
                     subscription_expires_at?: string | null
                     max_students?: number
                 }
+            },
+            set_templates: {
+                Row: {
+                    id: string
+                    coach_id: string
+                    name: string
+                    sets: Json
+                    created_at: string
+                }
+                Insert: {
+                    id?: string
+                    coach_id: string
+                    name: string
+                    sets: Json
+                    created_at?: string
+                }
+                Update: {
+                    id?: string
+                    coach_id?: string
+                    name?: string
+                    sets?: Json
+                    created_at?: string
+                }
+            },
+            workouts: {
+                Row: {
+                    id: string
+                    routine_id: string
+                    name: string
+                    day_number: number | null
+                    order_index: number
+                    created_at: string
+                }
+                Insert: {
+                    id?: string
+                    routine_id: string
+                    name: string
+                    day_number?: number | null
+                    order_index?: number
+                    created_at?: string
+                }
+                Update: {
+                    id?: string
+                    routine_id?: string
+                    name?: string
+                    day_number?: number | null
+                    order_index?: number
+                    created_at?: string
+                }
+            },
+            workout_items: {
+                Row: {
+                    id: string
+                    workout_id: string
+                    exercise_id: string
+                    order_index: number
+                    coach_notes: string | null
+                    created_at: string
+                }
+                Insert: {
+                    id?: string
+                    workout_id: string
+                    exercise_id: string
+                    order_index: number
+                    coach_notes?: string | null
+                    created_at?: string
+                }
+                Update: {
+                    id?: string
+                    workout_id?: string
+                    exercise_id?: string
+                    order_index?: number
+                    coach_notes?: string | null
+                    created_at?: string
+                }
+            },
+            workout_sets: {
+                Row: {
+                    id: string
+                    workout_item_id: string
+                    type: 'warmup' | 'working' | 'failure' | 'drop' | 'preparation'
+                    reps_target: string | null
+                    weight_target: number | null
+                    rest_seconds: number
+                    rpe_target: number | null
+                    set_order: number
+                    created_at: string
+                }
+                Insert: {
+                    id?: string
+                    workout_item_id: string
+                    type: 'warmup' | 'working' | 'failure' | 'drop' | 'preparation'
+                    reps_target?: string | null
+                    weight_target?: number | null
+                    rest_seconds?: number
+                    rpe_target?: number | null
+                    set_order: number
+                    created_at?: string
+                }
+                Update: {
+                    id?: string
+                    workout_item_id?: string
+                    type?: 'warmup' | 'working' | 'failure' | 'drop' | 'preparation'
+                    reps_target?: string | null
+                    weight_target?: number | null
+                    rest_seconds?: number
+                    rpe_target?: number | null
+                    set_order?: number
+                    created_at?: string
+                }
             }
         }
     }
