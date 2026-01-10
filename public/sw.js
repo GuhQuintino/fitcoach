@@ -1,4 +1,4 @@
-const CACHE_NAME = 'fitcoach-v5'; // Incremented to force update
+const CACHE_NAME = 'fitcoach-v6'; // Incremented to force update (2024-01-10)
 const ASSETS_TO_CACHE = [
     '/',
     '/manifest.json',
