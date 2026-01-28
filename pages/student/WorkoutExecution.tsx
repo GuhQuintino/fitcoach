@@ -51,12 +51,14 @@ const WorkoutExecution: React.FC = () => {
     // Timer State
     const [startTime, setStartTime] = useState<Date>(new Date());
     const [timerActive, setTimerActive] = useState(false);
+    const [restEndTime, setRestEndTime] = useState<number | null>(null);
     const [timeLeft, setTimeLeft] = useState(60);
     const [initialTime, setInitialTime] = useState(60);
     const [toastVisible, setToastVisible] = useState(false);
     const [currentExerciseIndex, setCurrentExerciseIndex] = useState(0);
-    const timerRef = useRef<NodeJS.Timeout | null>(null);
+    // Remove timerRef as we use Date check now, but keeping for safety if needed or just remove types
     const audioContextRef = useRef<AudioContext | null>(null);
+    const notificationSentRef = useRef(false);
 
     // Sound beep quando timer termina
     const playBeep = () => {
@@ -423,27 +425,37 @@ exercise_id,
         }
     };
 
-    // Monitorar fim do timer com useEffect (seguro contra crash em mobile)
+    // Monitorar fim do timer
     useEffect(() => {
-        if (timerActive && timeLeft === 0) {
-            stopRestTimer();
-            playBeep();
+        if (!timerActive || !restEndTime) return;
 
-            // Notification segura
-            try {
-                sendRestNotification();
-            } catch (e) {
-                console.warn('Erro ao enviar notificação:', e);
+        const interval = setInterval(() => {
+            const now = Date.now();
+            const diff = Math.ceil((restEndTime - now) / 1000);
+
+            if (diff <= 0) {
+                setTimeLeft(0);
+                if (!notificationSentRef.current) {
+                    playBeep();
+                    try { sendRestNotification(); } catch (e) { }
+                    notificationSentRef.current = true;
+                }
+            } else {
+                setTimeLeft(diff);
             }
-        }
-    }, [timeLeft, timerActive]);
+        }, 200);
+
+        return () => clearInterval(interval);
+    }, [timerActive, restEndTime]);
 
     const startRestTimer = (duration: number) => {
-        if (timerRef.current) clearInterval(timerRef.current);
-        setTimeLeft(duration);
+        const end = Date.now() + (duration * 1000);
+        setRestEndTime(end);
         setInitialTime(duration);
+        setTimeLeft(duration);
         setTimerActive(true);
         setToastVisible(true);
+        notificationSentRef.current = false;
 
         // Pedir permissão de notificação de forma segura
         try {
@@ -453,22 +465,22 @@ exercise_id,
         } catch (e) {
             console.log('Notification API not supported');
         }
-
-        timerRef.current = setInterval(() => {
-            setTimeLeft(prev => {
-                // Apenas atualizar o estado, SEM side effects aqui
-                if (prev <= 0) return 0;
-                return prev - 1;
-            });
-        }, 1000);
     };
 
     const stopRestTimer = () => {
-        if (timerRef.current) clearInterval(timerRef.current);
         setTimerActive(false);
-        // Keep toast visible for a moment? Or hide.
-        // Let's hide it 
-        setToastVisible(false); // Maybe change to "Ready!" state?
+        setRestEndTime(null);
+        setToastVisible(false);
+    };
+
+    const addTime = (seconds: number) => {
+        if (!restEndTime) return;
+        const newEnd = restEndTime + (seconds * 1000);
+        setRestEndTime(newEnd);
+        // Reset notification flag if we add time to a finished timer
+        if (timeLeft <= 0) {
+            notificationSentRef.current = false;
+        }
     };
 
     const formatTime = (seconds: number) => {
@@ -807,38 +819,64 @@ exercise_id,
                     {
                         toastVisible && (
                             <div className="fixed bottom-24 left-4 right-4 z-[90] animate-slide-up">
-                                <div className="bg-slate-900/90 dark:bg-white/95 backdrop-blur-xl p-4 rounded-[2rem] shadow-2xl border border-white/10 dark:border-slate-200 flex items-center justify-between gap-4">
+                                <div className={`backdrop-blur-xl p-4 rounded-[2rem] shadow-2xl border transition-colors duration-300 flex items-center justify-between gap-4 ${timeLeft === 0 ? 'bg-emerald-900/90 border-emerald-500/30' : 'bg-slate-900/90 dark:bg-white/95 border-white/10 dark:border-slate-200'}`}>
                                     <div className="flex items-center gap-3">
-                                        <div className="w-12 h-12 rounded-2xl bg-primary/20 flex items-center justify-center relative overflow-hidden shrink-0">
-                                            <div
-                                                className="absolute bottom-0 left-0 right-0 bg-primary/40 transition-all duration-1000 ease-linear origin-bottom"
-                                                style={{ height: `${((initialTime - timeLeft) / initialTime) * 100}%` }}
-                                            ></div>
-                                            <span className="material-symbols-rounded text-2xl text-primary relative z-10">timer</span>
+                                        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center relative overflow-hidden shrink-0 transition-colors ${timeLeft === 0 ? 'bg-emerald-500 text-white' : 'bg-primary/20'}`}>
+                                            {timeLeft > 0 && (
+                                                <div
+                                                    className="absolute bottom-0 left-0 right-0 bg-primary/40 transition-all duration-200 ease-linear origin-bottom"
+                                                    style={{ height: `${((initialTime - timeLeft) / initialTime) * 100}%` }}
+                                                ></div>
+                                            )}
+                                            <span className="material-symbols-rounded text-2xl relative z-10">
+                                                {timeLeft === 0 ? 'check' : 'timer'}
+                                            </span>
                                         </div>
                                         <div className="flex flex-col">
-                                            <span className="text-[9px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-widest">Descanso</span>
-                                            <span className="font-mono text-2xl font-black tabular-nums text-white dark:text-slate-900 leading-none">
-                                                {formatTime(timeLeft)}
+                                            <span className={`text-[9px] font-bold uppercase tracking-widest ${timeLeft === 0 ? 'text-emerald-300' : 'text-slate-400 dark:text-slate-500'}`}>
+                                                {timeLeft === 0 ? 'Descanso Concluído' : 'Descanso'}
+                                            </span>
+                                            <span className={`font-mono text-2xl font-black tabular-nums leading-none ${timeLeft === 0 ? 'text-white' : 'text-white dark:text-slate-900'}`}>
+                                                {timeLeft === 0 ? '+15s?' : formatTime(timeLeft)}
                                             </span>
                                         </div>
                                     </div>
 
                                     <div className="flex items-center gap-2">
-                                        <div className="flex bg-white/10 dark:bg-slate-100 p-1 rounded-xl">
-                                            <button onClick={() => setTimeLeft(prev => Math.max(0, prev - 15))} className="w-10 h-10 flex items-center justify-center text-white dark:text-slate-600 hover:text-primary transition-colors">
-                                                <span className="material-symbols-rounded text-lg">remove</span>
-                                            </button>
-                                            <button onClick={() => setTimeLeft(prev => prev + 15)} className="w-10 h-10 flex items-center justify-center text-white dark:text-slate-600 hover:text-primary transition-colors border-l border-white/10 dark:border-slate-200">
-                                                <span className="material-symbols-rounded text-lg">add</span>
-                                            </button>
-                                        </div>
-                                        <button
-                                            onClick={stopRestTimer}
-                                            className="h-12 px-6 bg-primary text-white font-bold rounded-xl shadow-lg shadow-primary/20 active:scale-95 transition-all text-xs whitespace-nowrap"
-                                        >
-                                            Pular
-                                        </button>
+                                        {timeLeft > 0 ? (
+                                            <>
+                                                <div className="flex bg-white/10 dark:bg-slate-100 p-1 rounded-xl">
+                                                    <button onClick={() => addTime(-15)} className="w-10 h-10 flex items-center justify-center text-white dark:text-slate-600 hover:text-primary transition-colors">
+                                                        <span className="material-symbols-rounded text-lg">remove</span>
+                                                    </button>
+                                                    <button onClick={() => addTime(15)} className="w-10 h-10 flex items-center justify-center text-white dark:text-slate-600 hover:text-primary transition-colors border-l border-white/10 dark:border-slate-200">
+                                                        <span className="material-symbols-rounded text-lg">add</span>
+                                                    </button>
+                                                </div>
+                                                <button
+                                                    onClick={stopRestTimer}
+                                                    className="h-12 px-6 bg-primary text-white font-bold rounded-xl shadow-lg shadow-primary/20 active:scale-95 transition-all text-xs whitespace-nowrap"
+                                                >
+                                                    Pular
+                                                </button>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <button
+                                                    onClick={() => addTime(15)}
+                                                    className="h-12 w-16 bg-emerald-800/50 hover:bg-emerald-800 text-emerald-100 font-bold rounded-xl border border-emerald-500/30 flex items-center justify-center active:scale-95 transition-all"
+                                                >
+                                                    +15s
+                                                </button>
+                                                <button
+                                                    onClick={stopRestTimer}
+                                                    className="h-12 px-6 bg-white text-emerald-600 font-bold rounded-xl shadow-lg shadow-black/10 active:scale-95 transition-all text-xs whitespace-nowrap flex items-center gap-1"
+                                                >
+                                                    Próx. Série
+                                                    <span className="material-symbols-rounded text-base">arrow_forward</span>
+                                                </button>
+                                            </>
+                                        )}
                                     </div>
                                 </div>
                             </div>

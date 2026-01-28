@@ -50,7 +50,10 @@ self.addEventListener('fetch', (event) => {
                     return response;
                 })
                 .catch(() => {
-                    return caches.match(event.request);
+                    // Fallback to cached index.html, ignoring search params (key for PWA installability)
+                    return caches.match('/index.html', { ignoreSearch: true }).then(response => {
+                        return response || caches.match('/', { ignoreSearch: true });
+                    });
                 })
         );
         return;
@@ -59,7 +62,7 @@ self.addEventListener('fetch', (event) => {
     // Stale While Revalidate for static assets ONLY from same origin
     if (isSelfOrigin) {
         event.respondWith(
-            caches.match(event.request).then((cachedResponse) => {
+            caches.match(event.request, { ignoreSearch: true }).then((cachedResponse) => {
                 const fetchPromise = fetch(event.request).then((networkResponse) => {
                     if (networkResponse && networkResponse.status === 200) {
                         const responseToCache = networkResponse.clone();

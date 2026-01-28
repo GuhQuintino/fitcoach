@@ -183,17 +183,19 @@ async function updateDatabase(videoFileName: string, youtubeUrl: string) {
     // Search for the exercise that uses this file
     // We try to match by the path stored in DB.
     // The DB stores paths like "/exercises/hevy/video.mp4"
+    // IMPORTANT: We use '%/' + filename to ensure exact filename match
+    // This prevents 'crunch.mp4' from matching 'decline_crunch.mp4'
 
-    console.log(`Procurando exercício com video_url terminando em: ${videoFileName}`);
+    console.log(`Procurando exercício com video_url terminando em: /${videoFileName}`);
 
-    // Initial search
+    // Initial search - note the '/' before filename to ensure exact match
     let exercises;
     try {
         const { data, error: searchError } = await retryOperation(async () => {
             return await supabase
                 .from('exercises')
                 .select('id, name, video_url')
-                .ilike('video_url', `%${videoFileName}`);
+                .ilike('video_url', `%/${videoFileName}`);
         });
 
         if (searchError) {
@@ -209,6 +211,11 @@ async function updateDatabase(videoFileName: string, youtubeUrl: string) {
     if (!exercises || exercises.length === 0) {
         console.log(`Nenhum exercício encontrado para o arquivo ${videoFileName}`);
         return false;
+    }
+
+    // Warn if multiple exercises match (shouldn't happen with correct data)
+    if (exercises.length > 1) {
+        console.warn(`[AVISO] Múltiplos exercícios (${exercises.length}) encontrados para ${videoFileName}. Isso pode indicar dados duplicados.`);
     }
 
     let success = true;

@@ -142,7 +142,19 @@ const ExerciseHistoryModal: React.FC<ExerciseHistoryModalProps> = ({ isOpen, onC
                                                             <span className="w-6 h-6 rounded-lg bg-slate-100 dark:bg-slate-700 flex items-center justify-center text-[10px] font-bold text-slate-500">{idx + 1}</span>
                                                             <div className="flex flex-col">
                                                                 <span className="text-sm font-bold text-slate-800 dark:text-slate-200">{log.weight_kg}kg <span className="text-slate-400 font-normal">x {log.reps_completed}</span></span>
-                                                                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wide">{log.set_type === 'working' ? 'Série Normal' : log.set_type === 'warmup' ? 'Aquecimento' : log.set_type === 'failure' ? 'Até a Falha' : 'Drop-set'}</span>
+                                                                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wide">
+                                                                    {(() => {
+                                                                        switch (log.set_type) {
+                                                                            case 'working': return 'Série Normal';
+                                                                            case 'warmup': return 'Aquecimento';
+                                                                            case 'failure': return 'Até a Falha';
+                                                                            case 'dropset': return 'Drop-set';
+                                                                            case 'preparation': return 'Preparatória';
+                                                                            case 'feeder': return 'Feeder';
+                                                                            default: return 'Série Normal';
+                                                                        }
+                                                                    })()}
+                                                                </span>
                                                             </div>
                                                         </div>
                                                         {log.rpe_actual && (
@@ -158,7 +170,8 @@ const ExerciseHistoryModal: React.FC<ExerciseHistoryModalProps> = ({ isOpen, onC
                                 });
                             })()}
                         </div>
-                    )}
+                    )
+                    }
                 </div>
             </div>
         </div>
