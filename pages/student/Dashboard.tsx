@@ -253,7 +253,7 @@ const StudentDashboard: React.FC = () => {
                             <span className="absolute -bottom-1 -right-1 w-5 h-5 bg-green-500 border-2 border-white dark:border-slate-800 rounded-full"></span>
                         </div>
                         <div>
-                            <p className="text-slate-400 dark:text-slate-500 text-xs font-bold uppercase tracking-wider mb-0.5">Bem-vindo(a)</p>
+                            <p className="text-slate-600 dark:text-slate-400 text-xs font-bold uppercase tracking-wider mb-0.5">Bem-vindo(a)</p>
                             <h1 className="text-xl font-bold text-slate-900 dark:text-white font-display leading-tight">
                                 {profile?.full_name?.split(' ')[0]}
                             </h1>
@@ -283,7 +283,7 @@ const StudentDashboard: React.FC = () => {
                                 <span className="material-symbols-rounded text-primary -rotate-45">fitness_center</span>
                             </div>
                             <div>
-                                <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Plano Atual</p>
+                                <p className="text-xs text-slate-600 dark:text-slate-300 font-medium">Plano Atual</p>
                                 <p className="text-sm font-bold text-slate-900 dark:text-white">Consultoria Pro</p>
                             </div>
                             <div className="mt-1">
@@ -298,7 +298,7 @@ const StudentDashboard: React.FC = () => {
                             </div>
                         </div>
                         <div className="text-right">
-                            <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Expira em</p>
+                            <p className="text-xs text-slate-600 dark:text-slate-300 font-medium">Expira em</p>
                             <p className={`text-sm font-bold ${daysRemaining < 7 ? 'text-red-500' : 'text-primary'}`}>
                                 {daysRemaining} dias
                             </p>

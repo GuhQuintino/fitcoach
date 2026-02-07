@@ -184,7 +184,7 @@ const CoachDashboard: React.FC = () => {
                             )}
                         </div>
                         <div>
-                            <p className="text-slate-500 dark:text-slate-400 text-sm font-medium">Bem-vindo de volta!</p>
+                            <p className="text-slate-600 dark:text-slate-300 text-sm font-medium">Bem-vindo de volta!</p>
                             <h1 className="font-display text-2xl font-bold text-slate-900 dark:text-white capitalize">
                                 {greeting}, {coachName}
                             </h1>

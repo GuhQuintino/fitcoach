@@ -8,7 +8,8 @@ export const getOptimizedImageUrl = (url: string | null | undefined, width = 150
     // Check if it's a Supabase storage URL
     if (url.includes('.supabase.co/storage/v1/object/public/')) {
         // Change to render/image/public for transformations
-        const optimizedUrl = url.replace('/object/public/', '/render/image/public/');
+        // Reverted to object/public as render/image might not be enabled on the project
+        const optimizedUrl = url;
 
         // Add transformation parameters
         const params = new URLSearchParams({
