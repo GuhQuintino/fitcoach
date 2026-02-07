@@ -1,8 +1,13 @@
-const CACHE_NAME = 'fitcoach-v6'; // Incremented to force update (2024-01-10)
+const CACHE_NAME = 'fitcoach-v7'; // Incremented for Path B PWA robustness
 const ASSETS_TO_CACHE = [
     '/',
+    '/index.html',
     '/manifest.json',
-    '/icon.svg'
+    '/icon.svg',
+    '/icon-192.png',
+    '/icon-512.png',
+    '/icon-maskable-192.png',
+    '/icon-maskable-512.png'
 ];
 
 self.addEventListener('install', (event) => {
@@ -50,9 +55,9 @@ self.addEventListener('fetch', (event) => {
                     return response;
                 })
                 .catch(() => {
-                    // Fallback to cached index.html, ignoring search params (key for PWA installability)
-                    return caches.match('/index.html', { ignoreSearch: true }).then(response => {
-                        return response || caches.match('/', { ignoreSearch: true });
+                    // Critical fallback for PWA installability: always return index.html on navigation failures
+                    return caches.match('/index.html').then(response => {
+                        return response || caches.match('/');
                     });
                 })
         );

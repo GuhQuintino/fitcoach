@@ -34,3 +34,4 @@ Brainstorm/
 !metadata_*.json
 !vercel.json
 lib/supabaseClient.ts.bak
+.agent/

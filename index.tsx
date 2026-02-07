@@ -14,20 +14,29 @@ root.render(
   </React.StrictMode>
 );
 
-// Register Service Worker with update detection
+// Register Service Worker with robust update detection
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('/sw.js').then(registration => {
-      // Check for updates periodically
+      // Helper to show update prompt
+      const showUpdatePrompt = () => {
+        if (confirm('Nova versão disponível! Deseja atualizar agora?')) {
+          window.location.reload();
+        }
+      };
+
+      // 1. If there's already a waiting worker, prompt immediately
+      if (registration.waiting) {
+        showUpdatePrompt();
+      }
+
+      // 2. Listen for new workers being installed
       registration.addEventListener('updatefound', () => {
         const newWorker = registration.installing;
         if (newWorker) {
           newWorker.addEventListener('statechange', () => {
             if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-              // New content is available, prompt user to reload
-              if (confirm('Nova versão disponível! Deseja atualizar agora?')) {
-                window.location.reload();
-              }
+              showUpdatePrompt();
             }
           });
         }
