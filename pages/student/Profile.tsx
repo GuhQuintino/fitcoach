@@ -9,6 +9,7 @@ import EvolutionGallery from '../../components/student/EvolutionGallery';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import InstallTutorial from '../../components/shared/InstallTutorial';
 import { formatToWhatsappUrl } from '../../utils/phoneUtils';
+import { getOptimizedImageUrl } from '../../utils/imageUtils';
 
 const StudentProfile: React.FC = () => {
     const { user, signOut, preferences, updatePreferences } = useAuth();
@@ -297,7 +298,7 @@ const StudentProfile: React.FC = () => {
                             {uploading ? (
                                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
                             ) : profile?.avatar_url ? (
-                                <img src={profile.avatar_url} alt="Avatar" className="w-full h-full object-cover" />
+                                <img src={getOptimizedImageUrl(profile.avatar_url, 200, 200)} alt="Avatar" className="w-full h-full object-cover" />
                             ) : (
                                 <span className="material-symbols-rounded text-4xl text-slate-400">person</span>
                             )}

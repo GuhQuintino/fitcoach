@@ -7,6 +7,7 @@ import toast from 'react-hot-toast';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
 import InstallTutorial from '../../components/shared/InstallTutorial';
+import { getOptimizedImageUrl } from '../../utils/imageUtils';
 
 const CoachProfile: React.FC = () => {
     const { user, signOut } = useAuth();
@@ -200,7 +201,7 @@ const CoachProfile: React.FC = () => {
                                 <img
                                     alt="Profile"
                                     className="w-full h-full object-cover"
-                                    src={profileData.avatar_url || `https://ui-avatars.com/api/?name=${profileData.full_name}&background=random&size=128`}
+                                    src={getOptimizedImageUrl(profileData.avatar_url, 200, 200) || `https://ui-avatars.com/api/?name=${profileData.full_name}&background=random&size=128`}
                                 />
                             )}
                         </div>

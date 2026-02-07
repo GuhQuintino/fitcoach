@@ -6,6 +6,7 @@ import MainLayout from '../../components/Layout/MainLayout';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabaseClient';
 import PWAInstallPrompt from '../../components/shared/PWAInstallPrompt';
+import { getOptimizedImageUrl } from '../../utils/imageUtils';
 
 interface DashboardStats {
     totalStudents: number;
@@ -174,7 +175,7 @@ const CoachDashboard: React.FC = () => {
                                 <img
                                     alt="Profile"
                                     className="w-full h-full object-cover"
-                                    src={avatarUrl || user?.user_metadata?.avatar_url}
+                                    src={getOptimizedImageUrl(avatarUrl || user?.user_metadata?.avatar_url, 120, 120)}
                                 />
                             ) : (
                                 <div className="w-full h-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-slate-400">

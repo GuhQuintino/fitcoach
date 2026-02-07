@@ -6,6 +6,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import ThemeToggle from '../../components/ThemeToggle';
 import PWAInstallPrompt from '../../components/shared/PWAInstallPrompt';
 import { formatToWhatsappUrl } from '../../utils/phoneUtils';
+import { getOptimizedImageUrl } from '../../utils/imageUtils';
 
 const StudentDashboard: React.FC = () => {
     const { user, expiresAt } = useAuth();
@@ -243,7 +244,7 @@ const StudentDashboard: React.FC = () => {
                     <div className="flex items-center gap-3">
                         <div className="relative">
                             {profile?.avatar_url ? (
-                                <img src={profile.avatar_url} alt="Profile" className="w-14 h-14 rounded-2xl object-cover border-2 border-white dark:border-slate-700 shadow-sm" />
+                                <img src={getOptimizedImageUrl(profile.avatar_url, 120, 120)} alt="Profile" className="w-14 h-14 rounded-2xl object-cover border-2 border-white dark:border-slate-700 shadow-sm" />
                             ) : (
                                 <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-700 dark:to-slate-800 flex items-center justify-center text-slate-400 font-bold border-2 border-white dark:border-slate-700 shadow-sm">
                                     <span className="text-xl">{profile?.full_name?.charAt(0)}</span>

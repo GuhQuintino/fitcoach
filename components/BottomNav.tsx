@@ -56,13 +56,13 @@ const BottomNav: React.FC = () => {
 
                             <span className={`material-symbols-rounded text-[28px] transition-all duration-300 ${isActive
                                 ? 'text-sky-500 scale-110 filled drop-shadow-sm'
-                                : 'text-slate-400 dark:text-slate-500 group-hover:text-sky-400 group-active:scale-95'
+                                : 'text-slate-500 dark:text-slate-400 group-hover:text-sky-500 group-active:scale-95'
                                 }`}>
                                 {link.icon}
                             </span>
                             <span className={`text-[10px] font-medium transition-all duration-300 ${isActive
                                 ? 'text-sky-500 scale-105'
-                                : 'text-slate-400 dark:text-slate-500'
+                                : 'text-slate-600 dark:text-slate-300'
                                 }`}>
                                 {link.label}
                             </span>
