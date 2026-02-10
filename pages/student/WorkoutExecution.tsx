@@ -259,30 +259,43 @@ id,
                     }))
             }));
 
-            // 4. Fetch Previous Logs for each exercise
+            // 4. Fetch Previous Logs — same approach as ExerciseHistoryModal
+            //    Query through workout_logs → set_logs (nested) to preserve insertion order
             const exerciseIds = mappedExercises.map(ex => ex.id);
-            const { data: recentLogs, error: logError } = await supabase
-                .from('set_logs')
+            const { data: recentWorkoutLogs, error: logError } = await supabase
+                .from('workout_logs')
                 .select(`
-exercise_id,
-    weight_kg,
-    reps_completed,
-    rpe_actual,
-    workout_logs!inner(finished_at)
+                    id,
+                    finished_at,
+                    set_logs (
+                        exercise_id,
+                        weight_kg,
+                        reps_completed,
+                        rpe_actual,
+                        set_type
+                    )
                 `)
-                .eq('workout_logs.student_id', user!.id)
-                .in('exercise_id', exerciseIds)
-                .order('workout_logs(finished_at)', { ascending: false });
+                .eq('student_id', user!.id)
+                .order('finished_at', { ascending: false })
+                .limit(10);
 
-            if (!logError && recentLogs) {
+            if (!logError && recentWorkoutLogs) {
                 mappedExercises.forEach(ex => {
-                    const logs = recentLogs.filter(l => l.exercise_id === ex.id);
-                    ex.sets.forEach((set, idx) => {
-                        const hist = logs[idx]; // Try to match by index roughly or just show most recent entries
-                        if (hist) {
-                            set.prev_log = `${hist.weight_kg}kg x ${hist.reps_completed}${hist.rpe_actual ? ' @' + hist.rpe_actual : ''} `;
+                    // Find the most recent workout_log that has set_logs for this exercise
+                    for (const wl of recentWorkoutLogs) {
+                        const setsForExercise = (wl.set_logs as any[])?.filter(
+                            (s: any) => s.exercise_id === ex.id
+                        );
+                        if (setsForExercise && setsForExercise.length > 0) {
+                            ex.sets.forEach((set, idx) => {
+                                const hist = setsForExercise[idx];
+                                if (hist) {
+                                    set.prev_log = `${hist.weight_kg}kg x ${hist.reps_completed}${hist.rpe_actual ? ' @' + hist.rpe_actual : ''} `;
+                                }
+                            });
+                            break;
                         }
-                    });
+                    }
                 });
             }
 
@@ -530,6 +543,7 @@ exercise_id,
                             workout_log_id: logData.id,
                             exercise_id: ex.id,
                             set_type: set.type,
+                            set_order: i,
                             weight_kg: parseFloat(set.weight) || 0,
                             reps_completed: parseInt(set.reps) || 0,
                             rpe_actual: parseInt(set.rpe) || null

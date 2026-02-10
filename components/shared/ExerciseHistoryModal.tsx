@@ -81,9 +81,8 @@ const ExerciseHistoryModal: React.FC<ExerciseHistoryModalProps> = ({ isOpen, onC
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-[110] bg-black/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 animate-fade-in" onClick={onClose}>
-            <div className="bg-white dark:bg-slate-800 w-full max-w-md rounded-t-[32px] sm:rounded-3xl h-[70vh] flex flex-col shadow-2xl animate-slide-up" onClick={e => e.stopPropagation()}>
-                <div className="w-12 h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full mx-auto my-3 sm:hidden"></div>
+        <div className="fixed inset-0 z-[110] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in" onClick={onClose}>
+            <div className="bg-white dark:bg-slate-800 w-full max-w-md rounded-3xl max-h-[80vh] flex flex-col shadow-2xl animate-slide-up" onClick={e => e.stopPropagation()}>
 
                 <div className="px-6 pt-4 pb-2 border-b border-slate-50 dark:border-slate-700/50 flex items-center justify-between">
                     <div>

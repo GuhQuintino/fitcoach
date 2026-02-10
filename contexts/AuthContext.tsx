@@ -34,7 +34,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const [status, setStatus] = useState<string | null>(null);
     const [expiresAt, setExpiresAt] = useState<string | null>(null);
     const [coachExpiresAt, setCoachExpiresAt] = useState<string | null>(null);
-    const [preferences, setPreferences] = useState<UserPreferences>({ focusMode: true });
+    const [preferences, setPreferences] = useState<UserPreferences>({ focusMode: false });
     const [loading, setLoading] = useState(true);
 
     const prevUserId = React.useRef<string | null>(null);
@@ -74,7 +74,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 setStatus(null);
                 setExpiresAt(null);
                 setCoachExpiresAt(null);
-                setPreferences({ focusMode: true });
+                setPreferences({ focusMode: false });
                 setLoading(false);
             }
         });
@@ -218,7 +218,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         setCoachExpiresAt(null);
         setSession(null);
         setUser(null);
-        setPreferences({ focusMode: true });
+        setPreferences({ focusMode: false });
     };
 
     const updatePreferences = async (newPrefs: Partial<UserPreferences>) => {

@@ -26,8 +26,8 @@ const VideoPlayerModal: React.FC<VideoPlayerModalProps> = ({ isOpen, onClose, vi
             videoId = url.split('embed/')[1].split('?')[0];
         }
 
-        // Autoplay param
-        return `https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0&modestbranding=1&playsinline=1`;
+        // Autoplay + Loop params (playlist={videoId} is required for loop to work in embeds)
+        return `https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0&modestbranding=1&playsinline=1&loop=1&playlist=${videoId}`;
     };
 
     const handleBackdropClick = (e: React.MouseEvent) => {
