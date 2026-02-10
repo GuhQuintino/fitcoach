@@ -1,3 +1,10 @@
+# Dependencies
+node_modules
+
+# Build output
+dist
+dist-ssr
+
 # Logs
 logs
 *.log
@@ -7,9 +14,7 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-node_modules
-dist
-dist-ssr
+# Local env files
 *.local
 
 # Editor directories and files
@@ -23,15 +28,21 @@ dist-ssr
 *.sln
 *.sw?
 
-# Generated data
+# Agent / AI tooling
+.agent/
+.gemini/
+testsprite_tests/
+
+# Utility scripts (dev-only)
+scripts/
+
+# Generated / temporary data
 hevy_user_data/
 tools/
 Brainstorm/
-*.json
-!package.json
-!tsconfig.json
-!metadata.json
-!metadata_*.json
-!vercel.json
-lib/supabaseClient.ts.bak
-.agent/
+
+# Backup files
+*.bak
+
+# OS files
+Thumbs.db
