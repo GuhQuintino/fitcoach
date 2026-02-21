@@ -35,6 +35,7 @@ const StudentDashboard = lazy(() => import('./pages/student/Dashboard'));
 const Selection = lazy(() => import('./pages/student/Selection'));
 const WorkoutExecution = lazy(() => import('./pages/student/WorkoutExecution'));
 const History = lazy(() => import('./pages/student/History'));
+const Evolution = lazy(() => import('./pages/student/Evolution'));
 const StudentProfile = lazy(() => import('./pages/student/Profile'));
 
 // Settings Pages
@@ -168,6 +169,7 @@ const AppContent = () => {
                             <Route path="selection" element={<Selection />} />
                             <Route path="workout/:id" element={<WorkoutExecution />} />
                             <Route path="history" element={<History />} />
+                            <Route path="evolution" element={<Evolution />} />
                             <Route path="profile" element={<StudentProfile />} />
                             <Route path="settings/notifications" element={<NotificationsSettings />} />
                             <Route path="settings/privacy" element={<PrivacySettings />} />

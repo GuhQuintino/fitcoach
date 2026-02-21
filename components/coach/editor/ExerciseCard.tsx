@@ -22,11 +22,12 @@ interface ExerciseCardProps {
     index: number;
     onUpdate: (updatedItem: any) => void;
     onDelete: () => void;
+    onSwapExercise?: () => void;
     studentId?: string | null;
     dragHandleProps?: any; // Props for the drag handle
 }
 
-const ExerciseCard: React.FC<ExerciseCardProps> = ({ item, index, onUpdate, onDelete, studentId, dragHandleProps }) => {
+const ExerciseCard: React.FC<ExerciseCardProps> = ({ item, index, onUpdate, onDelete, onSwapExercise, studentId, dragHandleProps }) => {
     const [sets, setSets] = useState<Set[]>(item.sets || []);
     const [notes, setNotes] = useState(item.coach_notes || '');
 
@@ -207,6 +208,18 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({ item, index, onUpdate, onDe
                                     <span className="material-symbols-rounded text-lg text-emerald-500">save</span>
                                     Salvar Sets
                                 </button>
+                                {onSwapExercise && (
+                                    <button
+                                        onClick={() => {
+                                            onSwapExercise();
+                                            setShowMenu(false);
+                                        }}
+                                        className="w-full text-left px-4 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-700 text-sm font-medium text-slate-700 dark:text-slate-200 flex items-center gap-2 border-t border-slate-50 dark:border-slate-700/50"
+                                    >
+                                        <span className="material-symbols-rounded text-lg text-orange-500">swap_horiz</span>
+                                        Alterar Exercício
+                                    </button>
+                                )}
                             </div>
                         </>
                     )}

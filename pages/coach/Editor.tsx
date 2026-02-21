@@ -115,6 +115,30 @@ const Editor: React.FC = () => {
     // --- Adding Exercise (Library Modal) ---
     const [showLibrary, setShowLibrary] = useState(false);
     const [showImport, setShowImport] = useState(false);
+    const [swapIndex, setSwapIndex] = useState<number | null>(null);
+
+    // --- Swap Exercise ---
+    const handleSwapExercise = (index: number) => {
+        setSwapIndex(index);
+        setShowLibrary(true);
+    };
+
+    const handleSwapConfirm = (exerciseData: any) => {
+        if (swapIndex === null) return;
+        const exercise = Array.isArray(exerciseData) ? exerciseData[0] : exerciseData;
+        setItems(prev => {
+            const newItems = [...prev];
+            newItems[swapIndex] = {
+                ...newItems[swapIndex],
+                exercise_id: exercise.id,
+                exercise: exercise,
+            };
+            return newItems;
+        });
+        setHasUnsavedChanges(true);
+        setSwapIndex(null);
+        setShowLibrary(false);
+    };
 
     // This function will be called by Library when user selects an exercise
     // We need to modify Library to accept an 'onSelect' prop or handle it here via a specialized Library component
@@ -423,6 +447,7 @@ const Editor: React.FC = () => {
                                     studentId={studentId}
                                     onUpdate={(updated) => handleUpdateItem(index, updated)}
                                     onDelete={() => handleDeleteItem(index)}
+                                    onSwapExercise={() => handleSwapExercise(index)}
                                 />
                             </div>
                         ))}
@@ -454,16 +479,18 @@ const Editor: React.FC = () => {
                 <div className="fixed inset-0 z-[60] bg-white dark:bg-slate-900 overflow-auto">
                     {/* Simplified Header for Modal Mode */}
                     <div className="sticky top-0 z-10 bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800 p-4 flex items-center gap-3">
-                        <button onClick={() => setShowLibrary(false)} className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800">
+                        <button onClick={() => { setShowLibrary(false); setSwapIndex(null); }} className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800">
                             <span className="material-symbols-rounded">close</span>
                         </button>
-                        <h2 className="font-bold text-lg">Selecionar Exercício</h2>
+                        <h2 className="font-bold text-lg">{swapIndex !== null ? 'Alterar Exercício' : 'Selecionar Exercício'}</h2>
+                        {swapIndex !== null && (
+                            <span className="text-xs bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 px-2 py-0.5 rounded-full font-medium">
+                                Substituindo: {items[swapIndex]?.exercise?.name}
+                            </span>
+                        )}
                     </div>
-                    {/* 
-                        Uses new Exercises component in modal mode
-                    */}
                     <div className="p-5 h-[calc(100vh-80px)] overflow-y-auto">
-                        <Exercises isModal={true} onSelect={handleAddExercise} />
+                        <Exercises isModal={true} onSelect={swapIndex !== null ? handleSwapConfirm : handleAddExercise} />
                     </div>
                 </div>
             )}

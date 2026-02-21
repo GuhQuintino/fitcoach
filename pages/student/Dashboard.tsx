@@ -401,14 +401,14 @@ const StudentDashboard: React.FC = () => {
                             <span className="text-xs text-slate-500 dark:text-slate-400 font-medium relative z-10">{workoutCount} treinos feitos</span>
                         </Link>
 
-                        <div className="bg-gradient-to-br from-purple-50/80 to-white dark:from-purple-900/20 dark:to-slate-800 p-5 rounded-2xl shadow-sm border border-purple-100/50 dark:border-purple-700/30 active:scale-[0.98] transition-all opacity-80 cursor-not-allowed group relative overflow-hidden">
+                        <Link to="/student/evolution" className="bg-gradient-to-br from-purple-50/80 to-white dark:from-purple-900/20 dark:to-slate-800 p-5 rounded-2xl shadow-sm border border-purple-100/50 dark:border-purple-700/30 active:scale-[0.98] transition-all hover:shadow-purple-100/50 dark:hover:shadow-none group relative overflow-hidden">
                             <div className="absolute top-0 right-0 w-24 h-24 bg-purple-100/20 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2"></div>
-                            <div className="w-12 h-12 bg-white dark:bg-purple-900/40 rounded-2xl flex items-center justify-center text-purple-500 dark:text-purple-400 mb-4 shadow-sm relative z-10">
+                            <div className="w-12 h-12 bg-white dark:bg-purple-900/40 rounded-2xl flex items-center justify-center text-purple-500 dark:text-purple-400 mb-4 group-hover:scale-110 transition-transform shadow-sm relative z-10">
                                 <span className="material-symbols-rounded text-2xl">analytics</span>
                             </div>
                             <span className="font-bold text-lg text-slate-900 dark:text-white block mb-0.5 relative z-10">Evolução</span>
-                            <span className="text-xs text-slate-500 dark:text-slate-400 font-medium relative z-10">Em breve</span>
-                        </div>
+                            <span className="text-xs text-slate-500 dark:text-slate-400 font-medium relative z-10">Seus recordes</span>
+                        </Link>
 
                         {/* Card: Falar com Coach */}
                         {coach?.phone && formatToWhatsappUrl(coach.phone) && (
