@@ -30,7 +30,7 @@ const ExerciseHistoryModal: React.FC<ExerciseHistoryModalProps> = ({ isOpen, onC
                 .from('workout_logs')
                 .select(`
                     finished_at,
-                    set_logs (
+                    set_logs!inner (
                         id,
                         exercise_id,
                         weight_kg,
@@ -40,8 +40,9 @@ const ExerciseHistoryModal: React.FC<ExerciseHistoryModalProps> = ({ isOpen, onC
                     )
                 `)
                 .eq('student_id', studentId)
+                .eq('set_logs.exercise_id', exerciseId)
                 .order('finished_at', { ascending: false })
-                .limit(10);
+                .limit(20);
 
             if (error) throw error;
 

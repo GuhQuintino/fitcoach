@@ -267,7 +267,7 @@ id,
                 .select(`
                     id,
                     finished_at,
-                    set_logs (
+                    set_logs!inner (
                         exercise_id,
                         weight_kg,
                         reps_completed,
@@ -276,6 +276,7 @@ id,
                     )
                 `)
                 .eq('student_id', user!.id)
+                .in('set_logs.exercise_id', exerciseIds)
                 .order('finished_at', { ascending: false })
                 .limit(10);
 
