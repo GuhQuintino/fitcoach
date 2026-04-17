@@ -24,8 +24,37 @@ const Login: React.FC = () => {
             if (error) throw error;
             navigate('/');
         } catch (error: any) {
+            console.error('Erro de login:', error);
+            
+            if (error.message === 'Failed to fetch' || error.message?.includes('fetch')) {
+                setError('Falha de conexão. Limpando dados corrompidos para tentar novamente...');
+                
+                // Em dispositivos mobile, limpar os cookies mantendo o localStorage pode gerar 
+                // um estado onde o cliente Supabase falha antes do fetch ocorrer. 
+                // A solução aqui é resetar todas as chaves 'sb-' do app e forçar recarregamento.
+                try {
+                    Object.keys(localStorage).forEach(key => {
+                        if (key.startsWith('sb-')) {
+                            localStorage.removeItem(key);
+                        }
+                    });
+                    sessionStorage.clear();
+                    
+                    // Tenta deslogar agressivamente, ignorando caso falhe
+                    await supabase.auth.signOut();
+                } catch (clearError) {
+                    console.error('Erro ao limpar cache local:', clearError);
+                }
+                
+                // Recarrega a página após 1.5s para reinicializar o client do supabase
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1500);
+                
+                return; // Early return para manter a UI em estado de loading/loading message
+            }
+
             setError(error.message === 'Invalid login credentials' ? 'Email ou senha incorretos' : error.message || 'Erro ao fazer login');
-        } finally {
             setLoading(false);
         }
     };
