@@ -24,34 +24,52 @@ const Login: React.FC = () => {
             if (error) throw error;
             navigate('/');
         } catch (error: any) {
-            console.error('Erro de login:', error);
+            console.error('Erro de login detalhado:', error);
             
             if (error.message === 'Failed to fetch' || error.message?.includes('fetch')) {
-                setError('Falha de conexão. Limpando dados corrompidos para tentar novamente...');
+                setError('Falha de conexão. Diagnosticando rede...');
                 
-                // Em dispositivos mobile, limpar os cookies mantendo o localStorage pode gerar 
-                // um estado onde o cliente Supabase falha antes do fetch ocorrer. 
-                // A solução aqui é resetar todas as chaves 'sb-' do app e forçar recarregamento.
+                // Em dispositivos mobile falha no fetch pode vir de:
+                // 1. Service Worker corrompido
+                // 2. AdBlockers bloqueando a URL do Supabase
+                // 3. iPhone/Safari bloqueando todos os cookies
+                
                 try {
-                    Object.keys(localStorage).forEach(key => {
-                        if (key.startsWith('sb-')) {
-                            localStorage.removeItem(key);
+                    // Desregistrar qualque Service Worker que possa estar falhando requests silenciosamente
+                    if ('serviceWorker' in navigator) {
+                        const registrations = await navigator.serviceWorker.getRegistrations();
+                        for (const registration of registrations) {
+                            await registration.unregister();
                         }
-                    });
-                    sessionStorage.clear();
+                    }
                     
-                    // Tenta deslogar agressivamente, ignorando caso falhe
-                    await supabase.auth.signOut();
+                    Object.keys(localStorage).forEach(key => {
+                        if (key.startsWith('sb-')) localStorage.removeItem(key);
+                    });
+                    
+                    // Avaliar se o domínio do supabase está alcançável
+                    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+                    if (supabaseUrl) {
+                        try {
+                            await fetch(`${supabaseUrl}/auth/v1/health`, { method: 'GET' });
+                            // Se passou aqui, foi porque o POST de sign-in falhou talvez por cookies bloqueados
+                            setError('A conexão primária funcionou. O Safari ou Android pode estar com "Bloquear cookies" ativado. Desative nas configurações do navegador e tente de novo.');
+                        } catch (e) {
+                            // Se a requisição de saúde falhar também, a rede está bloqueando
+                            setError('Acesso bloqueado. Desative seu AdBlocker, VPN ou extensões anti-rastreamento (Brave/Safari Private Relay) e reinicie a página.');
+                        }
+                    } else {
+                        // Se não conseguir diagnosticar, faz o reload que já fazíamos,
+                        // mas agora o ServiceWorker já sumiu.
+                        setTimeout(() => window.location.reload(), 2500);
+                    }
                 } catch (clearError) {
-                    console.error('Erro ao limpar cache local:', clearError);
+                    console.error('Erro ao limpar workers/cache local:', clearError);
+                    setTimeout(() => window.location.reload(), 1500);
                 }
                 
-                // Recarrega a página após 1.5s para reinicializar o client do supabase
-                setTimeout(() => {
-                    window.location.reload();
-                }, 1500);
-                
-                return; // Early return para manter a UI em estado de loading/loading message
+                setLoading(false);
+                return;
             }
 
             setError(error.message === 'Invalid login credentials' ? 'Email ou senha incorretos' : error.message || 'Erro ao fazer login');
