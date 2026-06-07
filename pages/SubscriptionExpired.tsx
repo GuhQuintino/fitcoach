@@ -93,14 +93,26 @@ const SubscriptionExpired: React.FC = () => {
                             : `Para continuar utilizando todas as funcionalidades do Fitcoach, entre em contato com ${contactName} para renovar sua assinatura.`}
                     </p>
 
+                    {!isCoachBlock && role === 'student' && (
+                        <a
+                            href="https://www.gqfit.com.br/planos"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="w-full bg-primary hover:bg-primary/90 text-white py-4 rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg shadow-primary/20 transition-all active:scale-[0.98] mb-3 text-xs"
+                        >
+                            <span className="material-symbols-rounded text-base">shopping_cart</span>
+                            Renovar pelo Site (Liberação Imediata)
+                        </a>
+                    )}
+
                     {whatsappLink ? (
                         <a
                             href={whatsappLink}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="w-full bg-emerald-500 hover:bg-emerald-600 text-white py-4 rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20 transition-all active:scale-[0.98]"
+                            className="w-full bg-emerald-500 hover:bg-emerald-600 text-white py-4 rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20 transition-all active:scale-[0.98] text-xs"
                         >
-                            <span className="material-symbols-rounded">chat</span>
+                            <span className="material-symbols-rounded text-base">chat</span>
                             Renovar via WhatsApp
                         </a>
                     ) : (
