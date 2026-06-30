@@ -307,41 +307,60 @@ const Editor: React.FC = () => {
                 await supabase.from('workout_items').delete().eq('workout_id', workoutId);
             }
 
-            // 2. Upsert workout_items in one single batch!
-            const itemsPayload = items.map((item, i) => {
-                const payload: any = {
+            // 2. Separate Items into inserts and updates to avoid PostgREST null primary key issues
+            const itemsToUpdate = items
+                .filter(item => !item.id.toString().startsWith('temp') && !item.id.toString().startsWith('loaded'))
+                .map((item, i) => ({
+                    id: item.id,
                     workout_id: workoutId,
                     exercise_id: item.exercise_id,
                     order_index: i + 1,
                     coach_notes: item.coach_notes
-                };
-                if (!item.id.toString().startsWith('temp') && !item.id.toString().startsWith('loaded')) {
-                    payload.id = item.id;
-                }
-                return payload;
-            });
+                }));
+
+            const itemsToInsert = items
+                .filter(item => item.id.toString().startsWith('temp') || item.id.toString().startsWith('loaded'))
+                .map((item) => ({
+                    workout_id: workoutId,
+                    exercise_id: item.exercise_id,
+                    order_index: items.indexOf(item) + 1,
+                    coach_notes: item.coach_notes
+                }));
 
             const itemIdMap = new Map<string, string>();
-            const setIdMap = new Map<string, string>();
+            const dbItemsSaved: any[] = [];
 
-            if (itemsPayload.length > 0) {
-                const { data: dbItems, error: itemsError } = await supabase
+            // A. Execute Updates for workout_items
+            if (itemsToUpdate.length > 0) {
+                const { data: dbUpdates, error: itemsError } = await supabase
                     .from('workout_items')
-                    .upsert(itemsPayload)
+                    .upsert(itemsToUpdate)
                     .select();
                 if (itemsError) throw itemsError;
-
-                // Map local IDs to database IDs
-                dbItems.forEach((dbItem: any) => {
-                    const localItem = items.find((li, idx) => li.exercise_id === dbItem.exercise_id && idx === dbItem.order_index - 1);
-                    if (localItem) {
-                        itemIdMap.set(localItem.id, dbItem.id);
-                    }
-                });
+                dbItemsSaved.push(...dbUpdates);
             }
 
-            // 3. Prepare all sets and delete orphan sets
-            const allSetsPayload: any[] = [];
+            // B. Execute Inserts for workout_items
+            if (itemsToInsert.length > 0) {
+                const { data: dbInserts, error: itemsError } = await supabase
+                    .from('workout_items')
+                    .insert(itemsToInsert)
+                    .select();
+                if (itemsError) throw itemsError;
+                dbItemsSaved.push(...dbInserts);
+            }
+
+            // C. Map local IDs to database IDs
+            dbItemsSaved.forEach((dbItem: any) => {
+                const localItem = items.find((li, idx) => li.exercise_id === dbItem.exercise_id && idx === dbItem.order_index - 1);
+                if (localItem) {
+                    itemIdMap.set(localItem.id, dbItem.id);
+                }
+            });
+
+            // 3. Prepare all sets (separate inserts and updates) and delete orphan sets
+            const setsToUpdate: any[] = [];
+            const setsToInsert: any[] = [];
             const activeSetIds: string[] = [];
             const workoutItemIdsInUse: string[] = [];
 
@@ -372,8 +391,10 @@ const Editor: React.FC = () => {
                     if (!set.id.toString().startsWith('new') && !set.id.toString().startsWith('temp') && !set.id.toString().startsWith('loaded')) {
                         payload.id = set.id;
                         activeSetIds.push(set.id);
+                        setsToUpdate.push(payload);
+                    } else {
+                        setsToInsert.push(payload);
                     }
-                    allSetsPayload.push(payload);
                 });
             });
 
@@ -387,24 +408,38 @@ const Editor: React.FC = () => {
                 if (deleteError) throw deleteError;
             }
 
-            // Upsert all sets in one single batch!
-            if (allSetsPayload.length > 0) {
-                const { data: dbSets, error: setsError } = await supabase
+            const dbSetsSaved: any[] = [];
+
+            // A. Execute Updates for workout_sets
+            if (setsToUpdate.length > 0) {
+                const { data: dbUpdates, error: setsError } = await supabase
                     .from('workout_sets')
-                    .upsert(allSetsPayload)
+                    .upsert(setsToUpdate)
                     .select();
                 if (setsError) throw setsError;
-
-                dbSets.forEach((dbSet: any) => {
-                    const localItem = items.find(li => (itemIdMap.get(li.id) || li.id) === dbSet.workout_item_id);
-                    if (localItem) {
-                        const localSet = localItem.sets.find((ls: any) => ls.set_order === dbSet.set_order);
-                        if (localSet && (localSet.id.toString().startsWith('new') || localSet.id.toString().startsWith('temp') || localSet.id.toString().startsWith('loaded'))) {
-                            setIdMap.set(localSet.id, dbSet.id);
-                        }
-                    }
-                });
+                dbSetsSaved.push(...dbUpdates);
             }
+
+            // B. Execute Inserts for workout_sets
+            if (setsToInsert.length > 0) {
+                const { data: dbInserts, error: setsError } = await supabase
+                    .from('workout_sets')
+                    .insert(setsToInsert)
+                    .select();
+                if (setsError) throw setsError;
+                dbSetsSaved.push(...dbInserts);
+            }
+
+            const setIdMap = new Map<string, string>();
+            dbSetsSaved.forEach((dbSet: any) => {
+                const localItem = items.find(li => (itemIdMap.get(li.id) || li.id) === dbSet.workout_item_id);
+                if (localItem) {
+                    const localSet = localItem.sets.find((ls: any) => ls.set_order === dbSet.set_order);
+                    if (localSet && (localSet.id.toString().startsWith('new') || localSet.id.toString().startsWith('temp') || localSet.id.toString().startsWith('loaded'))) {
+                        setIdMap.set(localSet.id, dbSet.id);
+                    }
+                }
+            });
 
             // Sync state with new IDs functionally
             setItems(currentItems => {
