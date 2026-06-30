@@ -7,6 +7,26 @@ import EvolutionGallery from '../../components/student/EvolutionGallery';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Cell } from 'recharts';
 import { formatToWhatsappUrl } from '../../utils/phoneUtils';
 
+const SUB_MUSCLE_LABELS: Record<string, string> = {
+    peitoral: 'Peitoral',
+    triceps: 'Tríceps',
+    biceps: 'Bíceps',
+    ombro_anterior: 'Ombro Anterior',
+    ombro_lateral: 'Ombro Lateral',
+    ombro_posterior: 'Ombro Posterior',
+    upperback: 'Costas Superior',
+    latissimo: 'Dorsal (Latíssimo)',
+    quadriceps: 'Quadríceps',
+    gluteos: 'Glúteos',
+    isquiotibiais: 'Posterior de Coxa',
+    panturrilha: 'Panturrilha',
+    abs: 'Abdômen',
+    cardio: 'Cardio / Aeróbico',
+    antebraco: 'Antebraço',
+    lombar: 'Lombar',
+    trapezio: 'Trapézio'
+};
+
 const StudentProfileView: React.FC = () => {
     const { id } = useParams<{ id: string }>();
     const [profile, setProfile] = useState<any>(null);
@@ -66,7 +86,7 @@ const StudentProfileView: React.FC = () => {
                     workout:workouts (name),
                     set_logs (
                         *,
-                        exercise:exercises (name)
+                        exercise:exercises (id, name, muscle_weights)
                     )
                 `)
                 .eq('student_id', id!)
@@ -316,6 +336,41 @@ const StudentProfileView: React.FC = () => {
     const tmb = calculateTMB();
     const maintenance = Math.round(tmb * 1.35);
     const weeklyData = getWeeklyVolumeData();
+
+    const getWeeklyVolumeByMuscle = () => {
+        if (!logs.length) return [];
+        
+        const muscleVolumes: Record<string, number> = {};
+        const activeWeeks = new Set<string>();
+
+        logs.forEach(log => {
+            const date = new Date(log.started_at);
+            const oneJan = new Date(date.getFullYear(), 0, 1);
+            const numberOfDays = Math.floor((date.getTime() - oneJan.getTime()) / (24 * 60 * 60 * 1000));
+            const weekNum = Math.ceil((date.getDay() + 1 + numberOfDays) / 7);
+            activeWeeks.add(`${date.getFullYear()}-W${weekNum}`);
+
+            log.set_logs?.forEach((set: any) => {
+                const isWorkingSet = ['working', 'failure', 'drop', 'dropset'].includes(set.set_type);
+                if (isWorkingSet && set.exercise?.muscle_weights) {
+                    const weights = set.exercise.muscle_weights as Record<string, number>;
+                    Object.entries(weights).forEach(([muscle, weight]) => {
+                        if (typeof weight === 'number') {
+                            muscleVolumes[muscle] = (muscleVolumes[muscle] || 0) + weight;
+                        }
+                    });
+                }
+            });
+        });
+
+        const divisor = activeWeeks.size > 0 ? activeWeeks.size : 1;
+
+        return Object.entries(muscleVolumes).map(([muscle, totalSets]) => ({
+            muscle,
+            label: SUB_MUSCLE_LABELS[muscle] || muscle,
+            sets: Math.round((totalSets / divisor) * 10) / 10
+        })).sort((a, b) => b.sets - a.sets);
+    };
 
     if (loading) return (
         <MainLayout>
@@ -607,6 +662,47 @@ const StudentProfileView: React.FC = () => {
                                 )}
                             </div>
                         </div>
+                    </div>
+
+                    {/* Volume Semanal por Músculo Card */}
+                    <div className="bg-white dark:bg-slate-800 p-6 rounded-[2.5rem] shadow-soft border border-slate-100 dark:border-slate-700 animate-slide-up">
+                        <div className="flex items-center gap-2 mb-2">
+                            <span className="material-symbols-rounded text-primary">analytics</span>
+                            <h3 className="font-bold text-slate-900 dark:text-white">Volume Semanal por Músculo</h3>
+                        </div>
+                        <p className="text-xs text-slate-500 mb-4">Média de séries de trabalho realizadas por semana</p>
+                        {(() => {
+                            const muscleData = getWeeklyVolumeByMuscle();
+                            if (muscleData.length === 0) {
+                                return (
+                                    <div className="py-6 text-center text-slate-400 dark:text-slate-500 italic text-xs">
+                                        Nenhum volume muscular calculado.
+                                    </div>
+                                );
+                            }
+                            return (
+                                <div className="space-y-3">
+                                    {muscleData.map(({ muscle, label, sets }) => {
+                                        const maxSets = Math.max(...muscleData.map(m => m.sets), 1);
+                                        const percent = (sets / maxSets) * 100;
+                                        return (
+                                            <div key={muscle} className="space-y-1">
+                                                <div className="flex justify-between text-xs font-bold text-slate-700 dark:text-slate-300">
+                                                    <span>{label}</span>
+                                                    <span className="text-primary">{sets} {sets === 1 ? 'série' : 'séries'}</span>
+                                                </div>
+                                                <div className="w-full bg-slate-100 dark:bg-slate-700 h-2 rounded-full overflow-hidden">
+                                                    <div
+                                                        className="bg-gradient-to-r from-primary to-emerald-500 h-full rounded-full transition-all duration-500"
+                                                        style={{ width: `${percent}%` }}
+                                                    ></div>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            );
+                        })()}
                     </div>
 
                     {/* Metabolic Grid */}

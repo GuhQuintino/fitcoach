@@ -52,6 +52,8 @@ export interface Database {
                     description: string | null
                     is_archived: boolean
                     created_at: string
+                    muscle_weights: Json
+                    exercise_type: 'reps' | 'time' | 'cardio'
                 }
                 Insert: {
                     id?: string
@@ -63,6 +65,8 @@ export interface Database {
                     description?: string | null
                     is_archived?: boolean
                     created_at?: string
+                    muscle_weights?: Json
+                    exercise_type?: 'reps' | 'time' | 'cardio'
                 }
                 Update: {
                     id?: string
@@ -74,6 +78,8 @@ export interface Database {
                     description?: string | null
                     is_archived?: boolean
                     created_at?: string
+                    muscle_weights?: Json
+                    exercise_type?: 'reps' | 'time' | 'cardio'
                 }
             }
             routines: {
@@ -287,6 +293,14 @@ export interface Database {
                     rpe_target: number | null
                     set_order: number
                     created_at: string
+                    time_target: number | null
+                    distance_target: number | null
+                    speed_target: number | null
+                    hiit_work_seconds: number | null
+                    hiit_rest_seconds: number | null
+                    hiit_work_speed: number | null
+                    hiit_rest_speed: number | null
+                    hiit_cycles: number | null
                 }
                 Insert: {
                     id?: string
@@ -298,6 +312,14 @@ export interface Database {
                     rpe_target?: number | null
                     set_order: number
                     created_at?: string
+                    time_target?: number | null
+                    distance_target?: number | null
+                    speed_target?: number | null
+                    hiit_work_seconds?: number | null
+                    hiit_rest_seconds?: number | null
+                    hiit_work_speed?: number | null
+                    hiit_rest_speed?: number | null
+                    hiit_cycles?: number | null
                 }
                 Update: {
                     id?: string
@@ -308,6 +330,116 @@ export interface Database {
                     rest_seconds?: number
                     rpe_target?: number | null
                     set_order?: number
+                    created_at?: string
+                    time_target?: number | null
+                    distance_target?: number | null
+                    speed_target?: number | null
+                    hiit_work_seconds?: number | null
+                    hiit_rest_seconds?: number | null
+                    hiit_work_speed?: number | null
+                    hiit_rest_speed?: number | null
+                    hiit_cycles?: number | null
+                }
+            },
+            workout_logs: {
+                Row: {
+                    id: string
+                    student_id: string
+                    workout_id: string | null
+                    started_at: string
+                    finished_at: string | null
+                    effort_rating: number | null
+                    feedback_notes: string | null
+                    created_at: string
+                }
+                Insert: {
+                    id?: string
+                    student_id: string
+                    workout_id?: string | null
+                    started_at: string
+                    finished_at?: string | null
+                    effort_rating?: number | null
+                    feedback_notes?: string | null
+                    created_at?: string
+                }
+                Update: {
+                    id?: string
+                    student_id?: string
+                    workout_id?: string | null
+                    started_at?: string
+                    finished_at?: string | null
+                    effort_rating?: number | null
+                    feedback_notes?: string | null
+                    created_at?: string
+                }
+            },
+            set_logs: {
+                Row: {
+                    id: string
+                    workout_log_id: string
+                    exercise_id: string
+                    set_type: 'warmup' | 'working' | 'failure' | 'drop' | 'preparation'
+                    weight_kg: number | null
+                    reps_completed: number | null
+                    rpe_actual: number | null
+                    completed_at: string
+                    time_completed: number | null
+                    distance_completed: number | null
+                    speed_actual: number | null
+                    hiit_cycles_completed: number | null
+                }
+                Insert: {
+                    id?: string
+                    workout_log_id: string
+                    exercise_id: string
+                    set_type?: 'warmup' | 'working' | 'failure' | 'drop' | 'preparation'
+                    weight_kg?: number | null
+                    reps_completed?: number | null
+                    rpe_actual?: number | null
+                    completed_at?: string
+                    time_completed?: number | null
+                    distance_completed?: number | null
+                    speed_actual?: number | null
+                    hiit_cycles_completed?: number | null
+                }
+                Update: {
+                    id?: string
+                    workout_log_id?: string
+                    exercise_id?: string
+                    set_type?: 'warmup' | 'working' | 'failure' | 'drop' | 'preparation'
+                    weight_kg?: number | null
+                    reps_completed?: number | null
+                    rpe_actual?: number | null
+                    completed_at?: string
+                    time_completed?: number | null
+                    distance_completed?: number | null
+                    speed_actual?: number | null
+                    hiit_cycles_completed?: number | null
+                }
+            },
+            exercise_feedback_logs: {
+                Row: {
+                    id: string
+                    workout_log_id: string
+                    exercise_id: string
+                    feedback_text: string
+                    sentiment: string | null
+                    created_at: string
+                }
+                Insert: {
+                    id?: string
+                    workout_log_id: string
+                    exercise_id: string
+                    feedback_text: string
+                    sentiment?: string | null
+                    created_at?: string
+                }
+                Update: {
+                    id?: string
+                    workout_log_id?: string
+                    exercise_id?: string
+                    feedback_text?: string
+                    sentiment?: string | null
                     created_at?: string
                 }
             }

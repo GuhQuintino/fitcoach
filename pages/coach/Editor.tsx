@@ -7,6 +7,7 @@ import ExerciseCard from '../../components/coach/editor/ExerciseCard';
 import Exercises from './Exercises'; // Correct component for exercises
 import WorkoutImportModal from '../../components/coach/editor/WorkoutImportModal';
 import toast from 'react-hot-toast';
+import ExerciseFormModal from '../../components/coach/exercises/ExerciseFormModal';
 
 const Editor: React.FC = () => {
     const { user } = useAuth();
@@ -22,6 +23,58 @@ const Editor: React.FC = () => {
     const [lastSaved, setLastSaved] = useState<Date | null>(null);
     const [isAutoSaving, setIsAutoSaving] = useState(false);
     const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+
+    // Estados e função para edição inline de exercícios
+    const [editingExercise, setEditingExercise] = useState<any | null>(null);
+    const [saveLoading, setSaveLoading] = useState(false);
+
+    const handleSaveExercise = async (data: any) => {
+        try {
+            setSaveLoading(true);
+            const payload = {
+                name: data.name,
+                muscle_group: data.muscle_group,
+                video_url: data.video_url,
+                description: data.description,
+                exercise_type: data.exercise_type || 'reps',
+                muscle_weights: data.muscle_weights || {}
+            };
+
+            const { error } = await supabase
+                .from('exercises')
+                .update(payload)
+                .eq('id', editingExercise.id);
+            if (error) throw error;
+
+            // Atualiza localmente no estado items do editor
+            setItems(prevItems =>
+                prevItems.map(item => {
+                    if (item.exercise_id === editingExercise.id) {
+                        return {
+                            ...item,
+                            exercise: {
+                                ...item.exercise,
+                                name: data.name,
+                                description: data.description,
+                                video_url: data.video_url,
+                                exercise_type: data.exercise_type,
+                                muscle_weights: data.muscle_weights
+                            }
+                        };
+                    }
+                    return item;
+                })
+            );
+
+            setEditingExercise(null);
+            toast.success('Exercício atualizado com sucesso!');
+        } catch (error) {
+            console.error('Error saving exercise:', error);
+            toast.error('Erro ao salvar exercício.');
+        } finally {
+            setSaveLoading(false);
+        }
+    };
 
     // Auto-save debounce timer
     const saveTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -149,23 +202,46 @@ const Editor: React.FC = () => {
         // Normalize to array
         const exercisesToAdd = Array.isArray(exercisesData) ? exercisesData : [exercisesData];
 
-        const newItemsToAdd = exercisesToAdd.map((exercise: any) => ({
-            id: `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`, // unique temp ID
-            exercise_id: exercise.id,
-            exercise: exercise,
-            coach_notes: '',
-            sets: [
-                {
-                    id: `temp-set-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-                    set_order: 1,
-                    type: 'working',
-                    reps_target: '10',
-                    rest_seconds: '60',
-                    rpe_target: '8',
+        const newItemsToAdd = exercisesToAdd.map((exercise: any) => {
+            const exerciseType = exercise.exercise_type || 'reps';
+            let initialSet: any = {
+                id: `temp-set-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                set_order: 1,
+                type: 'working',
+                rest_seconds: '60',
+                rpe_target: '8'
+            };
+
+            if (exerciseType === 'cardio') {
+                initialSet = {
+                    ...initialSet,
+                    distance_target: '1.0',
+                    speed_target: '8.0',
+                    time_target: '600',
+                    is_hiit: false
+                };
+            } else if (exerciseType === 'time') {
+                initialSet = {
+                    ...initialSet,
+                    time_target: '60',
                     weight_target: ''
-                }
-            ]
-        }));
+                };
+            } else {
+                initialSet = {
+                    ...initialSet,
+                    reps_target: '10',
+                    weight_target: ''
+                };
+            }
+
+            return {
+                id: `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`, // unique temp ID
+                exercise_id: exercise.id,
+                exercise: exercise,
+                coach_notes: '',
+                sets: [initialSet]
+            };
+        });
 
         setItems(prev => [...prev, ...newItemsToAdd]);
         setHasUnsavedChanges(true);
@@ -186,7 +262,15 @@ const Editor: React.FC = () => {
                 rest_seconds: s.rest_seconds,
                 rpe_target: s.rpe_target,
                 weight_target: s.weight_target,
-                // Don't copy id, workout_item_id, etc.
+                // Copiar novas metas se existirem
+                time_target: s.time_target,
+                distance_target: s.distance_target,
+                speed_target: s.speed_target,
+                hiit_work_seconds: s.hiit_work_seconds,
+                hiit_rest_seconds: s.hiit_rest_seconds,
+                hiit_work_speed: s.hiit_work_speed,
+                hiit_rest_speed: s.hiit_rest_speed,
+                hiit_cycles: s.hiit_cycles
             }))
         }));
 
@@ -219,104 +303,117 @@ const Editor: React.FC = () => {
             if (currentIds.length > 0) {
                 // Delete items that are NOT in the current list
                 await supabase.from('workout_items').delete().eq('workout_id', workoutId).not('id', 'in', `(${currentIds.join(',')})`);
-            } else if (items.length === 0) {
-                // If list empty, delete all
-                await supabase.from('workout_items').delete().eq('workout_id', workoutId);
             } else {
-                if (currentIds.length === 0) {
-                    await supabase.from('workout_items').delete().eq('workout_id', workoutId);
-                } else {
-                    await supabase.from('workout_items').delete().eq('workout_id', workoutId).not('id', 'in', `(${currentIds.join(',')})`);
-                }
+                await supabase.from('workout_items').delete().eq('workout_id', workoutId);
             }
 
-            // 2. Upsert Items & Sets - FULLY SEQUENTIAL (required for Supabase Free Tier stability)
-            const itemIdMap = new Map<string, string>();
-            const setIdMap = new Map<string, string>();
-
-            for (let i = 0; i < items.length; i++) {
-                const item = items[i];
-                let itemId = item.id;
-
-                const itemPayload = {
+            // 2. Upsert workout_items in one single batch!
+            const itemsPayload = items.map((item, i) => {
+                const payload: any = {
                     workout_id: workoutId,
                     exercise_id: item.exercise_id,
                     order_index: i + 1,
                     coach_notes: item.coach_notes
                 };
-
-                // A. Insert/Update Item
-                if (item.id.toString().startsWith('temp') || item.id.toString().startsWith('loaded')) {
-                    const { data: insertedItem, error: iError } = await supabase
-                        .from('workout_items')
-                        .insert(itemPayload)
-                        .select()
-                        .single();
-                    if (iError) throw iError;
-                    itemIdMap.set(item.id, insertedItem.id);
-                    itemId = insertedItem.id;
-                } else {
-                    const { error: uError } = await supabase
-                        .from('workout_items')
-                        .update(itemPayload)
-                        .eq('id', itemId);
-                    if (uError) throw uError;
+                if (!item.id.toString().startsWith('temp') && !item.id.toString().startsWith('loaded')) {
+                    payload.id = item.id;
                 }
+                return payload;
+            });
 
-                // B. Sync Sets for this Item
-                const currentSetIds = item.sets
-                    .filter((s: any) => !s.id.toString().startsWith('new') && !s.id.toString().startsWith('temp') && !s.id.toString().startsWith('loaded'))
-                    .map((s: any) => s.id);
+            const itemIdMap = new Map<string, string>();
+            const setIdMap = new Map<string, string>();
 
-                if (currentSetIds.length === 0) {
-                    await supabase.from('workout_sets').delete().eq('workout_item_id', itemId);
-                } else {
-                    await supabase.from('workout_sets').delete().eq('workout_item_id', itemId).not('id', 'in', `(${currentSetIds.join(',')})`);
-                }
+            if (itemsPayload.length > 0) {
+                const { data: dbItems, error: itemsError } = await supabase
+                    .from('workout_items')
+                    .upsert(itemsPayload)
+                    .select();
+                if (itemsError) throw itemsError;
 
-                // C. Upsert Sets - One by one
-                for (let j = 0; j < item.sets.length; j++) {
-                    const set = item.sets[j];
-                    const setPayload = {
-                        workout_item_id: itemId,
+                // Map local IDs to database IDs
+                dbItems.forEach((dbItem: any) => {
+                    const localItem = items.find((li, idx) => li.exercise_id === dbItem.exercise_id && idx === dbItem.order_index - 1);
+                    if (localItem) {
+                        itemIdMap.set(localItem.id, dbItem.id);
+                    }
+                });
+            }
+
+            // 3. Prepare all sets and delete orphan sets
+            const allSetsPayload: any[] = [];
+            const activeSetIds: string[] = [];
+            const workoutItemIdsInUse: string[] = [];
+
+            items.forEach((item) => {
+                const realItemId = itemIdMap.get(item.id) || item.id;
+                workoutItemIdsInUse.push(realItemId);
+
+                item.sets.forEach((set: any, j: number) => {
+                    const payload: any = {
+                        workout_item_id: realItemId,
                         set_order: j + 1,
                         order_index: j + 1,
                         type: set.type,
-                        reps_target: set.reps_target,
+                        reps_target: set.reps_target || null,
                         rest_seconds: parseInt(set.rest_seconds) || 60,
                         rpe_target: set.rpe_target ? parseFloat(set.rpe_target) : 8,
-                        weight_target: set.weight_target ? parseFloat(set.weight_target) : null
+                        weight_target: set.weight_target ? parseFloat(set.weight_target) : null,
+                        time_target: set.time_target ? parseInt(set.time_target) : null,
+                        distance_target: set.distance_target ? parseFloat(set.distance_target) : null,
+                        speed_target: set.speed_target ? parseFloat(set.speed_target) : null,
+                        hiit_work_seconds: set.hiit_work_seconds ? parseInt(set.hiit_work_seconds) : null,
+                        hiit_rest_seconds: set.hiit_rest_seconds ? parseInt(set.hiit_rest_seconds) : null,
+                        hiit_work_speed: set.hiit_work_speed ? parseFloat(set.hiit_work_speed) : null,
+                        hiit_rest_speed: set.hiit_rest_speed ? parseFloat(set.hiit_rest_speed) : null,
+                        hiit_cycles: set.hiit_cycles ? parseInt(set.hiit_cycles) : null
                     };
 
-                    if (set.id.toString().startsWith('new') || set.id.toString().startsWith('temp') || set.id.toString().startsWith('loaded')) {
-                        const { data: insertedSet, error: sInsertError } = await supabase
-                            .from('workout_sets')
-                            .insert(setPayload)
-                            .select()
-                            .single();
-                        if (sInsertError) throw sInsertError;
-                        setIdMap.set(set.id, insertedSet.id);
-                    } else {
-                        const { error: sUpdateError } = await supabase.from('workout_sets').update(setPayload).eq('id', set.id);
-                        if (sUpdateError) throw sUpdateError;
+                    if (!set.id.toString().startsWith('new') && !set.id.toString().startsWith('temp') && !set.id.toString().startsWith('loaded')) {
+                        payload.id = set.id;
+                        activeSetIds.push(set.id);
                     }
+                    allSetsPayload.push(payload);
+                });
+            });
+
+            // Delete orphan sets
+            if (workoutItemIdsInUse.length > 0) {
+                let deleteQuery = supabase.from('workout_sets').delete().in('workout_item_id', workoutItemIdsInUse);
+                if (activeSetIds.length > 0) {
+                    deleteQuery = deleteQuery.not('id', 'in', `(${activeSetIds.join(',')})`);
                 }
+                const { error: deleteError } = await deleteQuery;
+                if (deleteError) throw deleteError;
             }
 
+            // Upsert all sets in one single batch!
+            if (allSetsPayload.length > 0) {
+                const { data: dbSets, error: setsError } = await supabase
+                    .from('workout_sets')
+                    .upsert(allSetsPayload)
+                    .select();
+                if (setsError) throw setsError;
 
+                dbSets.forEach((dbSet: any) => {
+                    const localItem = items.find(li => (itemIdMap.get(li.id) || li.id) === dbSet.workout_item_id);
+                    if (localItem) {
+                        const localSet = localItem.sets.find((ls: any) => ls.set_order === dbSet.set_order);
+                        if (localSet && (localSet.id.toString().startsWith('new') || localSet.id.toString().startsWith('temp') || localSet.id.toString().startsWith('loaded'))) {
+                            setIdMap.set(localSet.id, dbSet.id);
+                        }
+                    }
+                });
+            }
 
             // Sync state with new IDs functionally
-            // This preserves items added by the user while the save was in progress
             setItems(currentItems => {
                 return currentItems.map(item => {
-                    // Update Item ID if it was just saved (temp -> real)
                     const newItemId = itemIdMap.get(item.id) || item.id;
-
-                    // Update Set IDs
                     const newSets = item.sets.map((set: any) => ({
                         ...set,
                         id: setIdMap.get(set.id) || set.id,
-                        workout_item_id: newItemId // Ensure consistency
+                        workout_item_id: newItemId
                     }));
 
                     return {
@@ -341,7 +438,6 @@ const Editor: React.FC = () => {
             if (isManual) toast.error('Erro ao salvar treino. Tente novamente.');
         } finally {
             setSaving(false);
-            setIsAutoSaving(false);
             isSavingRef.current = false;
         }
     };
@@ -448,6 +544,7 @@ const Editor: React.FC = () => {
                                     onUpdate={(updated) => handleUpdateItem(index, updated)}
                                     onDelete={() => handleDeleteItem(index)}
                                     onSwapExercise={() => handleSwapExercise(index)}
+                                    onEditExercise={() => setEditingExercise(item.exercise)}
                                 />
                             </div>
                         ))}
@@ -500,6 +597,17 @@ const Editor: React.FC = () => {
                 onClose={() => setShowImport(false)}
                 onImport={handleImportExercises}
             />
+
+            {editingExercise && (
+                <ExerciseFormModal
+                    isOpen={!!editingExercise}
+                    onClose={() => setEditingExercise(null)}
+                    onSave={handleSaveExercise}
+                    initialData={editingExercise}
+                    loading={saveLoading}
+                    isAdmin={false}
+                />
+            )}
 
         </MainLayout>
     );

@@ -5,6 +5,35 @@ import { useAuth } from '../../contexts/AuthContext';
 import { Link } from 'react-router-dom';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 
+const SUB_MUSCLE_LABELS: Record<string, string> = {
+    peitoral: 'Peitoral',
+    triceps: 'Tríceps',
+    biceps: 'Bíceps',
+    ombro_anterior: 'Ombro Anterior',
+    ombro_lateral: 'Ombro Lateral',
+    ombro_posterior: 'Ombro Posterior',
+    upperback: 'Costas Superior',
+    latissimo: 'Dorsal (Latíssimo)',
+    quadriceps: 'Quadríceps',
+    gluteos: 'Glúteos',
+    isquiotibiais: 'Posterior de Coxa',
+    panturrilha: 'Panturrilha',
+    abs: 'Abdômen',
+    cardio: 'Cardio / Aeróbico',
+    antebraco: 'Antebraço',
+    lombar: 'Lombar',
+    trapezio: 'Trapézio'
+};
+
+const formatTime = (seconds: number | string | null | undefined) => {
+    if (seconds === null || seconds === undefined) return '-';
+    const sec = parseInt(seconds.toString());
+    if (isNaN(sec)) return '-';
+    const m = Math.floor(sec / 60);
+    const s = sec % 60;
+    return `${m}:${s.toString().padStart(2, '0')}`;
+};
+
 const History: React.FC = () => {
     const { user } = useAuth();
     const [loading, setLoading] = useState(true);
@@ -28,7 +57,10 @@ const History: React.FC = () => {
                     workout:workouts (name),
                     set_logs (
                         *,
-                        exercise:exercises (name)
+                        exercise:exercises (id, name, muscle_weights, exercise_type)
+                    ),
+                    exercise_feedback_logs (
+                        *
                     )
                 `)
                 .eq('student_id', user!.id)
@@ -110,6 +142,48 @@ const History: React.FC = () => {
     const prevVolume = weeklyData[weeklyData.length - 2]?.volume || 0;
     const diffPercent = prevVolume > 0 ? ((latestVolume - prevVolume) / prevVolume * 100).toFixed(1) : null;
 
+    const getVolumeByMuscleForSelectedPeriod = () => {
+        const monthLogs = logs.filter(log => {
+            const d = new Date(log.started_at);
+            return d.getFullYear() === currentYear && d.getMonth() === currentMonth;
+        });
+
+        const muscleVolumes: Record<string, number> = {};
+        const activeWeeks = new Set<string>();
+
+        monthLogs.forEach(log => {
+            const date = new Date(log.started_at);
+            const oneJan = new Date(date.getFullYear(), 0, 1);
+            const numberOfDays = Math.floor((date.getTime() - oneJan.getTime()) / (24 * 60 * 60 * 1000));
+            const weekNum = Math.ceil((date.getDay() + 1 + numberOfDays) / 7);
+            activeWeeks.add(`${date.getFullYear()}-W${weekNum}`);
+        });
+
+        const divisor = activeWeeks.size > 0 ? activeWeeks.size : 1;
+
+        monthLogs.forEach(log => {
+            log.set_logs?.forEach((set: any) => {
+                const isWorkingSet = ['working', 'failure', 'drop', 'dropset'].includes(set.set_type);
+                if (isWorkingSet && set.exercise?.muscle_weights) {
+                    const weights = set.exercise.muscle_weights as Record<string, number>;
+                    Object.entries(weights).forEach(([muscle, weight]) => {
+                        if (typeof weight === 'number') {
+                            muscleVolumes[muscle] = (muscleVolumes[muscle] || 0) + weight;
+                        }
+                    });
+                }
+            });
+        });
+
+        return Object.entries(muscleVolumes).map(([muscle, totalSets]) => ({
+            muscle,
+            label: SUB_MUSCLE_LABELS[muscle] || muscle,
+            sets: Math.round((totalSets / divisor) * 10) / 10
+        })).sort((a, b) => b.sets - a.sets);
+    };
+
+    const muscleVolumeData = getVolumeByMuscleForSelectedPeriod();
+
     return (
         <MainLayout>
             {/* Ambient Background */}
@@ -172,6 +246,40 @@ const History: React.FC = () => {
                             </BarChart>
                         </ResponsiveContainer>
                     </div>
+                </section>
+
+                {/* Volume Semanal por Músculo Card */}
+                <section className="bg-white dark:bg-slate-800 p-6 rounded-[2.5rem] shadow-soft border border-slate-100 dark:border-slate-700">
+                    <div className="mb-4">
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Volume de Séries de Trabalho</p>
+                        <h3 className="text-xl font-black text-slate-900 dark:text-white">Volume Semanal por Músculo</h3>
+                        <p className="text-xs text-slate-500 mt-1">Média de séries por semana no mês selecionado</p>
+                    </div>
+                    
+                    {muscleVolumeData.length === 0 ? (
+                        <p className="text-xs text-slate-400 dark:text-slate-500 italic py-2">Nenhum volume registrado para este período.</p>
+                    ) : (
+                        <div className="space-y-3 mt-4">
+                            {muscleVolumeData.map(({ muscle, label, sets }) => {
+                                const maxSets = Math.max(...muscleVolumeData.map(m => m.sets), 1);
+                                const percent = (sets / maxSets) * 100;
+                                return (
+                                    <div key={muscle} className="space-y-1">
+                                        <div className="flex justify-between text-xs font-bold text-slate-700 dark:text-slate-300">
+                                            <span>{label}</span>
+                                            <span className="text-sky-500">{sets} {sets === 1 ? 'série' : 'séries'}</span>
+                                        </div>
+                                        <div className="w-full bg-slate-100 dark:bg-slate-700 h-2.5 rounded-full overflow-hidden">
+                                            <div 
+                                                className="bg-gradient-to-r from-sky-500 to-emerald-500 h-full rounded-full transition-all duration-500" 
+                                                style={{ width: `${percent}%` }}
+                                            ></div>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    )}
                 </section>
 
                 {/* Calendar Card */}
@@ -302,7 +410,30 @@ const History: React.FC = () => {
                                                                 <div key={set.id} className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-slate-900/30 text-sm">
                                                                     <div className="flex items-center gap-3">
                                                                         <span className="w-5 h-5 rounded-md bg-white dark:bg-slate-700 flex items-center justify-center text-[10px] font-bold text-slate-400">{idx + 1}</span>
-                                                                        <span className="font-bold text-slate-700 dark:text-slate-200">{set.weight_kg}kg <span className="text-slate-400 font-normal">x {set.reps_completed}</span></span>
+                                                                        {set.exercise?.exercise_type === 'cardio' ? (
+                                                                            <span className="font-bold text-slate-700 dark:text-slate-200">
+                                                                                {set.hiit_cycles_completed ? (
+                                                                                    <span className="text-slate-400 font-normal">HIIT: {set.hiit_cycles_completed} ciclos em {formatTime(set.time_completed)}</span>
+                                                                                ) : (
+                                                                                    <>
+                                                                                        {set.distance_completed !== null && set.distance_completed !== undefined ? `${set.distance_completed}km` : '-'} 
+                                                                                        <span className="text-slate-400 font-normal">
+                                                                                            {set.speed_actual ? ` a ${set.speed_actual}km/h` : ''}
+                                                                                            {set.time_completed ? ` em ${formatTime(set.time_completed)}` : ''}
+                                                                                        </span>
+                                                                                    </>
+                                                                                )}
+                                                                            </span>
+                                                                        ) : set.exercise?.exercise_type === 'time' ? (
+                                                                            <span className="font-bold text-slate-700 dark:text-slate-200">
+                                                                                {formatTime(set.time_completed)} 
+                                                                                {set.weight_kg ? <span className="text-slate-400 font-normal"> com {set.weight_kg}kg</span> : ''}
+                                                                            </span>
+                                                                        ) : (
+                                                                            <span className="font-bold text-slate-700 dark:text-slate-200">
+                                                                                {set.weight_kg}kg <span className="text-slate-400 font-normal">x {set.reps_completed}</span>
+                                                                            </span>
+                                                                        )}
                                                                     </div>
                                                                     {set.rpe_actual && (
                                                                         <span className="text-[10px] font-black text-slate-400">@{set.rpe_actual}</span>
@@ -310,6 +441,22 @@ const History: React.FC = () => {
                                                                 </div>
                                                             ))}
                                                         </div>
+                                                        {/* Feedback individual do exercício */}
+                                                        {(() => {
+                                                            const feedback = log.exercise_feedback_logs?.find(
+                                                                (f: any) => f.exercise_id === sets[0]?.exercise_id
+                                                            );
+                                                            if (!feedback) return null;
+                                                            return (
+                                                                <div className="mt-2 p-3 rounded-xl bg-amber-50/50 dark:bg-amber-500/10 border border-amber-100/50 dark:border-amber-500/20 text-xs flex items-start gap-2">
+                                                                    <span className="material-symbols-rounded text-sm text-amber-500 mt-0.5">comment</span>
+                                                                    <div className="flex-1">
+                                                                        <span className="font-bold text-amber-600 dark:text-amber-400 block mb-0.5">Feedback do Exercício:</span>
+                                                                        <p className="text-slate-600 dark:text-slate-300 italic">"{feedback.feedback_text}"</p>
+                                                                    </div>
+                                                                </div>
+                                                            );
+                                                        })()}
                                                     </div>
                                                 ));
                                             })()}

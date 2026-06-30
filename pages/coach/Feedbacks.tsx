@@ -4,6 +4,15 @@ import { supabase } from '../../lib/supabaseClient';
 import { useAuth } from '../../contexts/AuthContext';
 import { Link } from 'react-router-dom';
 
+const formatTime = (seconds: number | string | null | undefined) => {
+    if (seconds === null || seconds === undefined) return '-';
+    const sec = parseInt(seconds.toString());
+    if (isNaN(sec)) return '-';
+    const m = Math.floor(sec / 60);
+    const s = sec % 60;
+    return `${m}:${s.toString().padStart(2, '0')}`;
+};
+
 const Feedbacks: React.FC = () => {
     const { user } = useAuth();
     const [feedbacks, setFeedbacks] = useState<any[]>([]);
@@ -38,7 +47,6 @@ const Feedbacks: React.FC = () => {
                 return;
             }
 
-            // 2. Fetch Logs for these students
             let query = supabase
                 .from('workout_logs')
                 .select(`
@@ -52,7 +60,10 @@ const Feedbacks: React.FC = () => {
                     workout:workouts (name),
                     set_logs (
                         *,
-                        exercise:exercises (name)
+                        exercise:exercises (id, name, exercise_type)
+                    ),
+                    exercise_feedback_logs (
+                        *
                     )
                 `)
                 .in('student_id', studentIds)
@@ -206,14 +217,37 @@ const Feedbacks: React.FC = () => {
                                                 }, {});
 
                                                 return Object.entries(grouped).map(([exerciseName, sets]: [string, any]) => (
-                                                    <div key={exerciseName}>
+                                                    <div key={exerciseName} className="border-b border-slate-100 dark:border-slate-850 pb-3 last:border-none">
                                                         <h5 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">{exerciseName}</h5>
                                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-1">
                                                             {sets.map((set: any, idx: number) => (
                                                                 <div key={set.id} className="flex items-center justify-between p-2 rounded-lg bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 text-xs">
                                                                     <div className="flex items-center gap-2">
                                                                         <span className="w-4 h-4 rounded bg-slate-100 dark:bg-slate-700 flex items-center justify-center text-[9px] font-bold text-slate-400">{idx + 1}</span>
-                                                                        <span className="font-bold text-slate-700 dark:text-slate-200">{set.weight_kg}kg <span className="text-slate-400 font-normal">x {set.reps_completed}</span></span>
+                                                                        {set.exercise?.exercise_type === 'cardio' ? (
+                                                                            <span className="font-bold text-slate-700 dark:text-slate-200">
+                                                                                {set.hiit_cycles_completed ? (
+                                                                                    <span className="text-slate-400 font-normal">HIIT: {set.hiit_cycles_completed} ciclos em {formatTime(set.time_completed)}</span>
+                                                                                ) : (
+                                                                                    <>
+                                                                                        {set.distance_completed !== null && set.distance_completed !== undefined ? `${set.distance_completed}km` : '-'} 
+                                                                                        <span className="text-slate-400 font-normal">
+                                                                                            {set.speed_actual ? ` a ${set.speed_actual}km/h` : ''}
+                                                                                            {set.time_completed ? ` em ${formatTime(set.time_completed)}` : ''}
+                                                                                        </span>
+                                                                                    </>
+                                                                                )}
+                                                                            </span>
+                                                                        ) : set.exercise?.exercise_type === 'time' ? (
+                                                                            <span className="font-bold text-slate-700 dark:text-slate-200">
+                                                                                {formatTime(set.time_completed)} 
+                                                                                {set.weight_kg ? <span className="text-slate-400 font-normal"> com {set.weight_kg}kg</span> : ''}
+                                                                            </span>
+                                                                        ) : (
+                                                                            <span className="font-bold text-slate-700 dark:text-slate-200">
+                                                                                {set.weight_kg}kg <span className="text-slate-400 font-normal">x {set.reps_completed}</span>
+                                                                            </span>
+                                                                        )}
                                                                     </div>
                                                                     {set.rpe_actual && (
                                                                         <span className="text-[9px] font-black text-slate-400">@{set.rpe_actual}</span>
@@ -221,6 +255,22 @@ const Feedbacks: React.FC = () => {
                                                                 </div>
                                                             ))}
                                                         </div>
+                                                        {/* Feedback individual do exercício */}
+                                                        {(() => {
+                                                            const feedback = log.exercise_feedback_logs?.find(
+                                                                (f: any) => f.exercise_id === sets[0]?.exercise_id
+                                                            );
+                                                            if (!feedback) return null;
+                                                            return (
+                                                                <div className="mt-2 p-2.5 rounded-lg bg-amber-50/50 dark:bg-amber-500/10 border border-amber-100/50 dark:border-amber-500/20 text-[11px] flex items-start gap-1.5">
+                                                                    <span className="material-symbols-rounded text-sm text-amber-500 mt-0.5">comment</span>
+                                                                    <div className="flex-1">
+                                                                        <span className="font-bold text-amber-600 dark:text-amber-400 block mb-0.5">Feedback da Execução:</span>
+                                                                        <p className="text-slate-600 dark:text-slate-300 italic">"{feedback.feedback_text}"</p>
+                                                                    </div>
+                                                                </div>
+                                                            );
+                                                        })()}
                                                     </div>
                                                 ));
                                             })()}

@@ -4,6 +4,26 @@ import { supabase } from '../../lib/supabaseClient';
 import { useAuth } from '../../contexts/AuthContext';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 
+const SUB_MUSCLE_LABELS: Record<string, string> = {
+    peitoral: 'Peitoral',
+    triceps: 'Tríceps',
+    biceps: 'Bíceps',
+    ombro_anterior: 'Ombro Anterior',
+    ombro_lateral: 'Ombro Lateral',
+    ombro_posterior: 'Ombro Posterior',
+    upperback: 'Costas Superior',
+    latissimo: 'Dorsal (Latíssimo)',
+    quadriceps: 'Quadríceps',
+    gluteos: 'Glúteos',
+    isquiotibiais: 'Posterior de Coxa',
+    panturrilha: 'Panturrilha',
+    abs: 'Abdômen',
+    cardio: 'Cardio / Aeróbico',
+    antebraco: 'Antebraço',
+    lombar: 'Lombar',
+    trapezio: 'Trapézio'
+};
+
 const RoutineDetails: React.FC = () => {
     const { user } = useAuth();
     const navigate = useNavigate();
@@ -51,12 +71,22 @@ const RoutineDetails: React.FC = () => {
             if (routineError) throw routineError;
             setRoutine(routineData);
 
-            // 2. Fetch Workouts with Exercise Counts
+            // 2. Fetch Workouts with Exercises and Sets for Muscle Volume Estimation
             const { data: workoutsData, error: workoutsError } = await supabase
                 .from('workouts')
                 .select(`
                     *,
-                    workout_items (count)
+                    workout_items (
+                        id,
+                        exercise_id,
+                        exercise:exercises (id, name, muscle_weights),
+                        workout_sets (
+                            id,
+                            type,
+                            reps_target,
+                            weight_target
+                        )
+                    )
                 `)
                 .eq('routine_id', routineId)
                 .order('day_number', { ascending: true }); // Using day_number for ordering
@@ -65,7 +95,7 @@ const RoutineDetails: React.FC = () => {
 
             const formattedWorkouts = workoutsData?.map((w: any) => ({
                 ...w,
-                exercise_count: w.workout_items[0]?.count || 0
+                exercise_count: w.workout_items?.length || 0
             })) || [];
 
             setWorkouts(formattedWorkouts);
@@ -229,6 +259,37 @@ const RoutineDetails: React.FC = () => {
             return {};
         }
     };
+
+    const getRoutinePrescribedVolume = () => {
+        const muscleVolumes: Record<string, number> = {};
+
+        workouts.forEach(w => {
+            w.workout_items?.forEach((item: any) => {
+                if (!item.exercise?.muscle_weights) return;
+                const weights = item.exercise.muscle_weights as Record<string, number>;
+                
+                // Contar séries de trabalho configuradas para este item
+                const workingSetsCount = item.workout_sets?.filter((set: any) => 
+                    ['working', 'failure', 'drop', 'dropset'].includes(set.type)
+                ).length || 0;
+
+                if (workingSetsCount > 0) {
+                    Object.entries(weights).forEach(([muscle, weight]) => {
+                        if (typeof weight === 'number') {
+                            muscleVolumes[muscle] = (muscleVolumes[muscle] || 0) + (workingSetsCount * weight);
+                        }
+                    });
+                }
+            });
+        });
+
+        return Object.entries(muscleVolumes).map(([muscle, totalSets]) => ({
+            muscle,
+            label: SUB_MUSCLE_LABELS[muscle] || muscle,
+            sets: Math.round(totalSets * 10) / 10
+        })).sort((a, b) => b.sets - a.sets);
+    };
+
     const meta = routine ? parseMeta(routine.description) : {};
 
     return (
@@ -286,6 +347,48 @@ const RoutineDetails: React.FC = () => {
                         <p className="text-slate-500 text-sm mt-3">
                             {workouts.length} treinos cadastrados nesta rotina.
                         </p>
+                    </div>
+                )}
+
+                {/* Estimativa de Volume Semanal Card */}
+                {!loading && workouts.length > 0 && (
+                    <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl shadow-soft border border-slate-100 dark:border-slate-700 animate-fade-in">
+                        <div className="flex items-center gap-2 mb-3">
+                            <span className="material-symbols-rounded text-primary">analytics</span>
+                            <h3 className="font-bold text-slate-900 dark:text-white">Volume Semanal Prescrito (Estimado)</h3>
+                        </div>
+                        <p className="text-xs text-slate-500 mb-4">Séries de trabalho estimadas por grupo muscular detalhado para esta rotina</p>
+                        
+                        {(() => {
+                            const prescribedVolume = getRoutinePrescribedVolume();
+                            if (prescribedVolume.length === 0) {
+                                return (
+                                    <p className="text-xs text-slate-400 dark:text-slate-500 italic">Nenhum exercício com séries de trabalho configuradas nesta rotina.</p>
+                                );
+                            }
+                            return (
+                                <div className="space-y-3">
+                                    {prescribedVolume.map(({ muscle, label, sets }) => {
+                                        const maxSets = Math.max(...prescribedVolume.map(m => m.sets), 1);
+                                        const percent = (sets / maxSets) * 100;
+                                        return (
+                                            <div key={muscle} className="space-y-1">
+                                                <div className="flex justify-between text-xs font-bold text-slate-700 dark:text-slate-300">
+                                                    <span>{label}</span>
+                                                    <span className="text-primary">{sets} {sets === 1 ? 'série' : 'séries'}</span>
+                                                </div>
+                                                <div className="w-full bg-slate-100 dark:bg-slate-700 h-2 rounded-full overflow-hidden">
+                                                    <div
+                                                        className="bg-gradient-to-r from-primary to-emerald-500 h-full rounded-full transition-all duration-500"
+                                                        style={{ width: `${percent}%` }}
+                                                    ></div>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            );
+                        })()}
                     </div>
                 )}
 

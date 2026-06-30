@@ -145,7 +145,9 @@ const Exercises: React.FC<ExercisesProps> = ({ isModal, onSelect }) => {
                 description: data.description,
                 owner_id: role === 'admin' ? null : user?.id,
                 // Admin exercises are always public, coach exercises default to private
-                is_public: role === 'admin' ? true : (editingExercise ? editingExercise.is_public : false)
+                is_public: role === 'admin' ? true : (editingExercise ? editingExercise.is_public : false),
+                exercise_type: data.exercise_type || 'reps',
+                muscle_weights: data.muscle_weights || {}
             };
 
             if (editingExercise) {
