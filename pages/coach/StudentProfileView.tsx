@@ -6,26 +6,7 @@ import toast from 'react-hot-toast';
 import EvolutionGallery from '../../components/student/EvolutionGallery';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Cell } from 'recharts';
 import { formatToWhatsappUrl } from '../../utils/phoneUtils';
-
-const SUB_MUSCLE_LABELS: Record<string, string> = {
-    peitoral: 'Peitoral',
-    triceps: 'Tríceps',
-    biceps: 'Bíceps',
-    ombro_anterior: 'Ombro Anterior',
-    ombro_lateral: 'Ombro Lateral',
-    ombro_posterior: 'Ombro Posterior',
-    upperback: 'Costas Superior',
-    latissimo: 'Dorsal (Latíssimo)',
-    quadriceps: 'Quadríceps',
-    gluteos: 'Glúteos',
-    isquiotibiais: 'Posterior de Coxa',
-    panturrilha: 'Panturrilha',
-    abs: 'Abdômen',
-    cardio: 'Cardio / Aeróbico',
-    antebraco: 'Antebraço',
-    lombar: 'Lombar',
-    trapezio: 'Trapézio'
-};
+import { SUB_MUSCLE_LABELS, normalizeMuscleWeights } from '../../utils/muscleUtils';
 
 const StudentProfileView: React.FC = () => {
     const { id } = useParams<{ id: string }>();
@@ -353,7 +334,7 @@ const StudentProfileView: React.FC = () => {
             log.set_logs?.forEach((set: any) => {
                 const isWorkingSet = ['working', 'failure', 'drop', 'dropset'].includes(set.set_type);
                 if (isWorkingSet && set.exercise?.muscle_weights) {
-                    const weights = set.exercise.muscle_weights as Record<string, number>;
+                    const weights = normalizeMuscleWeights(set.exercise.muscle_weights as Record<string, number>);
                     Object.entries(weights).forEach(([muscle, weight]) => {
                         if (typeof weight === 'number') {
                             muscleVolumes[muscle] = (muscleVolumes[muscle] || 0) + weight;

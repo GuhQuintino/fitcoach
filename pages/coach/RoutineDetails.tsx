@@ -3,26 +3,8 @@ import MainLayout from '../../layouts/MainLayout';
 import { supabase } from '../../lib/supabaseClient';
 import { useAuth } from '../../contexts/AuthContext';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
-
-const SUB_MUSCLE_LABELS: Record<string, string> = {
-    peitoral: 'Peitoral',
-    triceps: 'Tríceps',
-    biceps: 'Bíceps',
-    ombro_anterior: 'Ombro Anterior',
-    ombro_lateral: 'Ombro Lateral',
-    ombro_posterior: 'Ombro Posterior',
-    upperback: 'Costas Superior',
-    latissimo: 'Dorsal (Latíssimo)',
-    quadriceps: 'Quadríceps',
-    gluteos: 'Glúteos',
-    isquiotibiais: 'Posterior de Coxa',
-    panturrilha: 'Panturrilha',
-    abs: 'Abdômen',
-    cardio: 'Cardio / Aeróbico',
-    antebraco: 'Antebraço',
-    lombar: 'Lombar',
-    trapezio: 'Trapézio'
-};
+import toast from 'react-hot-toast';
+import { SUB_MUSCLE_LABELS, normalizeMuscleWeights } from '../../utils/muscleUtils';
 
 const RoutineDetails: React.FC = () => {
     const { user } = useAuth();
@@ -266,7 +248,7 @@ const RoutineDetails: React.FC = () => {
         workouts.forEach(w => {
             w.workout_items?.forEach((item: any) => {
                 if (!item.exercise?.muscle_weights) return;
-                const weights = item.exercise.muscle_weights as Record<string, number>;
+                const weights = normalizeMuscleWeights(item.exercise.muscle_weights as Record<string, number>);
                 
                 // Contar séries de trabalho configuradas para este item
                 const workingSetsCount = item.workout_sets?.filter((set: any) => 
