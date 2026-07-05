@@ -19,6 +19,7 @@ const History: React.FC = () => {
     const { user } = useAuth();
     const [loading, setLoading] = useState(true);
     const [logs, setLogs] = useState<any[]>([]);
+    const [workouts, setWorkouts] = useState<any[]>([]);
     const [selectedDate, setSelectedDate] = useState<Date>(new Date());
     const [expandedLog, setExpandedLog] = useState<string | null>(null);
 
@@ -49,6 +50,33 @@ const History: React.FC = () => {
 
             if (error) throw error;
             setLogs(data || []);
+
+            // Buscar rotina ativa e treinos para cálculo de volume planejado
+            const { data: routineData, error: routineError } = await supabase
+                .from('routines')
+                .select('*')
+                .eq('student_id', user!.id)
+                .eq('is_active', true)
+                .maybeSingle();
+
+            if (!routineError && routineData) {
+                const { data: workoutsData, error: workoutsError } = await supabase
+                    .from('workouts')
+                    .select(`
+                        *,
+                        workout_items (
+                            *,
+                            exercise:exercises (*),
+                            workout_sets (*)
+                        )
+                    `)
+                    .eq('routine_id', routineData.id)
+                    .order('order_index');
+
+                if (!workoutsError) {
+                    setWorkouts(workoutsData || []);
+                }
+            }
 
         } catch (error) {
             console.error('Error fetching logs:', error);
@@ -124,12 +152,42 @@ const History: React.FC = () => {
     const diffPercent = prevVolume > 0 ? ((latestVolume - prevVolume) / prevVolume * 100).toFixed(1) : null;
 
     const getVolumeByMuscleForSelectedPeriod = () => {
+        const muscleVolumes: Record<string, number> = {};
+
+        // Se o aluno tiver treinos prescritos na rotina ativa, preferimos mostrar o volume prescrito planejado
+        if (workouts && workouts.length > 0) {
+            workouts.forEach(w => {
+                w.workout_items?.forEach((item: any) => {
+                    if (!item.exercise?.muscle_weights) return;
+                    const weights = normalizeMuscleWeights(item.exercise.muscle_weights as Record<string, number>);
+                    
+                    // Conta séries de trabalho prescritas (working, failure, dropset, etc.)
+                    const workingSetsCount = item.workout_sets?.filter((set: any) => 
+                        ['working', 'failure', 'drop', 'dropset'].includes(set.type)
+                    ).length || 0;
+
+                    if (workingSetsCount > 0) {
+                        Object.entries(weights).forEach(([muscle, weight]) => {
+                            if (typeof weight === 'number') {
+                                muscleVolumes[muscle] = (muscleVolumes[muscle] || 0) + (workingSetsCount * weight);
+                            }
+                        });
+                    }
+                });
+            });
+
+            return Object.entries(muscleVolumes).map(([muscle, totalSets]) => ({
+                muscle,
+                label: SUB_MUSCLE_LABELS[muscle] || muscle,
+                sets: Math.round(totalSets * 10) / 10
+            })).sort((a, b) => b.sets - a.sets);
+        }
+
         const monthLogs = logs.filter(log => {
             const d = new Date(log.started_at);
             return d.getFullYear() === currentYear && d.getMonth() === currentMonth;
         });
 
-        const muscleVolumes: Record<string, number> = {};
         const activeWeeks = new Set<string>();
 
         monthLogs.forEach(log => {
@@ -234,7 +292,11 @@ const History: React.FC = () => {
                     <div className="mb-4">
                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Volume de Séries de Trabalho</p>
                         <h3 className="text-xl font-black text-slate-900 dark:text-white">Volume Semanal por Músculo</h3>
-                        <p className="text-xs text-slate-500 mt-1">Média de séries por semana no mês selecionado</p>
+                        <p className="text-xs text-slate-500 mt-1">
+                            {workouts && workouts.length > 0
+                                ? "Séries de trabalho prescritas por semana na rotina ativa"
+                                : "Média de séries por semana no mês selecionado"}
+                        </p>
                     </div>
                     
                     {muscleVolumeData.length === 0 ? (

@@ -319,9 +319,40 @@ const StudentProfileView: React.FC = () => {
     const weeklyData = getWeeklyVolumeData();
 
     const getWeeklyVolumeByMuscle = () => {
+        const muscleVolumes: Record<string, number> = {};
+
+        // Se o aluno tiver treinos prescritos na rotina ativa, preferimos mostrar o volume prescrito
+        if (workouts && workouts.length > 0) {
+            workouts.forEach(w => {
+                w.workout_items?.forEach((item: any) => {
+                    if (!item.exercise?.muscle_weights) return;
+                    const weights = normalizeMuscleWeights(item.exercise.muscle_weights as Record<string, number>);
+                    
+                    // Conta séries de trabalho prescritas (working, failure, dropset, etc.)
+                    const workingSetsCount = item.workout_sets?.filter((set: any) => 
+                        ['working', 'failure', 'drop', 'dropset'].includes(set.type)
+                    ).length || 0;
+
+                    if (workingSetsCount > 0) {
+                        Object.entries(weights).forEach(([muscle, weight]) => {
+                            if (typeof weight === 'number') {
+                                muscleVolumes[muscle] = (muscleVolumes[muscle] || 0) + (workingSetsCount * weight);
+                            }
+                        });
+                    }
+                });
+            });
+
+            return Object.entries(muscleVolumes).map(([muscle, totalSets]) => ({
+                muscle,
+                label: SUB_MUSCLE_LABELS[muscle] || muscle,
+                sets: Math.round(totalSets * 10) / 10
+            })).sort((a, b) => b.sets - a.sets);
+        }
+
+        // Fallback: calcula a média semanal baseada no histórico de logs reais realizados
         if (!logs.length) return [];
         
-        const muscleVolumes: Record<string, number> = {};
         const activeWeeks = new Set<string>();
 
         logs.forEach(log => {
@@ -651,7 +682,11 @@ const StudentProfileView: React.FC = () => {
                             <span className="material-symbols-rounded text-primary">analytics</span>
                             <h3 className="font-bold text-slate-900 dark:text-white">Volume Semanal por Músculo</h3>
                         </div>
-                        <p className="text-xs text-slate-500 mb-4">Média de séries de trabalho realizadas por semana</p>
+                        <p className="text-xs text-slate-500 mb-4">
+                            {workouts && workouts.length > 0
+                                ? "Séries de trabalho prescritas por semana na rotina ativa"
+                                : "Média de séries de trabalho realizadas por semana"}
+                        </p>
                         {(() => {
                             const muscleData = getWeeklyVolumeByMuscle();
                             if (muscleData.length === 0) {
