@@ -116,7 +116,14 @@ const StudentProfileView: React.FC = () => {
                 setRoutineName(assignment.routines.name);
                 const { data: wData } = await supabase
                     .from('workouts')
-                    .select('*')
+                    .select(`
+                        *,
+                        workout_items (
+                            *,
+                            exercise:exercises (*),
+                            workout_sets (*)
+                        )
+                    `)
                     .eq('routine_id', assignment.routines.id)
                     .order('day_number', { ascending: true });
                 setWorkouts(wData || []);
