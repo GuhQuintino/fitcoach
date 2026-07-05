@@ -14,7 +14,8 @@ export const SUB_MUSCLE_LABELS: Record<string, string> = {
     abs: 'Abdômen',
     cardio: 'Cardio / Aeróbico',
     antebraco: 'Antebraço',
-    lombar: 'Lombar'
+    lombar: 'Lombar',
+    adutores: 'Adutores'
 };
 
 /**
@@ -50,6 +51,9 @@ export const normalizeMuscleWeights = (weights: Record<string, number | null | u
         } else if (key === 'trapezio' || key === 'trapézio') {
             // Unifica Trapézio com Costas Superior (upperback)
             normalized['upperback'] = (normalized['upperback'] || 0) + numericWeight;
+        } else if (key === 'adutores' || key === 'adutor') {
+            // Normaliza Adutores
+            normalized['adutores'] = (normalized['adutores'] || 0) + numericWeight;
         } else {
             // Se já for uma das chaves oficiais ou qualquer outra
             normalized[key] = (normalized[key] || 0) + numericWeight;
