@@ -130,7 +130,7 @@ const ExerciseFormModal: React.FC<ExerciseFormModalProps> = ({ isOpen, onClose, 
                                 <label className="block text-sm font-bold text-slate-700 dark:text-slate-300">Ativação Muscular (Subgrupos)</label>
                                 <span className="text-[10px] text-slate-400 font-medium">Valores de 0% a 100%</span>
                             </div>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-56 overflow-y-auto pr-1">
+                            <div className="grid grid-cols-1 gap-2.5 max-h-64 overflow-y-auto pr-1">
                                 {[
                                     { key: 'peitoral', label: 'Peitoral' },
                                     { key: 'triceps', label: 'Tríceps' },
@@ -152,9 +152,9 @@ const ExerciseFormModal: React.FC<ExerciseFormModalProps> = ({ isOpen, onClose, 
                                 ].map(sub => {
                                     const currentVal = formData.muscle_weights?.[sub.key] ?? 0;
                                     return (
-                                        <div key={sub.key} className="flex items-center justify-between bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-100 dark:border-slate-800 shadow-sm gap-2">
-                                            <span className="text-xs font-bold text-slate-600 dark:text-slate-300 select-none">{sub.label}</span>
-                                            <div className="flex items-center gap-1">
+                                        <div key={sub.key} className="flex items-center justify-between bg-slate-50 dark:bg-slate-800/40 p-2.5 rounded-xl border border-slate-100 dark:border-slate-800/80 shadow-sm gap-2">
+                                            <span className="text-xs font-bold text-slate-700 dark:text-slate-300 select-none">{sub.label}</span>
+                                            <div className="flex items-center gap-1 flex-shrink-0">
                                                 {[0, 0.25, 0.5, 0.75, 1].map(val => {
                                                     const isActive = currentVal === val;
                                                     return (
@@ -170,10 +170,10 @@ const ExerciseFormModal: React.FC<ExerciseFormModalProps> = ({ isOpen, onClose, 
                                                                 }
                                                                 setFormData({ ...formData, muscle_weights: currentWeights });
                                                             }}
-                                                            className={`px-2 py-1 text-[10px] font-mono font-bold rounded-lg border transition-all active:scale-95 select-none ${
+                                                            className={`w-10 h-7 flex items-center justify-center text-[10px] font-mono font-bold rounded-lg border transition-all active:scale-95 select-none ${
                                                                 isActive
                                                                     ? 'bg-sky-500 border-sky-500 text-white shadow-sm'
-                                                                    : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700'
+                                                                    : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700'
                                                             }`}
                                                         >
                                                             {val === 0 ? '0' : val === 1 ? '1' : val.toString()}
