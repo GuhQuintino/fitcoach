@@ -152,30 +152,34 @@ const ExerciseFormModal: React.FC<ExerciseFormModalProps> = ({ isOpen, onClose, 
                                 ].map(sub => {
                                     const currentVal = formData.muscle_weights?.[sub.key] ?? 0;
                                     return (
-                                        <div key={sub.key} className="flex flex-col bg-white dark:bg-slate-900 p-2 rounded-xl border border-slate-100 dark:border-slate-805 shadow-sm">
-                                            <div className="flex justify-between items-center text-xs font-bold text-slate-600 dark:text-slate-300 mb-1 select-none">
-                                                <span>{sub.label}</span>
-                                                <span className="text-sky-500 font-mono">{currentVal}</span>
-                                            </div>
-                                            <div className="flex items-center gap-2">
-                                                <input
-                                                    type="range"
-                                                    min="0"
-                                                    max="1"
-                                                    step="0.25"
-                                                    className="w-full h-1.5 bg-slate-100 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-sky-500"
-                                                    value={currentVal}
-                                                    onChange={e => {
-                                                        const val = parseFloat(e.target.value);
-                                                        const currentWeights = { ...(formData.muscle_weights || {}) };
-                                                        if (val === 0) {
-                                                            delete currentWeights[sub.key];
-                                                        } else {
-                                                            currentWeights[sub.key] = val;
-                                                        }
-                                                        setFormData({ ...formData, muscle_weights: currentWeights });
-                                                    }}
-                                                />
+                                        <div key={sub.key} className="flex items-center justify-between bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-100 dark:border-slate-800 shadow-sm gap-2">
+                                            <span className="text-xs font-bold text-slate-600 dark:text-slate-300 select-none">{sub.label}</span>
+                                            <div className="flex items-center gap-1">
+                                                {[0, 0.25, 0.5, 0.75, 1].map(val => {
+                                                    const isActive = currentVal === val;
+                                                    return (
+                                                        <button
+                                                            key={val}
+                                                            type="button"
+                                                            onClick={() => {
+                                                                const currentWeights = { ...(formData.muscle_weights || {}) };
+                                                                if (val === 0) {
+                                                                    delete currentWeights[sub.key];
+                                                                } else {
+                                                                    currentWeights[sub.key] = val;
+                                                                }
+                                                                setFormData({ ...formData, muscle_weights: currentWeights });
+                                                            }}
+                                                            className={`px-2 py-1 text-[10px] font-mono font-bold rounded-lg border transition-all active:scale-95 select-none ${
+                                                                isActive
+                                                                    ? 'bg-sky-500 border-sky-500 text-white shadow-sm'
+                                                                    : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700'
+                                                            }`}
+                                                        >
+                                                            {val === 0 ? '0' : val === 1 ? '1' : val.toString()}
+                                                        </button>
+                                                    );
+                                                })}
                                             </div>
                                         </div>
                                     );
