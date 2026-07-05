@@ -5,7 +5,7 @@ export const SUB_MUSCLE_LABELS: Record<string, string> = {
     ombro_anterior: 'Ombro Anterior',
     ombro_lateral: 'Ombro Lateral',
     ombro_posterior: 'Ombro Posterior',
-    upperback: 'Costas Superior',
+    upperback: 'Costas Superior / Trapézio',
     latissimo: 'Dorsal (Latíssimo)',
     quadriceps: 'Quadríceps',
     gluteos: 'Glúteos',
@@ -14,8 +14,7 @@ export const SUB_MUSCLE_LABELS: Record<string, string> = {
     abs: 'Abdômen',
     cardio: 'Cardio / Aeróbico',
     antebraco: 'Antebraço',
-    lombar: 'Lombar',
-    trapezio: 'Trapézio'
+    lombar: 'Lombar'
 };
 
 /**
@@ -48,6 +47,9 @@ export const normalizeMuscleWeights = (weights: Record<string, number | null | u
             normalized['ombro_anterior'] = (normalized['ombro_anterior'] || 0) + (numericWeight * 0.33);
             normalized['ombro_lateral'] = (normalized['ombro_lateral'] || 0) + (numericWeight * 0.33);
             normalized['ombro_posterior'] = (normalized['ombro_posterior'] || 0) + (numericWeight * 0.34);
+        } else if (key === 'trapezio' || key === 'trapézio') {
+            // Unifica Trapézio com Costas Superior (upperback)
+            normalized['upperback'] = (normalized['upperback'] || 0) + numericWeight;
         } else {
             // Se já for uma das chaves oficiais ou qualquer outra
             normalized[key] = (normalized[key] || 0) + numericWeight;

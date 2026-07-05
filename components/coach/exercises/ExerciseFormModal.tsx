@@ -138,7 +138,7 @@ const ExerciseFormModal: React.FC<ExerciseFormModalProps> = ({ isOpen, onClose, 
                                     { key: 'ombro_anterior', label: 'Ombro Anterior' },
                                     { key: 'ombro_lateral', label: 'Ombro Lateral' },
                                     { key: 'ombro_posterior', label: 'Ombro Posterior' },
-                                    { key: 'upperback', label: 'Costas Superior' },
+                                    { key: 'upperback', label: 'Costas Superior / Trapézio' },
                                     { key: 'latissimo', label: 'Dorsal (Latíssimo)' },
                                     { key: 'quadriceps', label: 'Quadríceps' },
                                     { key: 'gluteos', label: 'Glúteos' },
@@ -147,8 +147,7 @@ const ExerciseFormModal: React.FC<ExerciseFormModalProps> = ({ isOpen, onClose, 
                                     { key: 'abs', label: 'Abdômen' },
                                     { key: 'cardio', label: 'Cardio / Aeróbico' },
                                     { key: 'antebraco', label: 'Antebraço' },
-                                    { key: 'lombar', label: 'Lombar' },
-                                    { key: 'trapezio', label: 'Trapézio' }
+                                    { key: 'lombar', label: 'Lombar' }
                                 ].map(sub => {
                                     const currentVal = formData.muscle_weights?.[sub.key] ?? 0;
                                     return (
