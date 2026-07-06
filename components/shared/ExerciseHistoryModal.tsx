@@ -111,16 +111,22 @@ const ExerciseHistoryModal: React.FC<ExerciseHistoryModalProps> = ({ isOpen, onC
                     ) : (
                         <div className="space-y-4">
                             {(() => {
-                                // Agrupar por data (dia)
+                                // Agrupar por data (dia local)
                                 const grouped: { [key: string]: any[] } = {};
                                 history.forEach(log => {
-                                    const dateKey = new Date(log.workout_logs.finished_at).toISOString().split('T')[0];
+                                    const d = new Date(log.workout_logs.finished_at);
+                                    const year = d.getFullYear();
+                                    const month = String(d.getMonth() + 1).padStart(2, '0');
+                                    const day = String(d.getDate()).padStart(2, '0');
+                                    const dateKey = `${year}-${month}-${day}`;
+                                    
                                     if (!grouped[dateKey]) grouped[dateKey] = [];
                                     grouped[dateKey].push(log);
                                 });
 
                                 return Object.entries(grouped).map(([dateKey, logs]) => {
-                                    const date = new Date(dateKey);
+                                    const [year, month, day] = dateKey.split('-').map(Number);
+                                    const date = new Date(year, month - 1, day);
                                     return (
                                         <div key={dateKey} className="bg-slate-50 dark:bg-slate-900/30 rounded-2xl border border-slate-100 dark:border-slate-700/50 overflow-hidden">
                                             {/* Date Header */}
