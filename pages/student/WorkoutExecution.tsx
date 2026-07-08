@@ -469,6 +469,7 @@ const WorkoutExecution: React.FC = () => {
                                             reps: savedSet.reps,
                                             rpe: savedSet.rpe,
                                             completed: savedSet.completed,
+                                            completed_at: savedSet.completed_at || undefined,
                                             time_completed: savedSet.time_completed || '',
                                             distance_completed: savedSet.distance_completed || '',
                                             speed_actual: savedSet.speed_actual || '',
@@ -530,6 +531,12 @@ const WorkoutExecution: React.FC = () => {
         const wasCompleted = currentSet.completed;
 
         currentSet.completed = !wasCompleted;
+
+        if (currentSet.completed) {
+            currentSet.completed_at = new Date().toISOString();
+        } else {
+            delete currentSet.completed_at;
+        }
 
         // Implicit Logging: Fill with target/previous if empty when checking
         if (!wasCompleted) {
@@ -694,9 +701,36 @@ const WorkoutExecution: React.FC = () => {
             setFinishModalOpen(false);
             const toastId = toast.loading('Salvando treino...');
 
+            // Filtrar todos os timestamps de conclusão das séries concluídas
+            const completedTimestamps: number[] = [];
+            exercises.forEach(ex => {
+                ex.sets.forEach(set => {
+                    if (set.completed && set.completed_at) {
+                        const ts = new Date(set.completed_at).getTime();
+                        if (!isNaN(ts)) {
+                            completedTimestamps.push(ts);
+                        }
+                    }
+                });
+            });
+
             const now = new Date();
-            // Calcular o started_at real descontando as pausas
-            const realStartedAt = new Date(now.getTime() - workoutSeconds * 1000);
+            let realStartedAt = new Date(now.getTime() - workoutSeconds * 1000); // Fallback padrão
+            let realFinishedAt = now;
+
+            if (completedTimestamps.length > 0) {
+                const minTs = Math.min(...completedTimestamps);
+                const maxTs = Math.max(...completedTimestamps);
+                
+                // Se a diferença for menor que 10 segundos, coloca 60 segundos por padrão
+                if (maxTs - minTs < 10000) {
+                    realStartedAt = new Date(maxTs - 60000);
+                    realFinishedAt = new Date(maxTs);
+                } else {
+                    realStartedAt = new Date(minTs);
+                    realFinishedAt = new Date(maxTs);
+                }
+            }
 
             // 1. Create Log Header
             const { data: logData, error: logError } = await supabase
@@ -705,7 +739,7 @@ const WorkoutExecution: React.FC = () => {
                     student_id: user!.id,
                     workout_id: workoutId,
                     started_at: realStartedAt.toISOString(),
-                    finished_at: now.toISOString(),
+                    finished_at: realFinishedAt.toISOString(),
                     effort_rating: overallEffort,
                     feedback_notes: workoutComment
                 })
