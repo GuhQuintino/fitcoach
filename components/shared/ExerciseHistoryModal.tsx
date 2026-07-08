@@ -1,6 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabaseClient';
 
+const formatTime = (seconds: number | string | null | undefined) => {
+    if (seconds === null || seconds === undefined) return '-';
+    const sec = parseInt(seconds.toString());
+    if (isNaN(sec)) return '-';
+    const m = Math.floor(sec / 60);
+    const s = sec % 60;
+    return `${m}:${s.toString().padStart(2, '0')}`;
+};
+
 interface ExerciseHistoryModalProps {
     isOpen: boolean;
     onClose: () => void;
@@ -36,7 +45,14 @@ const ExerciseHistoryModal: React.FC<ExerciseHistoryModalProps> = ({ isOpen, onC
                         weight_kg,
                         reps_completed,
                         rpe_actual,
-                        set_type
+                        set_type,
+                        time_completed,
+                        distance_completed,
+                        speed_actual,
+                        hiit_cycles_completed,
+                        exercise:exercises (
+                            exercise_type
+                        )
                     )
                 `)
                 .eq('student_id', studentId)
@@ -147,7 +163,30 @@ const ExerciseHistoryModal: React.FC<ExerciseHistoryModalProps> = ({ isOpen, onC
                                                         <div className="flex items-center gap-3">
                                                             <span className="w-6 h-6 rounded-lg bg-slate-100 dark:bg-slate-700 flex items-center justify-center text-[10px] font-bold text-slate-500">{idx + 1}</span>
                                                             <div className="flex flex-col">
-                                                                <span className="text-sm font-bold text-slate-800 dark:text-slate-200">{log.weight_kg}kg <span className="text-slate-400 font-normal">x {log.reps_completed}</span></span>
+                                                                <span className="text-sm font-bold text-slate-800 dark:text-slate-200">
+                                                                    {log.exercise?.exercise_type === 'cardio' ? (
+                                                                        log.hiit_cycles_completed ? (
+                                                                            <span className="text-slate-400 font-normal">HIIT: {log.hiit_cycles_completed} ciclos em {formatTime(log.time_completed)}</span>
+                                                                        ) : (
+                                                                            <>
+                                                                                {log.distance_completed !== null && log.distance_completed !== undefined ? `${log.distance_completed}km` : '-'} 
+                                                                                <span className="text-slate-400 font-normal">
+                                                                                    {log.speed_actual ? ` a ${log.speed_actual}km/h` : ''}
+                                                                                    {log.time_completed ? ` em ${formatTime(log.time_completed)}` : ''}
+                                                                                </span>
+                                                                            </>
+                                                                        )
+                                                                    ) : log.exercise?.exercise_type === 'time' ? (
+                                                                        <>
+                                                                            {formatTime(log.time_completed)}
+                                                                            {log.weight_kg ? <span className="text-slate-400 font-normal"> com {log.weight_kg}kg</span> : ''}
+                                                                        </>
+                                                                    ) : (
+                                                                        <>
+                                                                            {log.weight_kg}kg <span className="text-slate-400 font-normal">x {log.reps_completed}</span>
+                                                                        </>
+                                                                    )}
+                                                                </span>
                                                                 <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wide">
                                                                     {(() => {
                                                                         switch (log.set_type) {

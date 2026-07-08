@@ -237,6 +237,12 @@ const WorkoutExecution: React.FC = () => {
     const [workoutSeconds, setWorkoutSeconds] = useState(0);
     const [isWorkoutPaused, setIsWorkoutPaused] = useState(false);
     const [seriesHelpModal, setSeriesHelpModal] = useState(false);
+    const [activeTimerSet, setActiveTimerSet] = useState<{
+        exIndex: number;
+        setIndex: number;
+        seconds: number;
+        isRunning: boolean;
+    } | null>(null);
 
     const formatWorkoutDuration = (totalSeconds: number) => {
         const h = Math.floor(totalSeconds / 3600);
@@ -280,6 +286,57 @@ const WorkoutExecution: React.FC = () => {
     useEffect(() => {
         setDuration(formatWorkoutDuration(workoutSeconds));
     }, [workoutSeconds]);
+
+    // Cardio/Time Active Timer Tick
+    useEffect(() => {
+        if (!activeTimerSet || !activeTimerSet.isRunning) return;
+
+        const interval = setInterval(() => {
+            setActiveTimerSet(prev => {
+                if (!prev) return null;
+                return {
+                    ...prev,
+                    seconds: prev.seconds + 1
+                };
+            });
+        }, 1000);
+
+        return () => clearInterval(interval);
+    }, [activeTimerSet?.isRunning]);
+
+    const handleSaveTimerTime = () => {
+        if (!activeTimerSet) return;
+        const { exIndex, setIndex, seconds } = activeTimerSet;
+
+        // Salvar tempo no input
+        handleInputChange(exIndex, setIndex, 'time_completed', String(seconds));
+
+        // Marcar a série como concluída e registrar timestamp
+        const newExercises = [...exercises];
+        const currentSet = { ...newExercises[exIndex].sets[setIndex] };
+        currentSet.time_completed = String(seconds);
+        currentSet.completed = true;
+        currentSet.completed_at = new Date().toISOString();
+
+        newExercises[exIndex] = {
+            ...newExercises[exIndex],
+            sets: newExercises[exIndex].sets.map((s, i) => i === setIndex ? currentSet : s)
+        };
+
+        setExercises(newExercises);
+        saveToLocalStorage(newExercises);
+
+        // Se for o exercício atual e terminou todas as séries, foca no próximo
+        const allSetsCompleted = newExercises[exIndex].sets.every(s => s.completed);
+        if (allSetsCompleted && exIndex === currentExerciseIndex && exIndex < exercises.length - 1) {
+            setCurrentExerciseIndex(exIndex + 1);
+        }
+
+        // Iniciar timer de descanso
+        startRestTimer(currentSet.rest_seconds);
+
+        setActiveTimerSet(null);
+    };
 
     // Auto-scroll to focused exercise
     useEffect(() => {
@@ -419,7 +476,14 @@ const WorkoutExecution: React.FC = () => {
                         weight_kg,
                         reps_completed,
                         rpe_actual,
-                        set_type
+                        set_type,
+                        time_completed,
+                        distance_completed,
+                        speed_actual,
+                        hiit_cycles_completed,
+                        exercise:exercises (
+                            exercise_type
+                        )
                     )
                 `)
                 .eq('student_id', user!.id)
@@ -438,7 +502,22 @@ const WorkoutExecution: React.FC = () => {
                             ex.sets.forEach((set, idx) => {
                                 const hist = setsForExercise[idx];
                                 if (hist) {
-                                    set.prev_log = `${hist.weight_kg}kg x ${hist.reps_completed}${hist.rpe_actual ? ' @' + hist.rpe_actual : ''} `;
+                                    const type = hist.exercise?.exercise_type || 'reps';
+                                    if (type === 'cardio') {
+                                        if (hist.hiit_cycles_completed) {
+                                            set.prev_log = `HIIT: ${hist.hiit_cycles_completed}c em ${formatWorkoutDuration(hist.time_completed || 0)}`;
+                                        } else {
+                                            const dist = hist.distance_completed !== null && hist.distance_completed !== undefined ? `${hist.distance_completed}km` : '';
+                                            const speed = hist.speed_actual ? `@${hist.speed_actual}km/h` : '';
+                                            const time = hist.time_completed ? ` em ${formatWorkoutDuration(hist.time_completed)}` : '';
+                                            set.prev_log = `${dist} ${speed}${time}`.trim() || '-';
+                                        }
+                                    } else if (type === 'time') {
+                                        const weight = hist.weight_kg ? ` c/ ${hist.weight_kg}kg` : '';
+                                        set.prev_log = `${formatWorkoutDuration(hist.time_completed || 0)}${weight}`;
+                                    } else {
+                                        set.prev_log = `${hist.weight_kg}kg x ${hist.reps_completed}${hist.rpe_actual ? ' @' + hist.rpe_actual : ''} `;
+                                    }
                                 }
                             });
                             break;
@@ -819,7 +898,7 @@ const WorkoutExecution: React.FC = () => {
             return 'grid grid-cols-[22px_1fr_90px_36px_28px] sm:grid-cols-[40px_1fr_130px_50px_45px] gap-0.5 sm:gap-2 items-center';
         }
         // cardio tradicional
-        return 'grid grid-cols-[22px_1fr_54px_54px_54px_36px_28px] sm:grid-cols-[40px_1fr_80px_80px_80px_50px_45px] gap-0.5 sm:gap-2 items-center';
+        return 'grid grid-cols-[22px_1fr_72px_50px_50px_36px_28px] sm:grid-cols-[40px_1fr_105px_75px_75px_50px_45px] gap-0.5 sm:gap-2 items-center';
     };
 
     const renderTableHeader = (type: string, isHiit?: boolean) => {
@@ -866,7 +945,7 @@ const WorkoutExecution: React.FC = () => {
             <div className={gridClass}>
                 <div onClick={() => setSeriesHelpModal(true)} className="cursor-pointer hover:text-sky-500 transition-colors"># <span className="text-[9px]">?</span></div>
                 <div className="text-left">Meta / Alvo</div>
-                <div className="cursor-default" title="Tempo realizado em minutos/segundos">Tempo(min)</div>
+                <div className="cursor-default" title="Tempo realizado em minutos/segundos">Tempo</div>
                 <div className="cursor-default" title="Distância realizada em km">Dist(km)</div>
                 <div className="cursor-default" title="Velocidade média em km/h">Vel(km/h)</div>
                 <div onClick={() => setPseModal({ ...pseModal, open: true, exerciseIndex: null, setIndex: null })} className="cursor-pointer hover:text-sky-500 transition-colors">PSE <span className="text-[9px]">?</span></div>
@@ -1199,7 +1278,7 @@ const WorkoutExecution: React.FC = () => {
                                                                     ) : (
                                                                         <>
                                                                             {exercise.exercise_type === 'time' && (
-                                                                                <div>
+                                                                                <div className="flex items-center gap-1 w-full">
                                                                                     <input
                                                                                         type="number"
                                                                                         inputMode="numeric"
@@ -1208,12 +1287,20 @@ const WorkoutExecution: React.FC = () => {
                                                                                         value={set.time_completed || ''}
                                                                                         onChange={(e) => handleInputChange(exIndex, setIndex, 'time_completed', e.target.value)}
                                                                                     />
+                                                                                    <button
+                                                                                        type="button"
+                                                                                        onClick={() => setActiveTimerSet({ exIndex, setIndex, seconds: 0, isRunning: true })}
+                                                                                        className={`p-1 sm:p-1.5 rounded-lg bg-sky-500 hover:bg-sky-600 text-white flex items-center justify-center transition-all shadow-sm active:scale-95 shrink-0 ${set.completed ? 'opacity-60' : ''}`}
+                                                                                        title="Iniciar Cronômetro"
+                                                                                    >
+                                                                                        <span className="material-symbols-rounded text-sm">timer</span>
+                                                                                    </button>
                                                                                 </div>
                                                                             )}
 
                                                                             {exercise.exercise_type === 'cardio' && (
                                                                                 <>
-                                                                                    <div>
+                                                                                    <div className="flex items-center gap-1 w-full">
                                                                                         <select
                                                                                             className={`w-full h-7 sm:h-9 text-center text-xs sm:text-sm font-bold bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg sm:rounded-xl focus:border-sky-500 focus:ring-1 focus:ring-sky-500 p-0 text-slate-900 dark:text-white transition-all shadow-sm ${set.completed ? 'opacity-60' : ''}`}
                                                                                             value={set.time_completed || ''}
@@ -1224,6 +1311,14 @@ const WorkoutExecution: React.FC = () => {
                                                                                                 <option key={opt.value} value={opt.value}>{opt.label}</option>
                                                                                             ))}
                                                                                         </select>
+                                                                                        <button
+                                                                                            type="button"
+                                                                                            onClick={() => setActiveTimerSet({ exIndex, setIndex, seconds: 0, isRunning: true })}
+                                                                                            className={`p-1 sm:p-1.5 rounded-lg bg-sky-500 hover:bg-sky-600 text-white flex items-center justify-center transition-all shadow-sm active:scale-95 shrink-0 ${set.completed ? 'opacity-60' : ''}`}
+                                                                                            title="Iniciar Cronômetro"
+                                                                                        >
+                                                                                            <span className="material-symbols-rounded text-sm">timer</span>
+                                                                                        </button>
                                                                                     </div>
                                                                                     <div>
                                                                                         <input
@@ -1444,6 +1539,77 @@ const WorkoutExecution: React.FC = () => {
                     exerciseName={historyModal.exerciseName}
                     studentId={user!.id}
                 />
+
+                {/* Cardio/Time Active Timer Modal */}
+                {activeTimerSet && (
+                    <div className="fixed inset-0 z-[150] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
+                        <div className="bg-slate-900 dark:bg-white text-white dark:text-slate-900 w-full max-w-sm rounded-[2.5rem] p-6 shadow-2xl border border-white/10 dark:border-slate-100 flex flex-col items-center gap-6 animate-slide-up">
+                            <div className="text-center w-full">
+                                <span className="text-[10px] font-black text-sky-500 uppercase tracking-widest block mb-1">
+                                    Cronômetro de Série
+                                </span>
+                                <h3 className="text-lg font-bold truncate px-4">
+                                    {exercises[activeTimerSet.exIndex].name}
+                                </h3>
+                                <p className="text-xs text-slate-400 font-bold uppercase mt-0.5">
+                                    Série {activeTimerSet.setIndex + 1}
+                                </p>
+                            </div>
+
+                            {/* Tempo Gigante */}
+                            <div className="w-48 h-48 rounded-full border-4 border-sky-500/30 flex items-center justify-center relative my-2 bg-slate-950/50 dark:bg-slate-50">
+                                <span className="text-4xl font-black font-mono tracking-wider">
+                                    {formatWorkoutDuration(activeTimerSet.seconds)}
+                                </span>
+                                <div className="absolute inset-2 rounded-full border border-sky-500/10 animate-pulse"></div>
+                            </div>
+
+                            {/* Botões de Ação */}
+                            <div className="flex items-center gap-4 w-full justify-center">
+                                {/* Resetar */}
+                                <button
+                                    type="button"
+                                    onClick={() => setActiveTimerSet(prev => prev ? { ...prev, seconds: 0 } : null)}
+                                    className="w-12 h-12 rounded-full bg-slate-800 dark:bg-slate-100 hover:bg-slate-700 dark:hover:bg-slate-200 text-slate-400 dark:text-slate-600 flex items-center justify-center transition-colors active:scale-95 shadow-sm"
+                                    title="Resetar"
+                                >
+                                    <span className="material-symbols-rounded text-xl">replay</span>
+                                </button>
+
+                                {/* Iniciar / Pausar */}
+                                <button
+                                    type="button"
+                                    onClick={() => setActiveTimerSet(prev => prev ? { ...prev, isRunning: !prev.isRunning } : null)}
+                                    className={`w-16 h-16 rounded-full flex items-center justify-center transition-all active:scale-95 shadow-lg ${activeTimerSet.isRunning ? 'bg-amber-500 hover:bg-amber-600 text-white shadow-amber-500/20' : 'bg-sky-500 hover:bg-sky-600 text-white shadow-sky-500/20'}`}
+                                >
+                                    <span className="material-symbols-rounded text-3xl">
+                                        {activeTimerSet.isRunning ? 'pause' : 'play_arrow'}
+                                    </span>
+                                </button>
+
+                                {/* Cancelar / Fechar */}
+                                <button
+                                    type="button"
+                                    onClick={() => setActiveTimerSet(null)}
+                                    className="w-12 h-12 rounded-full bg-slate-800 dark:bg-slate-100 hover:bg-slate-700 dark:hover:bg-slate-200 text-slate-400 dark:text-slate-600 flex items-center justify-center transition-colors active:scale-95 shadow-sm"
+                                    title="Cancelar"
+                                >
+                                    <span className="material-symbols-rounded text-xl">close</span>
+                                </button>
+                            </div>
+
+                            {/* Registrar */}
+                            <button
+                                type="button"
+                                onClick={handleSaveTimerTime}
+                                className="w-full py-4 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-2xl transition-all shadow-lg shadow-emerald-500/20 active:scale-98 flex items-center justify-center gap-2"
+                            >
+                                <span className="material-symbols-rounded text-xl">check_circle</span>
+                                Registrar & Concluir Série
+                            </button>
+                        </div>
+                    </div>
+                )}
 
                 {/* Generic Explanation Modal */}
                 {explanationModal.open && (
