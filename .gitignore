@@ -37,6 +37,14 @@ testsprite_tests/
 
 # Utility scripts (dev-only)
 scripts/
+!scripts/rls_audit_report.md
+!scripts/test_rls_regression.mjs
+
+# mantis-summary files
+mantis-summary.md
+/**/mantis-summary.md
+workspace/
+
 
 # Generated / temporary data
 hevy_user_data/
