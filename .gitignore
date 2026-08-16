@@ -32,6 +32,7 @@ lerna-debug.log*
 
 # Agent / AI tooling
 .agent/
+.agents/
 .gemini/
 testsprite_tests/
 
