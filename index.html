@@ -33,11 +33,26 @@
 
     <script>
         window.addEventListener('error', function (e) {
-            document.body.innerHTML += '<div style="color:red; padding:20px; font-family:monospace; background:white; position:fixed; top:0; left:0; width:100%; z-index:9999; border-bottom:2px solid red;">' +
-                '<strong>Global Error:</strong> ' + e.message +
-                '<br/><small>' + e.filename + ':' + e.lineno + '</small>' +
-                '</div>';
             console.error('Global Error Caught:', e);
+            if (!document.body) return;
+            var banner = document.createElement('div');
+            banner.style.cssText = 'color:red; padding:20px; font-family:monospace; background:white; position:fixed; top:0; left:0; width:100%; z-index:9999; border-bottom:2px solid red;';
+
+            var strong = document.createElement('strong');
+            strong.textContent = 'Global Error: ';
+            banner.appendChild(strong);
+
+            var messageSpan = document.createElement('span');
+            messageSpan.textContent = e.message || 'Erro desconhecido';
+            banner.appendChild(messageSpan);
+
+            banner.appendChild(document.createElement('br'));
+
+            var small = document.createElement('small');
+            small.textContent = (e.filename || '') + ':' + (e.lineno || '');
+            banner.appendChild(small);
+
+            document.body.appendChild(banner);
         });
 
         // Force disable zoom on mobile (iOS Safari ignores the meta tag)
