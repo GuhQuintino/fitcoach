@@ -168,6 +168,64 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+
+-- Trigger: Proteção contra escalada de privilégios e alterações indevidas em profiles
+CREATE OR REPLACE FUNCTION public.handle_profile_update_security()
+RETURNS TRIGGER AS $$
+DECLARE
+  v_is_admin BOOLEAN := FALSE;
+  v_is_service_role BOOLEAN := FALSE;
+  v_is_assigned_coach BOOLEAN := FALSE;
+BEGIN
+  IF current_user = 'service_role' OR (current_setting('request.jwt.claim.role', true) = 'service_role') THEN
+    v_is_service_role := TRUE;
+  END IF;
+
+  IF auth.uid() IS NOT NULL THEN
+    SELECT EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin') INTO v_is_admin;
+  END IF;
+
+  IF auth.uid() IS NOT NULL THEN
+    SELECT EXISTS (SELECT 1 FROM public.students_data WHERE id = OLD.id AND coach_id = auth.uid()) INTO v_is_assigned_coach;
+  END IF;
+
+  IF NEW.id IS DISTINCT FROM OLD.id THEN
+    RAISE EXCEPTION 'Não é permitido alterar o ID do perfil.' USING ERRCODE = '42501';
+  END IF;
+
+  IF NEW.role IS DISTINCT FROM OLD.role THEN
+    IF NOT (v_is_service_role OR v_is_admin) THEN
+      RAISE EXCEPTION 'Apenas administradores podem alterar o papel (role) do usuário.' USING ERRCODE = '42501';
+    END IF;
+  END IF;
+
+  IF NEW.status IS DISTINCT FROM OLD.status THEN
+    IF NOT (v_is_service_role OR v_is_admin OR v_is_assigned_coach) THEN
+      RAISE EXCEPTION 'Permissão negada para alterar o status da conta.' USING ERRCODE = '42501';
+    END IF;
+  END IF;
+
+  IF NEW.email IS DISTINCT FROM OLD.email THEN
+    IF NOT (v_is_service_role OR v_is_admin) THEN
+      NEW.email := OLD.email;
+    END IF;
+  END IF;
+
+  IF NEW.created_at IS DISTINCT FROM OLD.created_at THEN
+    NEW.created_at := OLD.created_at;
+  END IF;
+
+  NEW.updated_at := NOW();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
+DROP TRIGGER IF EXISTS tr_protect_profile_sensitive_columns ON public.profiles;
+CREATE TRIGGER tr_protect_profile_sensitive_columns
+BEFORE UPDATE ON public.profiles
+FOR EACH ROW
+EXECUTE FUNCTION public.handle_profile_update_security();
+
 -- 4. RLS POLICIES (SECURITY)
 -- =============================================================================
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
@@ -184,11 +242,11 @@ ALTER TABLE set_logs ENABLE ROW LEVEL SECURITY;
 CREATE OR REPLACE FUNCTION get_my_role()
 RETURNS user_role AS $$
   SELECT role FROM profiles WHERE id = auth.uid()
-$$ LANGUAGE sql STABLE;
+$$ LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public;
 -- Profiles
 CREATE POLICY "Users can see own profile" ON profiles FOR SELECT USING (auth.uid() = id);
 CREATE POLICY "Coaches see students profiles" ON profiles FOR SELECT USING (EXISTS (SELECT 1 FROM students_data WHERE id = profiles.id AND coach_id = auth.uid()));
-CREATE POLICY "Users update own profile" ON profiles FOR UPDATE USING (auth.uid() = id);
+CREATE POLICY "Users update own profile" ON profiles FOR UPDATE TO authenticated USING (auth.uid() = id) WITH CHECK (auth.uid() = id);
 -- Data Tables
 CREATE POLICY "Coach see own data" ON coaches_data FOR ALL USING (auth.uid() = id);
 CREATE POLICY "Student see own data" ON students_data FOR SELECT USING (auth.uid() = id);

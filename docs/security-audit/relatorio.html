@@ -1,0 +1,865 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Relatório de Auditoria de Segurança — Ecossistema GQFit & Fitcoach</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&family=JetBrains+Mono:wght@400;600&family=Inter:wght@400;500;600;700&display=swap');
+
+    @page {
+      size: A4;
+      margin: 15mm 15mm 18mm 15mm;
+    }
+
+    * {
+      box-sizing: border-box;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      color: #1e293b;
+      background: #ffffff;
+      line-height: 1.45;
+      font-size: 10.5px;
+      margin: 0;
+      padding: 0;
+    }
+
+    h1, h2, h3, h4 {
+      font-family: 'Outfit', sans-serif;
+      color: #0f172a;
+      margin-top: 0;
+      letter-spacing: -0.02em;
+    }
+
+    .page-break {
+      page-break-before: always;
+      break-before: page;
+    }
+
+    .avoid-break {
+      page-break-inside: avoid;
+      break-inside: avoid;
+    }
+
+    /* CAPA */
+    .cover-page {
+      height: 940px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 35px 25px 25px 25px;
+      border: 1px solid #e2e8f0;
+      border-radius: 16px;
+      background: linear-gradient(145deg, #ffffff 0%, #f8fafc 100%);
+    }
+
+    .cover-header {
+      border-bottom: 3px solid #2563eb;
+      padding-bottom: 22px;
+    }
+
+    .cover-badge {
+      display: inline-block;
+      background: #eff6ff;
+      color: #2563eb;
+      font-weight: 700;
+      font-size: 10.5px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      padding: 5px 12px;
+      border-radius: 9999px;
+      border: 1px solid #bfdbfe;
+      margin-bottom: 12px;
+    }
+
+    .cover-title {
+      font-size: 30px;
+      font-weight: 800;
+      line-height: 1.15;
+      color: #0f172a;
+      margin-bottom: 10px;
+    }
+
+    .cover-subtitle {
+      font-size: 14px;
+      color: #475569;
+      font-weight: 500;
+      max-width: 600px;
+    }
+
+    .cover-meta-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 14px;
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 18px;
+    }
+
+    .meta-item {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .meta-label {
+      font-size: 9.5px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      font-weight: 700;
+      color: #64748b;
+      margin-bottom: 2px;
+    }
+
+    .meta-value {
+      font-size: 12px;
+      font-weight: 600;
+      color: #0f172a;
+    }
+
+    .cover-methodology {
+      background: #f1f5f9;
+      border-left: 4px solid #0f172a;
+      border-radius: 0 8px 8px 0;
+      padding: 14px 16px;
+    }
+
+    .cover-methodology h4 {
+      font-size: 11.5px;
+      margin-bottom: 5px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .cover-methodology p {
+      font-size: 10px;
+      color: #334155;
+      margin: 0;
+      line-height: 1.45;
+    }
+
+    /* SEÇÕES */
+    .section-title {
+      font-size: 15px;
+      font-weight: 800;
+      border-bottom: 2px solid #e2e8f0;
+      padding-bottom: 5px;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .section-title::before {
+      content: '';
+      display: inline-block;
+      width: 5px;
+      height: 15px;
+      background: #2563eb;
+      border-radius: 2px;
+    }
+
+    /* CARDS & GRIDS */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .stat-card {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 8px 10px;
+      text-align: center;
+    }
+
+    .stat-card.critica { border-top: 3px solid #B91C1C; }
+    .stat-card.alta { border-top: 3px solid #EA580C; }
+    .stat-card.media { border-top: 3px solid #D97706; }
+    .stat-card.baixa { border-top: 3px solid #2563EB; }
+    .stat-card.forte { border-top: 3px solid #059669; }
+
+    .stat-num {
+      font-family: 'Outfit', sans-serif;
+      font-size: 20px;
+      font-weight: 800;
+      line-height: 1;
+      margin-bottom: 2px;
+    }
+
+    .stat-label {
+      font-size: 9px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #64748b;
+    }
+
+    /* CHARTS CONTAINER */
+    .charts-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      margin-bottom: 14px;
+    }
+
+    .chart-box {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .chart-box h4 {
+      font-size: 10.5px;
+      font-weight: 700;
+      text-transform: uppercase;
+      color: #475569;
+      margin-bottom: 8px;
+      align-self: flex-start;
+    }
+
+    /* CHIPS & BADGES */
+    .chip {
+      display: inline-block;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 8.5px;
+      font-weight: 700;
+      padding: 2px 5px;
+      border-radius: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .chip-critica { background: #fee2e2; color: #B91C1C; border: 1px solid #fca5a5; }
+    .chip-alta { background: #ffedd5; color: #EA580C; border: 1px solid #fdba74; }
+    .chip-media { background: #fef3c7; color: #D97706; border: 1px solid #fcd34d; }
+    .chip-baixa { background: #dbeafe; color: #2563EB; border: 1px solid #93c5fd; }
+    .chip-info { background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; }
+    .chip-forte { background: #d1fae5; color: #059669; border: 1px solid #6ee7b7; }
+
+    /* TABELAS */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 12px;
+      font-size: 9.5px;
+    }
+
+    th {
+      background: #0f172a;
+      color: #ffffff;
+      font-weight: 700;
+      text-transform: uppercase;
+      font-size: 8px;
+      letter-spacing: 0.05em;
+      padding: 5px 7px;
+      text-align: left;
+      border: 1px solid #0f172a;
+    }
+
+    td {
+      padding: 5px 7px;
+      border: 1px solid #e2e8f0;
+      vertical-align: top;
+      line-height: 1.35;
+    }
+
+    tr:nth-child(even) td {
+      background: #f8fafc;
+    }
+
+    .code-ref {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 8.5px;
+      color: #0f172a;
+      background: #f1f5f9;
+      padding: 1px 4px;
+      border-radius: 4px;
+      border: 1px solid #e2e8f0;
+      word-break: break-all;
+    }
+
+    /* GITHUB ISSUES */
+    .issue-block {
+      background: #f8fafc;
+      border: 1px solid #cbd5e1;
+      border-left: 4px solid #2563eb;
+      border-radius: 6px;
+      padding: 10px 12px;
+      margin-bottom: 12px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 8.5px;
+      white-space: pre-wrap;
+      word-break: break-all;
+      line-height: 1.35;
+      page-break-inside: avoid;
+    }
+
+    .issue-delimiter {
+      color: #2563eb;
+      font-weight: 800;
+      margin: 2px 0;
+    }
+
+    /* PONTOS FORTES / FRACOS */
+    .strength-item {
+      background: #f0fdf4;
+      border: 1px solid #bbf7d0;
+      border-left: 3px solid #059669;
+      border-radius: 6px;
+      padding: 7px 9px;
+      margin-bottom: 5px;
+      font-size: 9.5px;
+    }
+
+    .weakness-item {
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      border-left: 3px solid #b91c1c;
+      border-radius: 6px;
+      padding: 7px 9px;
+      margin-bottom: 5px;
+      font-size: 9.5px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ================= PAGE 1: CAPA ================= -->
+  <div class="cover-page">
+    <div class="cover-header">
+      <span class="cover-badge">Auditoria de Código & Infraestrutura de Segurança</span>
+      <h1 class="cover-title">Relatório de Auditoria de Segurança</h1>
+      <div class="cover-subtitle">Avaliação Defensiva das 5 Categorias Críticas no Ecossistema GQFit & Fitcoach</div>
+    </div>
+
+    <div class="cover-meta-grid">
+      <div class="meta-item">
+        <span class="meta-label">Data da Auditoria</span>
+        <span class="meta-value">31 de Agosto de 2026</span>
+      </div>
+      <div class="meta-item">
+        <span class="meta-label">Auditor Responsável</span>
+        <span class="meta-value">Antigravity AI (Security Engineering)</span>
+      </div>
+      <div class="meta-item">
+        <span class="meta-label">Escopo de Código (3 Repositórios)</span>
+        <span class="meta-value">GuhQuintino/Consultoria, fitcoach, questionarios-acompanhamento</span>
+      </div>
+      <div class="meta-item">
+        <span class="meta-label">Infraestrutura de Dados</span>
+        <span class="meta-value">2 Bancos Supabase PostgreSQL (rcebztgx... e nnaadrcm...)</span>
+      </div>
+      <div class="meta-item">
+        <span class="meta-label">Frameworks Auditados</span>
+        <span class="meta-value">Next.js 16/14 (App Router), React 19, Vite, Tailwind CSS</span>
+      </div>
+      <div class="meta-item">
+        <span class="meta-label">Status da Avaliação</span>
+        <span class="meta-value" style="color: #b91c1c;">Vulnerabilidades Críticas Detectadas</span>
+      </div>
+    </div>
+
+    <div class="cover-methodology">
+      <h4>Nota Metodológica & Adaptação à Stack</h4>
+      <p>
+        A auditoria foi realizada por inspeção linha a linha do código-fonte real, sem inferências ou suposições. Cada uma das 5 categorias foi mapeada diretamente para as tecnologias em execução:
+        <strong>(1) Banco sem Tranca:</strong> Supabase Row Level Security (RLS) e Stored Procedures <code>SECURITY DEFINER</code>; 
+        <strong>(2) Permissão no Navegador:</strong> Gates de UI no React/Next.js versus validação no backend/webhook; 
+        <strong>(3) IDOR:</strong> Verificação de posse em identificadores de rotas públicas e autenticadas; 
+        <strong>(4) Chaves Expostas:</strong> Verificação de histórico Git, arquivos de configuração e binding no <code>window</code> global; 
+        <strong>(5) Inputs sem Tratamento (XSS):</strong> Renderização HTML perigosa (<code>dangerouslySetInnerHTML</code> e <code>innerHTML</code> em event listeners).
+      </p>
+    </div>
+  </div>
+
+  <div class="page-break"></div>
+
+  <!-- ================= PAGE 2: RESUMO EXECUTIVO & GRÁFICOS ================= -->
+  <div>
+    <h2 class="section-title">Resumo Executivo</h2>
+    <p style="margin-bottom: 12px; color: #475569;">
+      A avaliação de segurança cobriu integralmente os 3 repositórios que compõem o ecossistema digital do GQFit (Consultoria Institucional, App Fitcoach Pro e Sistema de Questionários/Dashboard Administrativo). Foram identificados <strong>12 achados acionáveis</strong> e <strong>6 arquiteturas defensivas consolidadas</strong>.
+    </p>
+
+    <div class="stats-grid">
+      <div class="stat-card critica">
+        <div class="stat-num" style="color: #B91C1C;">3</div>
+        <div class="stat-label">Crítica</div>
+      </div>
+      <div class="stat-card alta">
+        <div class="stat-num" style="color: #EA580C;">2</div>
+        <div class="stat-label">Alta</div>
+      </div>
+      <div class="stat-card media">
+        <div class="stat-num" style="color: #D97706;">4</div>
+        <div class="stat-label">Média</div>
+      </div>
+      <div class="stat-card baixa">
+        <div class="stat-num" style="color: #2563EB;">2</div>
+        <div class="stat-label">Baixa</div>
+      </div>
+      <div class="stat-card forte">
+        <div class="stat-num" style="color: #059669;">6</div>
+        <div class="stat-label">Pontos Fortes</div>
+      </div>
+    </div>
+
+    <div class="charts-row">
+      <!-- Donut Chart SVG -->
+      <div class="chart-box">
+        <h4>Distribuição por Severidade</h4>
+        <svg width="220" height="130" viewBox="0 0 220 130">
+          <g transform="translate(65, 65)">
+            <circle r="40" cx="0" cy="0" fill="none" stroke="#B91C1C" stroke-width="18" stroke-dasharray="68 251" stroke-dashoffset="0" />
+            <circle r="40" cx="0" cy="0" fill="none" stroke="#EA580C" stroke-width="18" stroke-dasharray="46 251" stroke-dashoffset="-68" />
+            <circle r="40" cx="0" cy="0" fill="none" stroke="#D97706" stroke-width="18" stroke-dasharray="91 251" stroke-dashoffset="-114" />
+            <circle r="40" cx="0" cy="0" fill="none" stroke="#2563EB" stroke-width="18" stroke-dasharray="46 251" stroke-dashoffset="-205" />
+            <text x="0" y="4" font-family="Outfit" font-size="13" font-weight="800" text-anchor="middle" fill="#0f172a">12</text>
+            <text x="0" y="15" font-size="7" text-anchor="middle" fill="#64748b">ACHADOS</text>
+          </g>
+          <g transform="translate(140, 20)" font-size="8" font-family="Inter">
+            <rect x="0" y="0" width="7" height="7" fill="#B91C1C" rx="2" />
+            <text x="11" y="7" fill="#334155" font-weight="600">Crítica (3)</text>
+            <rect x="0" y="16" width="7" height="7" fill="#EA580C" rx="2" />
+            <text x="11" y="23" fill="#334155" font-weight="600">Alta (2)</text>
+            <rect x="0" y="32" width="7" height="7" fill="#D97706" rx="2" />
+            <text x="11" y="39" fill="#334155" font-weight="600">Média (4)</text>
+            <rect x="0" y="48" width="7" height="7" fill="#2563EB" rx="2" />
+            <text x="11" y="55" fill="#334155" font-weight="600">Baixa (2)</text>
+            <rect x="0" y="64" width="7" height="7" fill="#475569" rx="2" />
+            <text x="11" y="71" fill="#334155" font-weight="600">Info (1)</text>
+          </g>
+        </svg>
+      </div>
+
+      <!-- Bar Chart SVG -->
+      <div class="chart-box">
+        <h4>Achados por Categoria</h4>
+        <svg width="240" height="130" viewBox="0 0 240 130">
+          <g transform="translate(10, 8)" font-size="8" font-family="Inter">
+            <!-- Row 1: Banco sem tranca (3) -->
+            <text x="0" y="10" fill="#334155" font-weight="600">Banco s/ Tranca</text>
+            <rect x="90" y="0" width="110" height="12" fill="#B91C1C" rx="2" />
+            <text x="205" y="9.5" fill="#0f172a" font-weight="700">3</text>
+
+            <!-- Row 2: Permissão Browser (2) -->
+            <text x="0" y="28" fill="#334155" font-weight="600">Permissão Browser</text>
+            <rect x="90" y="18" width="75" height="12" fill="#EA580C" rx="2" />
+            <text x="170" y="27.5" fill="#0f172a" font-weight="700">2</text>
+
+            <!-- Row 3: IDOR (2) -->
+            <text x="0" y="46" fill="#334155" font-weight="600">IDOR</text>
+            <rect x="90" y="36" width="75" height="12" fill="#EA580C" rx="2" />
+            <text x="170" y="45.5" fill="#0f172a" font-weight="700">2</text>
+
+            <!-- Row 4: Chaves Expostas (3) -->
+            <text x="0" y="64" fill="#334155" font-weight="600">Chaves Expostas</text>
+            <rect x="90" y="54" width="110" height="12" fill="#B91C1C" rx="2" />
+            <text x="205" y="63.5" fill="#0f172a" font-weight="700">3</text>
+
+            <!-- Row 5: Inputs / XSS (2) -->
+            <text x="0" y="82" fill="#334155" font-weight="600">Inputs / XSS</text>
+            <rect x="90" y="72" width="75" height="12" fill="#D97706" rx="2" />
+            <text x="170" y="81.5" fill="#0f172a" font-weight="700">2</text>
+          </g>
+        </svg>
+      </div>
+    </div>
+
+    <!-- PONTOS FORTES E FRACOS -->
+    <h3 style="font-size: 12.5px; margin-top: 4px; margin-bottom: 6px;">Diagnóstico Estrutural</h3>
+    
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+      <div>
+        <h4 style="color: #059669; font-size: 10px; text-transform: uppercase; margin-bottom: 4px;">🛡️ Pontos Fortes Verificados</h4>
+        <div class="strength-item">
+          <strong>Questionários — RLS Enrijecido:</strong> Migração <code>20260614140000_fix_rls_policies.sql</code> restringe todas as tabelas e storage com verificação estrita de <code>treinador</code> ou <code>service_role</code>.
+        </div>
+        <div class="strength-item">
+          <strong>Questionários — Edge CSRF & Headers:</strong> Middleware aplica Content Security Policy estrito, HSTS e validação de cookie double-submit para todas as mutações (POST/PUT/DELETE).
+        </div>
+        <div class="strength-item">
+          <strong>Questionários — Proteção Brute-Force:</strong> Bloqueio por IP em 5 tentativas com header <code>Retry-After</code> e respostas genéricas sem vazamento de existência de conta.
+        </div>
+        <div class="strength-item">
+          <strong>Consultoria — Segredo ISR:</strong> Rota <code>/api/revalidate</code> exige token coincidente com <code>REVALIDATION_SECRET</code>.
+        </div>
+      </div>
+
+      <div>
+        <h4 style="color: #b91c1c; font-size: 10px; text-transform: uppercase; margin-bottom: 4px;">⚠️ Riscos Centrais (Pontos Fracos)</h4>
+        <div class="weakness-item">
+          <strong>Fitcoach — Escalada Total de Privilégios:</strong> Políticas de RLS em <code>profiles</code> e trigger <code>handle_new_user</code> permitem que qualquer usuário se torne Administrador.
+        </div>
+        <div class="weakness-item">
+          <strong>Consultoria — Webhook sem HMAC:</strong> Endpoint <code>/api/webhooks/infinitepay</code> processa compras e ativa contas sem validar autenticidade da InfinitePay.
+        </div>
+        <div class="weakness-item">
+          <strong>Questionários — Service Key no Git:</strong> Chave mestre de serviço (bypassa RLS) commitada no histórico em arquivos de teste legados.
+        </div>
+        <div class="weakness-item">
+          <strong>Consultoria — IDOR com Senha em Claro:</strong> Rota <code>/api/checkout/status</code> expõe credenciais temporárias por ID de pagamento.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="page-break"></div>
+
+  <!-- ================= PAGE 3: TABELA DE ACHADOS DETALHADOS ================= -->
+  <div>
+    <h2 class="section-title">Tabela de Achados Detalhados</h2>
+
+    <table>
+      <thead>
+        <tr>
+          <th style="width: 60px;">Severidade</th>
+          <th style="width: 55px;">ID</th>
+          <th style="width: 140px;">Arquivo:Linha</th>
+          <th>Descrição da Vulnerabilidade e Impacto</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- Categoria 1 -->
+        <tr>
+          <td><span class="chip chip-critica">Crítica</span></td>
+          <td><strong>FIT-SEC-01</strong></td>
+          <td><span class="code-ref">Fitcoach/Full database.sql:191</span></td>
+          <td><strong>RLS Permissivo em Profiles (Escalada de Privilégio):</strong> A política <code>Users update own profile</code> permite atualizar qualquer coluna da linha própria sem restrição de colunas. Alunos podem alterar <code>role = 'admin'</code> via client SDK.</td>
+        </tr>
+        <tr>
+          <td><span class="chip chip-alta">Alta</span></td>
+          <td><strong>FIT-SEC-02</strong></td>
+          <td><span class="code-ref">Fitcoach/Fix Signup Permissions.sql:24</span></td>
+          <td><strong>Atribuição Irrestrita de Role no Cadastro:</strong> Trigger <code>handle_new_user</code> aceita <code>raw_user_meta_data->>'role'</code> sem filtrar papel 'admin' no registro público.</td>
+        </tr>
+        <tr>
+          <td><span class="chip chip-media">Média</span></td>
+          <td><strong>FIT-SEC-03</strong></td>
+          <td><span class="code-ref">Fitcoach/GetDashboardStats.sql:6</span></td>
+          <td><strong>Vazamento em RPC Security Definer:</strong> Funções <code>get_coach_dashboard_stats</code> e <code>get_student_gamification_stats</code> não checam se <code>auth.uid() == p_coach_id</code>.</td>
+        </tr>
+
+        <!-- Categoria 2 -->
+        <tr>
+          <td><span class="chip chip-critica">Crítica</span></td>
+          <td><strong>CON-SEC-01</strong></td>
+          <td><span class="code-ref">Consultoria/webhooks/infinitepay/route.ts:5</span></td>
+          <td><strong>Webhook InfinitePay sem Assinatura HMAC:</strong> Endpoint cria contas administrativas no Fitcoach e aprova assinaturas sem validar assinatura criptográfica do gateway.</td>
+        </tr>
+        <tr>
+          <td><span class="chip chip-media">Média</span></td>
+          <td><strong>FIT-SEC-04</strong></td>
+          <td><span class="code-ref">Fitcoach/RoleContext.tsx:13</span></td>
+          <td><strong>Role Armazenada no LocalStorage:</strong> Interface confia em <code>localStorage.getItem('userRole')</code> para roteamento e guardas de acesso na SPA.</td>
+        </tr>
+
+        <!-- Categoria 3 -->
+        <tr>
+          <td><span class="chip chip-alta">Alta</span></td>
+          <td><strong>CON-SEC-02</strong></td>
+          <td><span class="code-ref">Consultoria/checkout/status/route.ts:6</span></td>
+          <td><strong>IDOR com Senhas Temporárias em Texto Claro:</strong> Consulta de status por <code>payment_id</code> público via Service Role retorna <code>fitcoachPasswordTemp</code> e e-mail sem auth.</td>
+        </tr>
+        <tr>
+          <td><span class="chip chip-media">Média</span></td>
+          <td><strong>QST-SEC-01</strong></td>
+          <td><span class="code-ref">Questionários/upload-foto/route.ts:30</span></td>
+          <td><strong>IDOR no Upload de Fotos de Evolução:</strong> Rota pública aceita qualquer <code>alunoId</code> no FormData sem exigir nem validar token de questionário ativo.</td>
+        </tr>
+
+        <!-- Categoria 4 -->
+        <tr>
+          <td><span class="chip chip-critica">Crítica</span></td>
+          <td><strong>QST-SEC-02</strong></td>
+          <td><span class="code-ref">Questionários/Git:e4c633d (test-db.mjs)</span></td>
+          <td><strong>Supabase Service Role Key no Histórico Git:</strong> Chave com privilégios de superusuário commitada no repositório; burla 100% das políticas de RLS.</td>
+        </tr>
+        <tr>
+          <td><span class="chip chip-baixa">Baixa</span></td>
+          <td><strong>FIT-SEC-05</strong></td>
+          <td><span class="code-ref">Fitcoach/lib/supabaseClient.ts:17</span></td>
+          <td><strong>Exposição do Cliente no Objeto Global:</strong> Atribuição <code>window.supabase = supabase</code> facilita extração de sessão e automação maliciosa via console.</td>
+        </tr>
+        <tr>
+          <td><span class="chip chip-info">Info</span></td>
+          <td><strong>ALL-SEC-01</strong></td>
+          <td><span class="code-ref">Consultoria & QST/.env.local</span></td>
+          <td><strong>Tokens e Senhas em Arquivos Locais:</strong> Tokens de Telegram, Gemini, Pollinations e senha pooler em texto claro em ambientes locais.</td>
+        </tr>
+
+        <!-- Categoria 5 -->
+        <tr>
+          <td><span class="chip chip-media">Média</span></td>
+          <td><strong>CON-SEC-03</strong></td>
+          <td><span class="code-ref">Consultoria/blog/[slug]/page.tsx:217</span></td>
+          <td><strong>HTML de Blog sem Sanitização DOMPurify:</strong> Renderização com <code>dangerouslySetInnerHTML</code> de HTML processado via Regex sem uso da biblioteca <code>isomorphic-dompurify</code>.</td>
+        </tr>
+        <tr>
+          <td><span class="chip chip-baixa">Baixa</span></td>
+          <td><strong>FIT-SEC-06</strong></td>
+          <td><span class="code-ref">Fitcoach/index.html:36</span></td>
+          <td><strong>DOM XSS no Global Error Handler:</strong> Concatenação direta de <code>e.message</code> em <code>document.body.innerHTML</code> no listener de erro do navegador.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="page-break"></div>
+
+  <!-- ================= PAGE 4: RECOMENDAÇÕES PRIORIZADAS ================= -->
+  <div>
+    <h2 class="section-title">Recomendações Priorizadas</h2>
+    <p style="margin-bottom: 14px; color: #475569;">
+      Plano de remediação estruturado por criticidade e janela temporal de mitigação.
+    </p>
+
+    <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; margin-bottom: 12px;">
+      <strong style="color: #b91c1c; font-size: 11px;">[P1] IMEDIATO (24h) — Bloqueio de Vetores Críticos de Acesso</strong>
+      <ul style="margin: 6px 0 0 16px; padding: 0; font-size: 10.5px; color: #334155; line-height: 1.5;">
+        <li><strong>Rotacionar a Service Role Key do Supabase:</strong> Gerar nova credencial no painel do Supabase para o banco GQFit (<code>rcebztgxmsywffeiojbr</code>) e atualizar imediatamente as variáveis de ambiente na Vercel e projetos locais.</li>
+        <li><strong>Corrigir a RLS de <code>profiles</code> no Fitcoach:</strong> Revogar permissão de escrita em <code>role</code> e <code>status</code> para <code>authenticated</code>, permitindo atualização apenas de <code>full_name, phone, avatar_url, preferences</code>.</li>
+        <li><strong>Implementar Validação de HMAC no Webhook InfinitePay:</strong> Bloquear requisições não assinadas no endpoint <code>POST /api/webhooks/infinitepay</code> verificando a assinatura contra <code>INFINITEPAY_WEBHOOK_SECRET</code>.</li>
+      </ul>
+    </div>
+
+    <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; margin-bottom: 12px;">
+      <strong style="color: #ea580c; font-size: 11px;">[P2] ALTA PRIORIDADE (48h) — Proteção de Identidade e Credenciais</strong>
+      <ul style="margin: 6px 0 0 16px; padding: 0; font-size: 10.5px; color: #334155; line-height: 1.5;">
+        <li><strong>Remover Senha Temporária da Rota <code>/api/checkout/status</code>:</strong> Excluir <code>fitcoachPasswordTemp</code> do JSON de resposta pública e orientar redefinição por link de primeiro acesso.</li>
+        <li><strong>Travar Papel de Cadastro:</strong> No trigger <code>handle_new_user</code> do Fitcoach, forçar <code>v_role := 'student'</code> por padrão, bloqueando escalada direta via metadados de signup.</li>
+        <li><strong>Validar Token no Upload de Fotos:</strong> Exigir <code>token</code> de questionário na rota <code>POST /api/questionario/upload-foto</code> e validar link ativo antes de aceitar arquivo.</li>
+      </ul>
+    </div>
+
+    <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px;">
+      <strong style="color: #d97706; font-size: 11px;">[P3] MÉDIA PRIORIDADE (Próximo Ciclo) — Higienização e Hardening</strong>
+      <ul style="margin: 6px 0 0 16px; padding: 0; font-size: 10.5px; color: #334155; line-height: 1.5;">
+        <li><strong>Sanitizar Artigos com DOMPurify:</strong> Aplicar <code>DOMPurify.sanitize()</code> no HTML antes de injetar via <code>dangerouslySetInnerHTML</code> em <code>[slug]/page.tsx</code>.</li>
+        <li><strong>Substituir <code>document.body.innerHTML</code> em <code>index.html</code></strong> por nós de texto ou remover o listener de depuração em build de produção.</li>
+        <li><strong>Adicionar Checagem de Posse em RPCs:</strong> Validar <code>auth.uid() = p_coach_id</code> nas stored procedures estatísticas.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="page-break"></div>
+
+  <!-- ================= PAGE 5+: ISSUES PRONTAS PARA O GITHUB ================= -->
+  <div>
+    <h2 class="section-title">Issues Prontas para o GitHub</h2>
+    <p style="margin-bottom: 10px; color: #475569; font-size: 10px;">
+      Copie e cole os blocos abaixo diretamente como novas Issues no GitHub para cada repositório correspondente.
+    </p>
+
+    <!-- ISSUE 1 -->
+    <div class="issue-block">
+<div class="issue-delimiter">--- ISSUE 1 ---</div>
+**Repositório:** GuhQuintino/fitcoach
+**Título:** [Segurança] Escalada de privilégios via RLS permissivo na tabela profiles
+**Labels:** security, critical, bug, rls
+
+### Descrição do Problema
+A política de Row Level Security (RLS) `"Users update own profile"` na tabela `profiles` permite que qualquer usuário autenticado atualize o seu próprio registro sem restrição de colunas (`FOR UPDATE USING (auth.uid() = id)`). Como a coluna `role` reside nesta mesma tabela, um usuário com papel de aluno (`student`) pode invocar o Supabase SDK no navegador e alterar seu próprio papel para `admin` ou `coach`.
+
+### Evidência
+- **Arquivo:** `Brainstorm/Databases-Implementados/Full database.sql:191`
+```sql
+CREATE POLICY "Users update own profile" ON profiles FOR UPDATE USING (auth.uid() = id);
+```
+
+### Impacto
+Comprometimento total da autorização do banco de dados. Alunos podem obter acesso a rotas administrativas, visões de coach, rotinas de treino de outros alunos e listas completas de usuários.
+
+### Sugestão de Correção
+1. Revogar permissão de atualização nas colunas sensíveis (`role`, `status`, `id`, `created_at`) para o papel `authenticated`:
+```sql
+REVOKE UPDATE ON public.profiles FROM authenticated;
+GRANT UPDATE (full_name, avatar_url, phone) ON public.profiles TO authenticated;
+```
+2. Alternativamente, criar um trigger `BEFORE UPDATE` que impeça alteração de `role` por usuários que não sejam service role.
+
+### Critérios de Aceite
+- [ ] Usuário com role `student` recebe erro ao tentar executar `supabase.from('profiles').update({ role: 'admin' }).eq('id', user.id)`.
+- [ ] Atualização de dados cadastrais (`full_name`, `phone`, `avatar_url`) continua funcionando normalmente.
+<div class="issue-delimiter">--- FIM ISSUE 1 ---</div>
+    </div>
+
+    <!-- ISSUE 2 -->
+    <div class="issue-block">
+<div class="issue-delimiter">--- ISSUE 2 ---</div>
+**Repositório:** GuhQuintino/Consultoria
+**Título:** [Segurança] Ausência de autenticação/HMAC no webhook de pagamentos da InfinitePay
+**Labels:** security, critical, payments, webhook
+
+### Descrição do Problema
+O endpoint `POST /api/webhooks/infinitepay` processa notificações de faturamento e executa ações privilegiadas no banco de dados compartilhado (marcação de pedidos como aprovados) e no Fitcoach Pro (`auth.admin.createUser`, ativação de profiles e extensão de assinaturas em `students_data`), porém não realiza nenhuma validação de assinatura criptográfica (HMAC) ou token secreto.
+
+### Evidência
+- **Arquivo:** `src/app/api/webhooks/infinitepay/route.ts:5-35`
+```ts
+export async function POST(req: NextRequest) {
+  const rawBody = await req.text();
+  const payload = JSON.parse(rawBody);
+  const orderNsu = payload.order_nsu || '';
+  // Nenhuma checagem de assinatura HMAC ou token
+```
+
+### Impacto
+Qualquer usuário mal-intencionado pode enviar requisições HTTP forjadas diretamente para a API e provisionar contas gratuitas com prazos de validade estendidos no Fitcoach Pro sem realizar qualquer pagamento real.
+
+### Sugestão de Correção
+1. Validar a assinatura enviada no header da InfinitePay contra `process.env.INFINITEPAY_WEBHOOK_SECRET`.
+2. Rejeitar com HTTP 401 qualquer requisição com assinatura ausente ou inválida antes de realizar consultas ao banco.
+
+### Critérios de Aceite
+- [ ] Requisições sem header de assinatura retornam `401 Unauthorized`.
+- [ ] Requisições com assinatura forjada retornam `401 Unauthorized`.
+- [ ] Webhooks legítimos assinados pela InfinitePay são processados com sucesso (`200 OK`).
+<div class="issue-delimiter">--- FIM ISSUE 2 ---</div>
+    </div>
+
+    <!-- ISSUE 3 -->
+    <div class="issue-block">
+<div class="issue-delimiter">--- ISSUE 3 ---</div>
+**Repositório:** GuhQuintino/questionarios-acompanhamento
+**Título:** [Segurança] Chave mestra SUPABASE_SERVICE_ROLE_KEY exposta no histórico Git
+**Labels:** security, critical, credentials, leak
+
+### Descrição do Problema
+A chave de serviço com privilégios administrativos totais (`SUPABASE_SERVICE_ROLE_KEY`) para o banco de dados principal do GQFit (`rcebztgxmsywffeiojbr`) foi commitada no histórico do repositório em arquivos de scripts e testes legados.
+
+### Evidência
+- **Commit:** `e4c633d685bd18c56336e2c476ae313911456e8e`
+- **Arquivo:** `test-db.mjs:4-5` e `scripts/unificar-alunos.mjs`
+```js
+const SUPABASE_SERVICE_ROLE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...';
+```
+
+### Impacto
+A `service_role` do Supabase burla todas as políticas de RLS e concede controle irrestrito de leitura, escrita e exclusão sobre todos os dados pessoais, fotos, fichas de anamnese e transações financeiras.
+
+### Sugestão de Correção
+1. Acessar o Dashboard do Supabase (Project Settings → API) e gerar uma nova `service_role secret key`.
+2. Atualizar as variáveis de ambiente na Vercel e nos arquivos `.env.local` de desenvolvimento.
+3. Utilizar ferramentas como `git-filter-repo` ou `BFG Repo-Cleaner` para purgar o segredo do histórico do GitHub.
+
+### Critérios de Aceite
+- [ ] A chave antiga foi revogada no painel do Supabase.
+- [ ] A nova chave foi configurada nas variáveis de produção.
+- [ ] Todos os serviços continuam operando normalmente com a nova credencial.
+<div class="issue-delimiter">--- FIM ISSUE 3 ---</div>
+    </div>
+
+    <!-- ISSUE 4 -->
+    <div class="issue-block">
+<div class="issue-delimiter">--- ISSUE 4 ---</div>
+**Repositório:** GuhQuintino/Consultoria
+**Título:** [Segurança] IDOR expõe senhas temporárias em texto claro em /api/checkout/status
+**Labels:** security, high, idor, auth
+
+### Descrição do Problema
+O endpoint `GET /api/checkout/status?payment_id=&lt;id&gt;` consulta a tabela `payments` utilizando o `createServiceClient()` (que ignora RLS) e retorna o e-mail do aluno e a senha temporária (`fitcoachPasswordTemp`) gerada durante o fluxo de compra, sem autenticação de sessão ou validação de posse.
+
+### Evidência
+- **Arquivo:** `src/app/api/checkout/status/route.ts:28-34`
+```ts
+return NextResponse.json({
+  status: payment.status,
+  provisioningStatus: payment.provisioning_status,
+  planId: payment.plan_id || null,
+  fitcoachEmail: payment.metadata?.fitcoach_email || null,
+  fitcoachPasswordTemp: payment.metadata?.fitcoach_password_temp || null,
+});
+```
+
+### Impacto
+Qualquer terceiro que intercepte ou adivinhe um `payment_id` pode visualizar as credenciais de primeiro acesso do aluno antes mesmo dele realizar o primeiro login.
+
+### Sugestão de Correção
+1. Remover o campo `fitcoachPasswordTemp` da resposta da API de status.
+2. Instruir o aluno a definir sua senha através do link de primeiro acesso ou enviar as instruções por canal seguro (e-mail transacional autenticado ou tela pós-checkout protegida por token de sessão efêmero).
+
+### Critérios de Aceite
+- [ ] O endpoint `/api/checkout/status` retorna apenas status da transação (`status`, `provisioningStatus`), sem credenciais.
+<div class="issue-delimiter">--- FIM ISSUE 4 ---</div>
+    </div>
+
+    <!-- ISSUE 5 -->
+    <div class="issue-block">
+<div class="issue-delimiter">--- ISSUE 5 ---</div>
+**Repositório:** GuhQuintino/questionarios-acompanhamento
+**Título:** [Segurança] IDOR no endpoint de upload de fotos de evolução por ausência de validação de token
+**Labels:** security, medium, idor, storage
+
+### Descrição do Problema
+O endpoint `POST /api/questionario/upload-foto` é público no middleware, mas aceita diretamente o campo `alunoId` vindo do FormData sem validar se existe um token de questionário ativo (`link_questionario`) associado àquele aluno.
+
+### Evidência
+- **Arquivo:** `src/app/api/questionario/upload-foto/route.ts:43-52, 98-102`
+```ts
+const alunoId = formData.get('alunoId');
+const storagePath = await fotoService.uploadFotoStorage(alunoId.trim(), buffer, file.type);
+```
+
+### Impacto
+Um atacante que possua o identificador UUID de um aluno pode realizar uploads não solicitados e poluir o bucket privado de fotos de evolução daquele aluno, consumindo armazenamento e interferindo no histórico de avaliação.
+
+### Sugestão de Correção
+1. Exigir o campo `token` no FormData de upload.
+2. Resolver e validar o link através de `LinkService.validarLink(token)` antes de autorizar o envio ao Supabase Storage.
+
+### Critérios de Aceite
+- [ ] Requisições para `/api/questionario/upload-foto` sem `token` válido ou com token expirado/respondido são rejeitadas com status 400/403.
+<div class="issue-delimiter">--- FIM ISSUE 5 ---</div>
+    </div>
+
+    <!-- ISSUE 6 -->
+    <div class="issue-block">
+<div class="issue-delimiter">--- ISSUE 6 ---</div>
+**Repositório:** GuhQuintino/Consultoria & fitcoach
+**Título:** [Segurança] Sanitização de HTML com DOMPurify em artigos de blog e correção de DOM XSS no error handler
+**Labels:** security, medium, xss, frontend
+
+### Descrição do Problema
+1. Em **Consultoria** (`src/app/blog/[slug]/page.tsx:217`), o conteúdo do artigo é transformado por regex e injetado via `dangerouslySetInnerHTML` sem passar por `DOMPurify`, permitindo execução de XSS caso scripts maliciosos residam no banco.
+2. Em **Fitcoach** (`index.html:36`), o listener global de erros concatena `e.message` diretamente em `document.body.innerHTML`, gerando risco de DOM XSS.
+
+### Evidência
+- **Consultoria:** `src/app/blog/[slug]/page.tsx:217`
+```tsx
+&lt;div dangerouslySetInnerHTML={{ __html: otimizarHtmlDoArtigo(post.content, post.title) }} /&gt;
+```
+- **Fitcoach:** `index.html:36`
+```js
+window.addEventListener('error', function (e) {
+  document.body.innerHTML += '&lt;div&gt;... ' + e.message + '&lt;/div&gt;';
+});
+```
+
+### Impacto
+Possibilidade de execução de scripts arbitrários no contexto de segurança dos visitantes do blog ou usuários do app Fitcoach.
+
+### Sugestão de Correção
+1. Em `[slug]/page.tsx`, importar `DOMPurify` de `isomorphic-dompurify` e sanitizar o retorno de `otimizarHtmlDoArtigo` antes de renderizar.
+2. Em `index.html`, remover a manipulação de `document.body.innerHTML` no listener de erro ou sanitizar a mensagem de erro com `textContent`.
+
+### Critérios de Aceite
+- [ ] Tags `&lt;script&gt;` ou atributos de evento injetados em artigos são neutralizados no HTML final.
+- [ ] Erros de runtime no navegador não injetam HTML não seguro no DOM.
+<div class="issue-delimiter">--- FIM ISSUE 6 ---</div>
+    </div>
+
+  </div>
+
+</body>
+</html>

@@ -40,6 +40,8 @@ testsprite_tests/
 scripts/*
 !scripts/rls_audit_report.md
 !scripts/test_rls_regression.mjs
+!scripts/test_profiles_rls_security.mjs
+!scripts/apply_migration.mjs
 !scripts/test_offline_suite.ts
 
 # mantis-summary files
