@@ -9,6 +9,7 @@ import { formatToWhatsappUrl } from '../../utils/phoneUtils';
 import { getOptimizedImageUrl } from '../../utils/imageUtils';
 import { useStaleWorkoutDetector } from '../../utils/useStaleWorkoutDetector';
 import { cacheStudentDashboard, getCachedStudentDashboard } from '../../utils/offlineCacheService';
+import { notifyNetworkSuccess, notifyNetworkError } from '../../utils/useOnlineStatus';
 import OfflineSyncStatus from '../../components/shared/OfflineSyncStatus';
 import toast from 'react-hot-toast';
 
@@ -171,8 +172,10 @@ const StudentDashboard: React.FC = () => {
                 workoutCount: currentWorkoutCount,
                 gamification: calculatedGamification
             });
+            notifyNetworkSuccess();
 
         } catch (error) {
+            notifyNetworkError();
             console.warn('[Dashboard] Falha na busca online, verificando cache local:', error);
             const cached = getCachedStudentDashboard(user!.id);
             if (cached?.data) {

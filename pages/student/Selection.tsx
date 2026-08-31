@@ -6,6 +6,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { useStaleWorkoutDetector } from '../../utils/useStaleWorkoutDetector';
 import { cacheSelectionWorkouts, getCachedSelectionWorkouts } from '../../utils/offlineCacheService';
+import { notifyNetworkSuccess, notifyNetworkError } from '../../utils/useOnlineStatus';
 
 const Selection: React.FC = () => {
     const { user } = useAuth();
@@ -107,9 +108,11 @@ const Selection: React.FC = () => {
                     workouts: sortedWorkouts,
                     suggestedIndex: nextSuggestedIdx
                 });
+                notifyNetworkSuccess();
             }
 
         } catch (error) {
+            notifyNetworkError();
             console.warn('[Selection] Falha na busca online, verificando cache:', error);
             const cached = getCachedSelectionWorkouts(user!.id);
             if (cached?.data) {

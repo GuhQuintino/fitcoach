@@ -10,39 +10,42 @@ const OfflineSyncStatus: React.FC = () => {
     if (pendingCount === 0) return null;
 
     return (
-        <div className="bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/30 rounded-2xl p-4 flex items-center justify-between gap-3 shadow-soft my-2">
+        <div className="bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/30 rounded-2xl p-4 flex items-center justify-between gap-3 shadow-soft my-2 animate-fade-in">
             <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-500 flex items-center justify-center flex-shrink-0">
-                    <span className="material-symbols-rounded text-xl">
-                        {isSyncing ? 'sync' : 'cloud_off'}
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${
+                    isOnline ? 'bg-emerald-500/20 text-emerald-500' : 'bg-amber-500/20 text-amber-500'
+                }`}>
+                    <span className={`material-symbols-rounded text-xl ${isSyncing ? 'animate-spin' : ''}`}>
+                        {isSyncing ? 'sync' : isOnline ? 'cloud_sync' : 'cloud_off'}
                     </span>
                 </div>
                 <div>
                     <h4 className="text-sm font-bold text-slate-900 dark:text-white">
-                        {pendingCount} treino{pendingCount > 1 ? 's' : ''} aguardando envio
+                        {pendingCount} treino{pendingCount > 1 ? 's' : ''} {isOnline ? 'pronto(s) para envio' : 'salvo(s) no aparelho'}
                     </h4>
                     <p className="text-xs text-slate-500 dark:text-slate-400">
                         {isOnline
-                            ? 'Internet disponível. Pronto para sincronizar.'
-                            : 'Salvos no aparelho. Serão enviados quando a internet voltar.'}
+                            ? (isSyncing ? 'Enviando dados para o servidor...' : 'Internet disponível. Sincronizando...')
+                            : 'Será enviado automaticamente assim que a internet voltar.'}
                     </p>
                 </div>
             </div>
 
+            {/* O botão de envio só aparece quando houver internet real */}
             {isOnline && (
                 <button
                     onClick={() => syncNow()}
                     disabled={isSyncing}
-                    className="px-3 py-2 bg-amber-500 hover:bg-amber-600 active:scale-95 text-slate-950 text-xs font-bold rounded-xl shadow-sm transition-all flex items-center gap-1.5 flex-shrink-0 disabled:opacity-50"
+                    className="px-3 py-2 bg-emerald-500 hover:bg-emerald-600 active:scale-95 text-white text-xs font-bold rounded-xl shadow-sm transition-all flex items-center gap-1.5 flex-shrink-0 disabled:opacity-50"
                 >
                     {isSyncing ? (
                         <>
-                            <div className="w-3 h-3 border-2 border-slate-950 border-t-transparent rounded-full animate-spin"></div>
-                            <span>Enviando...</span>
+                            <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                            <span>Enviando</span>
                         </>
                     ) : (
                         <>
-                            <span className="material-symbols-rounded text-sm">upload</span>
+                            <span className="material-symbols-rounded text-sm">cloud_upload</span>
                             <span>Enviar</span>
                         </>
                     )}

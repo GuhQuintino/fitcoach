@@ -10,6 +10,7 @@ import ExerciseHistoryModal from '../../components/shared/ExerciseHistoryModal';
 import { isWorkoutStale, autoFinalizeWorkout, SavedWorkout } from '../../utils/staleWorkoutService';
 import { saveOfflineWorkout, OfflineWorkoutPayload } from '../../utils/offlineSyncService';
 import { cacheWorkoutExecution, getCachedWorkoutExecution } from '../../utils/offlineCacheService';
+import { notifyNetworkError, notifyNetworkSuccess } from '../../utils/useOnlineStatus';
 
 const getYouTubeId = (url: string) => {
     if (!url) return null;
@@ -592,8 +593,10 @@ const WorkoutExecution: React.FC = () => {
             }
 
             setExercises(mappedExercises);
+            notifyNetworkSuccess();
 
         } catch (error) {
+            notifyNetworkError();
             console.warn('[WorkoutExecution] Falha na busca online, verificando cache:', error);
             const cached = getCachedWorkoutExecution(workoutId!);
             if (cached?.data) {
@@ -935,9 +938,11 @@ const WorkoutExecution: React.FC = () => {
 
             toast.dismiss(toastId);
             toast.success('Treino finalizado! Mandou bem!');
+            notifyNetworkSuccess();
             localStorage.removeItem('active_workout');
             navigate('/student/dashboard');
         } catch (error: any) {
+            notifyNetworkError();
             console.error('Error saving workout to Supabase. Attempting offline queue fallback:', error);
 
             // Fallback: Se falhou por rede ou dispositivo offline, salva na fila local
