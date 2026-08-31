@@ -7,6 +7,9 @@ import toast from 'react-hot-toast';
 import VideoPlayerModal from '../../components/shared/VideoPlayerModal';
 import DescriptionModal from '../../components/shared/DescriptionModal';
 import ExerciseHistoryModal from '../../components/shared/ExerciseHistoryModal';
+import { isWorkoutStale, autoFinalizeWorkout, SavedWorkout } from '../../utils/staleWorkoutService';
+import { saveOfflineWorkout, OfflineWorkoutPayload } from '../../utils/offlineSyncService';
+import { cacheWorkoutExecution, getCachedWorkoutExecution } from '../../utils/offlineCacheService';
 
 const getYouTubeId = (url: string) => {
     if (!url) return null;
@@ -526,6 +529,14 @@ const WorkoutExecution: React.FC = () => {
                 });
             }
 
+            // Gravar no cache offline (TTL de 8 dias)
+            if (workoutId && wData) {
+                cacheWorkoutExecution(workoutId, {
+                    workout: wData,
+                    exercises: mappedExercises
+                });
+            }
+
             // Check localStorage for progress
             const saved = localStorage.getItem('active_workout');
             if (saved) {
@@ -564,6 +575,16 @@ const WorkoutExecution: React.FC = () => {
                         if (data.isWorkoutPaused !== undefined) setIsWorkoutPaused(data.isWorkoutPaused);
                         setLoading(false);
                         return;
+                    } else if (user && isWorkoutStale(data as SavedWorkout)) {
+                        // Treino anterior é de outro workout e está stale → auto-finalizar
+                        autoFinalizeWorkout(data as SavedWorkout, user.id).then(res => {
+                            if (res.success) {
+                                toast.success(
+                                    `Seu treino anterior foi salvo automaticamente ✅ (${res.completedSets}/${res.totalSets} séries)`,
+                                    { duration: 5000 }
+                                );
+                            }
+                        });
                     }
                 } catch (e) {
                     console.error("Error parsing saved workout", e);
@@ -573,8 +594,45 @@ const WorkoutExecution: React.FC = () => {
             setExercises(mappedExercises);
 
         } catch (error) {
-            console.error(error);
-            toast.error('Erro ao carregar treino.');
+            console.warn('[WorkoutExecution] Falha na busca online, verificando cache:', error);
+            const cached = getCachedWorkoutExecution(workoutId!);
+            if (cached?.data) {
+                setWorkout(cached.data.workout);
+                let finalExercises = cached.data.exercises;
+
+                // Merge com localStorage se houver progresso ativo
+                const saved = localStorage.getItem('active_workout');
+                if (saved) {
+                    try {
+                        const data = JSON.parse(saved);
+                        if (data.workoutId === workoutId) {
+                            setStartTime(new Date(data.startTime));
+                            finalExercises = finalExercises.map((ex: any) => {
+                                const savedEx = data.exercises.find((sEx: any) => sEx.workout_item_id === ex.workout_item_id);
+                                if (savedEx) {
+                                    return {
+                                        ...ex,
+                                        feedback: savedEx.feedback || '',
+                                        sets: ex.sets.map((set: any, idx: number) => {
+                                            const savedSet = savedEx.sets[idx];
+                                            return savedSet ? { ...set, ...savedSet } : set;
+                                        })
+                                    };
+                                }
+                                return ex;
+                            });
+                            if (data.workoutSeconds !== undefined) setWorkoutSeconds(data.workoutSeconds);
+                            if (data.isWorkoutPaused !== undefined) setIsWorkoutPaused(data.isWorkoutPaused);
+                        }
+                    } catch (e) {
+                        console.error('Error merging saved workout with cache:', e);
+                    }
+                }
+                setExercises(finalExercises);
+            } else {
+                console.error(error);
+                toast.error('Erro ao carregar treino e sem cache offline.');
+            }
         } finally {
             setLoading(false);
         }
@@ -880,9 +938,92 @@ const WorkoutExecution: React.FC = () => {
             localStorage.removeItem('active_workout');
             navigate('/student/dashboard');
         } catch (error: any) {
-            console.error('Error saving workout:', error);
+            console.error('Error saving workout to Supabase. Attempting offline queue fallback:', error);
+
+            // Fallback: Se falhou por rede ou dispositivo offline, salva na fila local
+            try {
+                const completedTimestamps: number[] = [];
+                exercises.forEach(ex => {
+                    ex.sets.forEach(set => {
+                        if (set.completed && set.completed_at) {
+                            const ts = new Date(set.completed_at).getTime();
+                            if (!isNaN(ts)) {
+                                completedTimestamps.push(ts);
+                            }
+                        }
+                    });
+                });
+
+                const now = new Date();
+                let realStartedAt = new Date(now.getTime() - workoutSeconds * 1000);
+                let realFinishedAt = now;
+
+                if (completedTimestamps.length > 0) {
+                    const minTs = Math.min(...completedTimestamps);
+                    const maxTs = Math.max(...completedTimestamps);
+                    if (maxTs - minTs < 10000) {
+                        realStartedAt = new Date(maxTs - 60000);
+                        realFinishedAt = new Date(maxTs);
+                    } else {
+                        realStartedAt = new Date(minTs);
+                        realFinishedAt = new Date(maxTs);
+                    }
+                }
+
+                const setsToQueue: any[] = [];
+                exercises.forEach(ex => {
+                    ex.sets.forEach((set, i) => {
+                        if (set.completed) {
+                            setsToQueue.push({
+                                exercise_id: ex.id,
+                                set_type: set.type,
+                                set_order: i,
+                                weight_kg: parseFloat(set.weight) || 0,
+                                reps_completed: parseInt(set.reps) || 0,
+                                rpe_actual: parseInt(set.rpe) || null,
+                                time_completed: parseInt(set.time_completed || '') || null,
+                                distance_completed: parseFloat(set.distance_completed || '') || null,
+                                speed_actual: parseFloat(set.speed_actual || '') || null,
+                                hiit_cycles_completed: parseInt(set.hiit_cycles_completed || '') || null
+                            });
+                        }
+                    });
+                });
+
+                const feedbacksToQueue = exercises
+                    .filter(ex => ex.feedback && ex.feedback.trim() !== '')
+                    .map(ex => ({
+                        exercise_id: ex.id,
+                        feedback_text: ex.feedback!.trim()
+                    }));
+
+                const offlinePayload: OfflineWorkoutPayload = {
+                    workoutLog: {
+                        student_id: user!.id,
+                        workout_id: workoutId || null,
+                        started_at: realStartedAt.toISOString(),
+                        finished_at: realFinishedAt.toISOString(),
+                        effort_rating: overallEffort,
+                        feedback_notes: workoutComment
+                    },
+                    setLogs: setsToQueue,
+                    exerciseFeedbacks: feedbacksToQueue
+                };
+
+                const offlineRes = saveOfflineWorkout(offlinePayload);
+                if (offlineRes.success) {
+                    toast.dismiss();
+                    toast.success('Treino salvo no aparelho! Sincronizará ao reconectar 📶', { duration: 5000 });
+                    localStorage.removeItem('active_workout');
+                    navigate('/student/dashboard');
+                    return;
+                }
+            } catch (offlineErr) {
+                console.error('Critical failure in offline save fallback:', offlineErr);
+            }
+
             toast.dismiss();
-            toast.error(`Erro ao salvar: ${error.message || 'Tente novamente.'} `);
+            toast.error(`Erro ao salvar: ${error.message || 'Tente novamente.'}`);
         }
     };
 

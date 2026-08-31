@@ -7,6 +7,10 @@ import ThemeToggle from '../../components/ThemeToggle';
 import PWAInstallPrompt from '../../components/shared/PWAInstallPrompt';
 import { formatToWhatsappUrl } from '../../utils/phoneUtils';
 import { getOptimizedImageUrl } from '../../utils/imageUtils';
+import { useStaleWorkoutDetector } from '../../utils/useStaleWorkoutDetector';
+import { cacheStudentDashboard, getCachedStudentDashboard } from '../../utils/offlineCacheService';
+import OfflineSyncStatus from '../../components/shared/OfflineSyncStatus';
+import toast from 'react-hot-toast';
 
 const StudentDashboard: React.FC = () => {
     const { user, expiresAt } = useAuth();
@@ -19,6 +23,19 @@ const StudentDashboard: React.FC = () => {
     const [workoutCount, setWorkoutCount] = useState(0);
     const [gamification, setGamification] = useState({ streak: 0, level: 1, current_xp: 0, next_level_xp: 1000 });
     const [activeWorkout, setActiveWorkout] = useState<any>(null);
+
+    // Auto-finalização de treinos abandonados
+    const { result: autoFinalizeResult } = useStaleWorkoutDetector(user?.id);
+
+    useEffect(() => {
+        if (autoFinalizeResult?.success) {
+            setActiveWorkout(null);
+            toast.success(
+                `Seu treino de ontem foi salvo automaticamente ✅ (${autoFinalizeResult.completedSets}/${autoFinalizeResult.totalSets} séries)`,
+                { duration: 5000 }
+            );
+        }
+    }, [autoFinalizeResult]);
 
     useEffect(() => {
         if (user) {
@@ -45,31 +62,34 @@ const StudentDashboard: React.FC = () => {
         try {
             setLoading(true);
 
-            // ... (existing fetch calls for profile, studentData, etc) ...
             // 1. Fetch Profile
-            const { data: profileData } = await supabase
+            const { data: profileData, error: pErr } = await supabase
                 .from('profiles')
                 .select('*')
                 .eq('id', user!.id)
                 .single();
+            if (pErr) throw pErr;
             setProfile(profileData);
 
             // 2. Fetch Student Data (Coach & Expiration)
-            const { data: sData } = await supabase
+            const { data: sData, error: sErr } = await supabase
                 .from('students_data')
                 .select('*')
                 .eq('id', user!.id)
                 .single();
+            if (sErr && sErr.code !== 'PGRST116') throw sErr;
             setStudentData(sData);
 
             // Fetch Coach Info if exists
+            let coachData = null;
             if (sData?.coach_id) {
-                const { data: coachData } = await supabase
+                const { data: cData } = await supabase
                     .from('profiles')
                     .select('full_name, avatar_url, phone')
                     .eq('id', sData.coach_id)
                     .single();
-                setCoach(coachData);
+                coachData = cData;
+                setCoach(cData);
             }
 
             // PENDING CHECK
@@ -88,24 +108,24 @@ const StudentDashboard: React.FC = () => {
             setRoutine(assignment);
 
             // Fetch Workout Count & Logs for Gamification
-            const { data: logs, error: logsError, count } = await supabase
+            const { data: logs, count } = await supabase
                 .from('workout_logs')
                 .select('finished_at', { count: 'exact', head: false })
                 .eq('student_id', user!.id)
                 .not('finished_at', 'is', null)
                 .order('finished_at', { ascending: false });
 
-            setWorkoutCount(count || 0);
+            const currentWorkoutCount = count || 0;
+            setWorkoutCount(currentWorkoutCount);
+
+            let calculatedGamification = { streak: 0, level: 1, current_xp: 0, next_level_xp: 1000 };
 
             if (logs) {
-                // --- CLIENT-SIDE GAMIFICATION CALCULATION ---
-                // 1. Level Calculation (1 workout = 100 XP, Level up every 1000 XP)
-                const totalWorkouts = count || 0;
+                const totalWorkouts = currentWorkoutCount;
                 const current_xp = totalWorkouts * 100;
                 const level = Math.floor(current_xp / 1000) + 1;
                 const next_level_xp = level * 1000;
 
-                // 2. Streak Calculation
                 let streak = 0;
                 if (logs.length > 0) {
                     const uniqueDates = [...new Set(logs.map(log => new Date(log.finished_at).toDateString()))];
@@ -115,10 +135,8 @@ const StudentDashboard: React.FC = () => {
                         const yesterday = new Date(Date.now() - 86400000).toDateString();
                         const lastWorkoutDate = uniqueDates[0];
 
-                        // Streak is active if last workout was today or yesterday
                         if (lastWorkoutDate === today || lastWorkoutDate === yesterday) {
                             streak = 1;
-                            // Check previous days
                             for (let i = 1; i < uniqueDates.length; i++) {
                                 const prevDate = new Date(uniqueDates[i]);
                                 const currDate = new Date(uniqueDates[i - 1]);
@@ -135,16 +153,40 @@ const StudentDashboard: React.FC = () => {
                     }
                 }
 
-                setGamification({
+                calculatedGamification = {
                     streak,
                     level,
                     current_xp,
                     next_level_xp
-                });
+                };
+                setGamification(calculatedGamification);
             }
 
+            // Gravar dados com sucesso no cache local (TTL de 8 dias)
+            cacheStudentDashboard(user!.id, {
+                profile: profileData,
+                coach: coachData,
+                studentData: sData,
+                routine: assignment,
+                workoutCount: currentWorkoutCount,
+                gamification: calculatedGamification
+            });
+
         } catch (error) {
-            console.error('Error fetching student data:', error);
+            console.warn('[Dashboard] Falha na busca online, verificando cache local:', error);
+            const cached = getCachedStudentDashboard(user!.id);
+            if (cached?.data) {
+                setProfile(cached.data.profile);
+                setCoach(cached.data.coach);
+                setStudentData(cached.data.studentData);
+                setRoutine(cached.data.routine);
+                setWorkoutCount(cached.data.workoutCount || 0);
+                if (cached.data.gamification) {
+                    setGamification(cached.data.gamification);
+                }
+            } else {
+                console.error('Nenhum dado em cache disponível:', error);
+            }
         } finally {
             setLoading(false);
         }
@@ -313,6 +355,7 @@ const StudentDashboard: React.FC = () => {
 
             <main className="px-6 -mt-4 space-y-6 relative z-20">
                 <PWAInstallPrompt />
+                <OfflineSyncStatus />
                 {/* Active Workout Banner */}
                 {activeWorkout && (
                     <div className="bg-slate-900 dark:bg-slate-800 rounded-3xl p-5 shadow-xl border border-white/5 animate-slide-up">

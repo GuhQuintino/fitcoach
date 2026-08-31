@@ -37,9 +37,10 @@ lerna-debug.log*
 testsprite_tests/
 
 # Utility scripts (dev-only)
-scripts/
+scripts/*
 !scripts/rls_audit_report.md
 !scripts/test_rls_regression.mjs
+!scripts/test_offline_suite.ts
 
 # mantis-summary files
 mantis-summary.md

@@ -4,6 +4,8 @@ import { supabase } from '../../lib/supabaseClient';
 import { useAuth } from '../../contexts/AuthContext';
 import { Link, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
+import { useStaleWorkoutDetector } from '../../utils/useStaleWorkoutDetector';
+import { cacheSelectionWorkouts, getCachedSelectionWorkouts } from '../../utils/offlineCacheService';
 
 const Selection: React.FC = () => {
     const { user } = useAuth();
@@ -12,6 +14,19 @@ const Selection: React.FC = () => {
     const [routine, setRoutine] = useState<any>(null);
     const [workouts, setWorkouts] = useState<any[]>([]);
     const [activeWorkout, setActiveWorkout] = useState<any>(null);
+
+    // Auto-finalização de treinos abandonados
+    const { result: autoFinalizeResult } = useStaleWorkoutDetector(user?.id);
+
+    useEffect(() => {
+        if (autoFinalizeResult?.success) {
+            setActiveWorkout(null);
+            toast.success(
+                `Seu treino de ontem foi salvo automaticamente ✅ (${autoFinalizeResult.completedSets}/${autoFinalizeResult.totalSets} séries)`,
+                { duration: 5000 }
+            );
+        }
+    }, [autoFinalizeResult]);
 
     useEffect(() => {
         if (user) {
@@ -67,6 +82,8 @@ const Selection: React.FC = () => {
                 const sortedWorkouts = wData || [];
                 setWorkouts(sortedWorkouts);
 
+                let nextSuggestedIdx = 0;
+
                 // Fetch last log to determine suggestion
                 const { data: lastLog, error: lError } = await supabase
                     .from('workout_logs')
@@ -79,14 +96,30 @@ const Selection: React.FC = () => {
                 if (!lError && lastLog) {
                     const lastIdx = sortedWorkouts.findIndex(w => w.id === lastLog.workout_id);
                     if (lastIdx !== -1) {
-                        setSuggestedIndex((lastIdx + 1) % sortedWorkouts.length);
+                        nextSuggestedIdx = (lastIdx + 1) % sortedWorkouts.length;
+                        setSuggestedIndex(nextSuggestedIdx);
                     }
                 }
+
+                // Grava no cache de leitura (TTL 8 dias)
+                cacheSelectionWorkouts(user!.id, {
+                    routine: assignment.routines,
+                    workouts: sortedWorkouts,
+                    suggestedIndex: nextSuggestedIdx
+                });
             }
 
         } catch (error) {
-            console.error('Error fetching selection:', error);
-            toast.error('Erro ao carregar treinos.');
+            console.warn('[Selection] Falha na busca online, verificando cache:', error);
+            const cached = getCachedSelectionWorkouts(user!.id);
+            if (cached?.data) {
+                setRoutine(cached.data.routine);
+                setWorkouts(cached.data.workouts || []);
+                setSuggestedIndex(cached.data.suggestedIndex || 0);
+            } else {
+                console.error('Erro ao carregar treinos e sem cache:', error);
+                toast.error('Sem conexão e sem treinos em cache.');
+            }
         } finally {
             setLoading(false);
         }

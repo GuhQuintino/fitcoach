@@ -1,6 +1,7 @@
 import React from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import BottomNav from '../BottomNav';
+import OfflineBanner from '../shared/OfflineBanner';
 
 import { Toaster } from 'react-hot-toast'; // Optional, but good for feedback
 
@@ -16,6 +17,9 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
 
     return (
         <div className="min-h-screen w-full bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-50 transition-colors duration-300 overflow-x-hidden">
+            {/* Global Offline / Sync Banner */}
+            <OfflineBanner />
+
             {/* Main Content Container */}
             <div className="w-full max-w-5xl mx-auto min-h-screen relative flex flex-col shadow-2xl bg-white dark:bg-slate-900">
 

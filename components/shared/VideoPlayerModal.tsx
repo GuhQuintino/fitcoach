@@ -10,6 +10,8 @@ interface VideoPlayerModalProps {
 const VideoPlayerModal: React.FC<VideoPlayerModalProps> = ({ isOpen, onClose, videoUrl, title }) => {
     if (!isOpen || !videoUrl) return null;
 
+    const isOffline = typeof navigator !== 'undefined' && !navigator.onLine;
+
     // Helper to detect type
     const isYoutube = (url: string) => url.includes('youtube.com') || url.includes('youtu.be');
 
@@ -53,7 +55,23 @@ const VideoPlayerModal: React.FC<VideoPlayerModalProps> = ({ isOpen, onClose, vi
                     </button>
                 </div>
 
-                {isYoutube(videoUrl) ? (
+                {isOffline ? (
+                    <div className="p-8 text-center bg-slate-900 text-white space-y-4 flex flex-col items-center justify-center min-h-[300px]">
+                        <div className="w-16 h-16 rounded-full bg-amber-500/20 text-amber-400 flex items-center justify-center">
+                            <span className="material-symbols-rounded text-3xl">wifi_off</span>
+                        </div>
+                        <h4 className="text-lg font-bold">Vídeo Indisponível Offline</h4>
+                        <p className="text-xs text-slate-400 max-w-md">
+                            A reprodução de vídeos requer conexão com a internet. No entanto, as instruções, metas de carga, repetições e cronômetros continuam funcionando normalmente!
+                        </p>
+                        <button
+                            onClick={onClose}
+                            className="bg-white/10 hover:bg-white/20 text-white px-5 py-2 rounded-xl text-xs font-bold transition-all"
+                        >
+                            Voltar ao Treino
+                        </button>
+                    </div>
+                ) : isYoutube(videoUrl) ? (
                     <div className="relative pt-[56.25%] bg-black">
                         <iframe
                             src={getYoutubeEmbedUrl(videoUrl)}
