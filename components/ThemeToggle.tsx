@@ -9,7 +9,7 @@ interface ThemeToggleProps {
 const ThemeToggle: React.FC<ThemeToggleProps> = ({ variant = 'dark', className = '' }) => {
     const { isDark, toggleTheme } = useTheme();
 
-    const baseClasses = "p-2 rounded-full transition-all duration-200 flex items-center justify-center active:scale-95";
+    const baseClasses = "min-w-[44px] min-h-[44px] p-2.5 rounded-full transition-all duration-200 flex items-center justify-center active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary";
     
     let variantClasses = "";
     if (variant === 'light') {
@@ -17,17 +17,18 @@ const ThemeToggle: React.FC<ThemeToggleProps> = ({ variant = 'dark', className =
     } else if (variant === 'glass') {
          variantClasses = "bg-white/10 text-white backdrop-blur-md border border-white/20 hover:bg-white/20 shadow-sm";
     } else {
-        variantClasses = "text-text-primary-light dark:text-text-primary-dark hover:bg-gray-100 dark:hover:bg-gray-800";
+        variantClasses = "text-slate-800 dark:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800";
     }
 
     return (
         <button 
+            type="button"
             onClick={toggleTheme} 
             className={`${baseClasses} ${variantClasses} ${className}`}
-            aria-label="Alternar tema"
+            aria-label={isDark ? "Alternar para modo claro" : "Alternar para modo escuro"}
             title={isDark ? "Modo Claro" : "Modo Escuro"}
         >
-            <span className="material-symbols-rounded text-xl">
+            <span className="material-symbols-rounded text-xl" aria-hidden="true">
                 {isDark ? 'light_mode' : 'dark_mode'}
             </span>
         </button>

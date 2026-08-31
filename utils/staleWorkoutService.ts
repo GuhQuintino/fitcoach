@@ -123,8 +123,8 @@ export async function autoFinalizeWorkout(
         }
 
         // 1. Inserir workout_log (effort_rating null = auto-finalizado)
-        const { data: logData, error: logError } = await supabase
-            .from('workout_logs')
+        const { data: logData, error: logError } = await (supabase
+            .from('workout_logs') as any)
             .insert({
                 student_id: userId,
                 workout_id: saved.workoutId,
@@ -136,7 +136,7 @@ export async function autoFinalizeWorkout(
             .select()
             .single();
 
-        if (logError) throw logError;
+        if (logError || !logData) throw logError || new Error('Falha ao obter ID do log');
 
         // 2. Inserir set_logs para séries completadas
         const setsToInsert: any[] = [];
@@ -161,8 +161,8 @@ export async function autoFinalizeWorkout(
         });
 
         if (setsToInsert.length > 0) {
-            const { error: setsError } = await supabase
-                .from('set_logs')
+            const { error: setsError } = await (supabase
+                .from('set_logs') as any)
                 .insert(setsToInsert);
             if (setsError) throw setsError;
         }
@@ -177,8 +177,8 @@ export async function autoFinalizeWorkout(
             }));
 
         if (feedbacksToInsert.length > 0) {
-            const { error: feedbackError } = await supabase
-                .from('exercise_feedback_logs')
+            const { error: feedbackError } = await (supabase
+                .from('exercise_feedback_logs') as any)
                 .insert(feedbacksToInsert);
             if (feedbackError) throw feedbackError;
         }

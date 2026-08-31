@@ -8,6 +8,17 @@ interface DescriptionModalProps {
 }
 
 const DescriptionModal: React.FC<DescriptionModalProps> = ({ isOpen, onClose, description, title }) => {
+    React.useEffect(() => {
+        if (!isOpen) return;
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') {
+                onClose();
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [isOpen, onClose]);
+
     if (!isOpen) return null;
 
     const handleBackdropClick = (e: React.MouseEvent) => {
@@ -18,14 +29,22 @@ const DescriptionModal: React.FC<DescriptionModalProps> = ({ isOpen, onClose, de
 
     return (
         <div
+            role="dialog"
+            aria-modal="true"
+            aria-label={title || "Descrição detalhada"}
             className="fixed inset-0 z-[100] bg-slate-900/80 backdrop-blur-md flex items-center justify-center p-4 animate-fade-in"
             onClick={handleBackdropClick}
         >
             <div className="bg-white dark:bg-slate-800 w-full max-w-lg rounded-[2.5rem] overflow-hidden shadow-2xl animate-scale-up border border-slate-100 dark:border-slate-700">
                 <div className="p-6 border-b border-slate-50 dark:border-slate-700/50 flex items-center justify-between">
                     <h3 className="font-bold text-slate-900 dark:text-white text-xl font-display">{title}</h3>
-                    <button onClick={onClose} className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
-                        <span className="material-symbols-rounded">close</span>
+                    <button
+                        type="button"
+                        onClick={onClose}
+                        aria-label="Fechar descrição"
+                        className="min-w-[44px] min-h-[44px] p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors flex items-center justify-center text-slate-400"
+                    >
+                        <span className="material-symbols-rounded" aria-hidden="true">close</span>
                     </button>
                 </div>
                 <div className="p-6 overflow-y-auto max-h-[70vh] text-slate-600 dark:text-slate-300 text-base leading-relaxed whitespace-pre-wrap">
@@ -47,8 +66,10 @@ const DescriptionModal: React.FC<DescriptionModalProps> = ({ isOpen, onClose, de
                 </div>
                 <div className="p-6 bg-slate-50 dark:bg-slate-900/50 border-t border-slate-100 dark:border-slate-700/50">
                     <button
+                        type="button"
                         onClick={onClose}
-                        className="w-full bg-primary text-white py-3.5 rounded-2xl font-bold shadow-lg shadow-primary/20 active:scale-[0.98] transition-all"
+                        aria-label="Entendi e fechar"
+                        className="w-full min-h-[44px] bg-primary text-white py-3.5 rounded-2xl font-bold shadow-lg shadow-primary/20 active:scale-[0.98] transition-all flex items-center justify-center"
                     >
                         Entendi
                     </button>

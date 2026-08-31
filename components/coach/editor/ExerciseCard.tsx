@@ -7,15 +7,14 @@ import VideoThumbnail from '../../shared/VideoThumbnail';
 import toast from 'react-hot-toast';
 import SetTemplateManager from './SetTemplateManager';
 
-interface Set {
-    id: string; // Temporarily just random string if new
+export interface Set {
+    id: string;
     set_order: number;
     type: 'warmup' | 'working' | 'failure' | 'dropset' | 'preparation';
-    weight_target?: string; // string to handle empty states easily
+    weight_target?: string;
     reps_target: string;
     rest_seconds: string;
     rpe_target: string;
-    // Novos campos de metas do Milestone 2
     time_target?: string;
     distance_target?: string;
     speed_target?: string;
@@ -25,6 +24,25 @@ interface Set {
     hiit_rest_speed?: string;
     hiit_cycles?: string;
     is_hiit?: boolean;
+}
+
+export interface ExerciseItemData {
+    id?: string;
+    workout_id?: string;
+    exercise_id: string;
+    order_index?: number;
+    notes?: string;
+    coach_notes?: string;
+    sets: Set[];
+    exercise?: {
+        id: string;
+        name: string;
+        muscle_group?: string;
+        video_url?: string;
+        description?: string;
+        exercise_type?: 'reps' | 'time' | 'cardio';
+        muscle_weights?: Record<string, number>;
+    };
 }
 
 const generateTimeOptions = (currentTimeTarget?: string) => {
@@ -51,17 +69,20 @@ const generateTimeOptions = (currentTimeTarget?: string) => {
 };
 
 interface ExerciseCardProps {
-    item: any; // The workout item (exercise + sets data)
+    item: ExerciseItemData;
     index: number;
-    onUpdate: (updatedItem: any) => void;
+    totalItems?: number;
+    onUpdate: (updatedItem: ExerciseItemData) => void;
     onDelete: () => void;
+    onMoveUp?: () => void;
+    onMoveDown?: () => void;
     onSwapExercise?: () => void;
     studentId?: string | null;
-    dragHandleProps?: any; // Props for the drag handle
+    dragHandleProps?: Record<string, unknown>;
     onEditExercise?: () => void;
 }
 
-const ExerciseCard: React.FC<ExerciseCardProps> = ({ item, index, onUpdate, onDelete, onSwapExercise, studentId, dragHandleProps, onEditExercise }) => {
+const ExerciseCard: React.FC<ExerciseCardProps> = ({ item, index, totalItems, onUpdate, onDelete, onMoveUp, onMoveDown, onSwapExercise, studentId, dragHandleProps, onEditExercise }) => {
     const [sets, setSets] = useState<Set[]>(() => {
         return (item.sets || []).map((s: any) => ({
             ...s,
@@ -202,8 +223,11 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({ item, index, onUpdate, onDe
                 </div>
 
                 {/* Thumbnail Area - Click to open Modal */}
-                <div
-                    className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-slate-200 dark:bg-slate-700 flex-shrink-0 overflow-hidden relative group cursor-pointer border border-slate-100 dark:border-slate-600"
+                <button
+                    type="button"
+                    aria-label={`Ver vídeo de demonstração do exercício ${item.exercise?.name || 'Exercício'}`}
+                    disabled={!videoUrl}
+                    className="w-11 h-11 sm:w-12 sm:h-12 min-w-[44px] min-h-[44px] rounded-lg bg-slate-200 dark:bg-slate-700 flex-shrink-0 overflow-hidden relative group cursor-pointer border border-slate-100 dark:border-slate-600 focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none disabled:cursor-default"
                     onClick={() => {
                         if (videoUrl) setShowVideoModal(true);
                     }}
@@ -212,104 +236,156 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({ item, index, onUpdate, onDe
                         <img
                             src={videoUrl}
                             className="w-full h-full object-cover"
-                            alt="Preview"
+                            alt="Demonstração do Exercício"
+                            loading="lazy"
+                            width="48"
+                            height="48"
                         />
                     ) : ytId ? (
                         <div className="w-full h-full relative">
                             <img
                                 src={`https://img.youtube.com/vi/${ytId}/0.jpg`}
                                 className="w-full h-full object-cover opacity-80"
-                                alt="Video Preview"
+                                alt="Demonstração do Exercício no YouTube"
+                                loading="lazy"
+                                width="48"
+                                height="48"
                             />
                             {/* Static overlay icon for YT */}
                             <div className="absolute inset-0 flex items-center justify-center">
-                                <span className="material-symbols-rounded text-white drop-shadow-md text-lg">play_circle</span>
+                                <span className="material-symbols-rounded text-white drop-shadow-md text-lg" aria-hidden="true">play_circle</span>
                             </div>
                         </div>
-                    ) : videoUrl?.match(/\.mp4($|\?)/i) ? (
-                        <VideoThumbnail src={videoUrl} className="w-full h-full rounded-lg" />
                     ) : (
                         <div className="w-full h-full flex items-center justify-center text-slate-400">
-                            <span className="material-symbols-rounded text-xl">image</span>
+                            <span className="material-symbols-rounded text-lg sm:text-xl" aria-hidden="true">fitness_center</span>
                         </div>
                     )}
-                </div>
+                </button>
 
-                <div className="flex-1 min-w-0" onClick={() => setShowDescription(!showDescription)}>
+                <button
+                    type="button"
+                    aria-expanded={showDescription}
+                    aria-label={showDescription ? `Recolher descrição de ${item.exercise?.name || 'exercício'}` : `Expandir descrição de ${item.exercise?.name || 'exercício'}`}
+                    className="flex-1 min-w-0 text-left group/title focus:outline-none"
+                    onClick={() => setShowDescription(!showDescription)}
+                >
                     <div className="flex items-center gap-2 cursor-pointer hover:opacity-75 transition-opacity">
                         <h3 className="font-bold text-slate-900 dark:text-white truncate select-none">{item.exercise?.name || 'Exercício'}</h3>
-                        <span className="material-symbols-rounded text-slate-400 text-sm transition-transform duration-300" style={{ transform: showDescription ? 'rotate(180deg)' : 'rotate(0deg)' }}>expand_more</span>
+                        <span className="material-symbols-rounded text-slate-400 text-sm transition-transform duration-300" style={{ transform: showDescription ? 'rotate(180deg)' : 'rotate(0deg)' }} aria-hidden="true">expand_more</span>
                     </div>
-                </div>
+                </button>
 
                 {studentId && (
                     <button
+                        type="button"
                         onClick={() => setShowHistoryModal(true)}
-                        className="p-1 sm:p-2 text-sky-500 hover:bg-sky-50 dark:hover:bg-sky-900/20 rounded-lg transition-colors flex-shrink-0"
+                        aria-label="Ver histórico do aluno neste exercício"
+                        className="w-11 h-11 min-w-[44px] min-h-[44px] p-2 text-sky-500 hover:bg-sky-50 dark:hover:bg-sky-900/20 rounded-xl transition-colors flex-shrink-0 flex items-center justify-center"
                         title="Ver histórico do aluno"
                     >
-                        <span className="material-symbols-rounded text-lg sm:text-2xl">history</span>
+                        <span className="material-symbols-rounded text-lg sm:text-2xl" aria-hidden="true">history</span>
                     </button>
                 )}
 
-                <button onClick={onDelete} className="p-1 sm:p-2 text-slate-400 hover:text-red-500 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors flex-shrink-0">
-                    <span className="material-symbols-rounded text-lg sm:text-2xl">delete</span>
+                <button
+                    type="button"
+                    onClick={onDelete}
+                    aria-label="Remover exercício da rotina"
+                    className="w-11 h-11 min-w-[44px] min-h-[44px] p-2 text-slate-400 dark:text-slate-500 hover:text-red-600 dark:hover:text-red-400 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors flex-shrink-0 flex items-center justify-center"
+                >
+                    <span className="material-symbols-rounded text-lg sm:text-2xl" aria-hidden="true">delete</span>
                 </button>
 
                 {/* Menu Button (Templates) */}
                 <div className="relative">
                     <button
+                        type="button"
                         onClick={() => setShowMenu(!showMenu)}
-                        className="p-1 sm:p-2 text-slate-400 hover:text-primary rounded-lg hover:bg-primary/5 transition-colors flex-shrink-0"
+                        aria-expanded={showMenu}
+                        aria-label="Mais opções e modelos deste exercício"
+                        className="w-11 h-11 min-w-[44px] min-h-[44px] p-2 text-slate-400 hover:text-primary rounded-xl hover:bg-primary/5 transition-colors flex-shrink-0 flex items-center justify-center"
                     >
-                        <span className="material-symbols-rounded text-lg sm:text-2xl">more_vert</span>
+                        <span className="material-symbols-rounded text-lg sm:text-2xl" aria-hidden="true">more_vert</span>
                     </button>
 
                     {/* Dropdown */}
                     {showMenu && (
                         <>
-                            <div className="fixed inset-0 z-10" onClick={() => setShowMenu(false)}></div>
+                            <div className="fixed inset-0 z-10" aria-hidden="true" onClick={() => setShowMenu(false)}></div>
                             <div className="absolute right-0 top-full mt-1 w-48 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-100 dark:border-slate-700 z-20 py-1 overflow-hidden animate-fade-in transform origin-top-right">
                                 <button
+                                    type="button"
                                     onClick={() => {
                                         setTemplateModal({ isOpen: true, mode: 'load' });
                                         setShowMenu(false);
                                     }}
                                     className="w-full text-left px-4 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-700 text-sm font-medium text-slate-700 dark:text-slate-200 flex items-center gap-2"
                                 >
-                                    <span className="material-symbols-rounded text-lg text-primary">download</span>
+                                    <span className="material-symbols-rounded text-lg text-primary" aria-hidden="true">download</span>
                                     Carregar Template
                                 </button>
                                 <button
+                                    type="button"
                                     onClick={() => {
                                         setTemplateModal({ isOpen: true, mode: 'save' });
                                         setShowMenu(false);
                                     }}
                                     className="w-full text-left px-4 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-700 text-sm font-medium text-slate-700 dark:text-slate-200 flex items-center gap-2 border-t border-slate-50 dark:border-slate-700/50"
                                 >
-                                    <span className="material-symbols-rounded text-lg text-emerald-500">save</span>
+                                    <span className="material-symbols-rounded text-lg text-emerald-500" aria-hidden="true">save</span>
                                     Salvar Sets
                                 </button>
                                 <button
+                                    type="button"
                                     onClick={() => {
                                         if (onEditExercise) onEditExercise();
                                         setShowMenu(false);
                                     }}
                                     className="w-full text-left px-4 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-700 text-sm font-medium text-slate-700 dark:text-slate-200 flex items-center gap-2 border-t border-slate-50 dark:border-slate-700/50"
                                 >
-                                    <span className="material-symbols-rounded text-lg text-blue-500">edit</span>
+                                    <span className="material-symbols-rounded text-lg text-blue-500" aria-hidden="true">edit</span>
                                     Editar Cadastro
                                 </button>
                                 {onSwapExercise && (
                                     <button
+                                        type="button"
                                         onClick={() => {
                                             onSwapExercise();
                                             setShowMenu(false);
                                         }}
                                         className="w-full text-left px-4 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-700 text-sm font-medium text-slate-700 dark:text-slate-200 flex items-center gap-2 border-t border-slate-50 dark:border-slate-700/50"
                                     >
-                                        <span className="material-symbols-rounded text-lg text-orange-500">swap_horiz</span>
+                                        <span className="material-symbols-rounded text-lg text-orange-500" aria-hidden="true">swap_horiz</span>
                                         Alterar Exercício
+                                    </button>
+                                )}
+                                {onMoveUp && index > 0 && (
+                                    <button
+                                        type="button"
+                                        aria-label={`Mover exercício para cima (posição ${index})`}
+                                        onClick={() => {
+                                            onMoveUp();
+                                            setShowMenu(false);
+                                        }}
+                                        className="w-full text-left px-4 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-700 text-sm font-medium text-slate-700 dark:text-slate-200 flex items-center gap-2 border-t border-slate-50 dark:border-slate-700/50"
+                                    >
+                                        <span className="material-symbols-rounded text-lg text-sky-500" aria-hidden="true">arrow_upward</span>
+                                        Mover para Cima
+                                    </button>
+                                )}
+                                {onMoveDown && totalItems !== undefined && index < totalItems - 1 && (
+                                    <button
+                                        type="button"
+                                        aria-label={`Mover exercício para baixo (posição ${index + 2})`}
+                                        onClick={() => {
+                                            onMoveDown();
+                                            setShowMenu(false);
+                                        }}
+                                        className="w-full text-left px-4 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-700 text-sm font-medium text-slate-700 dark:text-slate-200 flex items-center gap-2 border-t border-slate-50 dark:border-slate-700/50"
+                                    >
+                                        <span className="material-symbols-rounded text-lg text-sky-500" aria-hidden="true">arrow_downward</span>
+                                        Mover para Baixo
                                     </button>
                                 )}
                             </div>
@@ -319,13 +395,12 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({ item, index, onUpdate, onDe
             </div>
 
             {/* Description Expandable Area */}
-            {/* Description Expandable Area */}
             {showDescription && item.exercise?.description && (
-                <div className="px-4 py-3 bg-blue-50/50 dark:bg-blue-900/10 border-b border-blue-100 dark:border-blue-900/30 text-sm text-slate-600 dark:text-slate-300 animate-fade-in text-left whitespace-pre-wrap">
+                <div className="px-4 py-3 bg-blue-50/70 dark:bg-blue-950/30 border-b border-blue-100 dark:border-blue-900/40 text-sm text-blue-950 dark:text-blue-100 animate-fade-in text-left whitespace-pre-wrap">
                     {item.exercise.description.replace(/\\n/g, '\n').split('\n').map((line: string, i: number) => {
                         // Handle Headings (##)
                         if (line.trim().startsWith('##')) {
-                            return <h4 key={i} className="font-bold text-slate-800 dark:text-slate-200 mt-3 mb-1">{line.replace(/^##\s*/, '')}</h4>;
+                            return <h4 key={i} className="font-bold text-blue-950 dark:text-blue-100 mt-3 mb-1">{line.replace(/^##\s*/, '')}</h4>;
                         }
                         // Handle empty lines
                         if (!line.trim()) return <div key={i} className="h-2" />;
@@ -336,7 +411,7 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({ item, index, onUpdate, onDe
                         return (
                             <p key={i} className="mb-1">
                                 {parts.map((part, index) =>
-                                    index % 2 === 1 ? <strong key={index} className="font-bold text-slate-700 dark:text-slate-200">{part}</strong> : part
+                                    index % 2 === 1 ? <strong key={index} className="font-bold text-blue-900 dark:text-blue-200">{part}</strong> : part
                                 )}
                             </p>
                         );
@@ -353,14 +428,14 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({ item, index, onUpdate, onDe
                             <div className="text-center">#</div>
                             <div className="text-center">KG</div>
                             <div className="text-center">TEMPO (s)</div>
-                            <div className="flex items-center justify-center gap-1 group/rest cursor-pointer hover:text-primary transition-colors" onClick={handleBulkApplyRest} title="Replicar descanso">
+                            <button type="button" aria-label="Replicar tempo de descanso para todas as séries" className="flex items-center justify-center gap-1 group/rest cursor-pointer hover:text-primary transition-colors text-[8px] sm:text-[10px] font-bold uppercase" onClick={handleBulkApplyRest} title="Replicar descanso">
                                 <span>DESC</span>
-                                <span className="material-symbols-rounded text-[10px] opacity-0 group-hover/rest:opacity-100 transition-opacity hidden sm:inline">sync_alt</span>
-                            </div>
-                            <div className="flex items-center justify-center gap-1 cursor-pointer hover:text-primary transition-colors" onClick={() => setRpeModalOpen(true)}>
+                                <span className="material-symbols-rounded text-[10px] opacity-0 group-hover/rest:opacity-100 transition-opacity hidden sm:inline" aria-hidden="true">sync_alt</span>
+                            </button>
+                            <button type="button" aria-label="Guia da escala de esforço percebido PSE" className="flex items-center justify-center gap-1 cursor-pointer hover:text-primary transition-colors text-[8px] sm:text-[10px] font-bold uppercase" onClick={() => setRpeModalOpen(true)}>
                                 <span>PSE</span>
-                                <span className="hidden sm:inline material-symbols-rounded text-[10px]">help</span>
-                            </div>
+                                <span className="hidden sm:inline material-symbols-rounded text-[10px]" aria-hidden="true">help</span>
+                            </button>
                             <div className="w-5"></div>
                         </div>
                     ) : item.exercise?.exercise_type === 'cardio' ? (
@@ -369,9 +444,9 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({ item, index, onUpdate, onDe
                             <div className="text-center">DIST (km)</div>
                             <div className="text-center">VEL (km/h)</div>
                             <div className="text-center">TEMPO (min)</div>
-                            <div className="flex items-center justify-center gap-1 group/rest cursor-pointer hover:text-primary transition-colors" onClick={handleBulkApplyRest} title="Replicar descanso">
+                            <button type="button" aria-label="Replicar tempo de descanso para todas as séries" className="flex items-center justify-center gap-1 group/rest cursor-pointer hover:text-primary transition-colors text-[8px] sm:text-[10px] font-bold uppercase" onClick={handleBulkApplyRest} title="Replicar descanso">
                                 <span>DESC</span>
-                            </div>
+                            </button>
                             <div className="text-center">HIIT</div>
                             <div className="w-5"></div>
                         </div>
@@ -380,15 +455,15 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({ item, index, onUpdate, onDe
                             <div className="text-center">#</div>
                             <div className="text-center">KG</div>
                             <div className="text-center">REPS</div>
-                            <div className="flex items-center justify-center gap-1 group/rest cursor-pointer hover:text-primary transition-colors" onClick={handleBulkApplyRest} title="Replicar descanso">
+                            <button type="button" aria-label="Replicar tempo de descanso para todas as séries" className="flex items-center justify-center gap-1 group/rest cursor-pointer hover:text-primary transition-colors text-[8px] sm:text-[10px] font-bold uppercase" onClick={handleBulkApplyRest} title="Replicar descanso">
                                 <span className="hidden sm:inline">DESC</span>
                                 <span className="sm:hidden">DESC</span>
-                                <span className="material-symbols-rounded text-[10px] opacity-0 group-hover/rest:opacity-100 transition-opacity hidden sm:inline">sync_alt</span>
-                            </div>
-                            <div className="flex items-center justify-center gap-1 cursor-pointer hover:text-primary transition-colors" onClick={() => setRpeModalOpen(true)}>
+                                <span className="material-symbols-rounded text-[10px] opacity-0 group-hover/rest:opacity-100 transition-opacity hidden sm:inline" aria-hidden="true">sync_alt</span>
+                            </button>
+                            <button type="button" aria-label="Guia da escala de esforço percebido PSE" className="flex items-center justify-center gap-1 cursor-pointer hover:text-primary transition-colors text-[8px] sm:text-[10px] font-bold uppercase" onClick={() => setRpeModalOpen(true)}>
                                 <span>PSE</span>
-                                <span className="hidden sm:inline material-symbols-rounded text-[10px]">help</span>
-                            </div>
+                                <span className="hidden sm:inline material-symbols-rounded text-[10px]" aria-hidden="true">help</span>
+                            </button>
                             <div className="w-5"></div>
                         </div>
                     )}
@@ -404,8 +479,10 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({ item, index, onUpdate, onDe
                                         <div className="flex items-center justify-between border-b border-sky-100/50 dark:border-sky-900/20 pb-1.5">
                                             <div className="flex items-center gap-2">
                                                 <button
+                                                    type="button"
+                                                    aria-label={`Alterar tipo da série ${workingSetIndex} HIIT`}
                                                     onClick={() => setTypeModal({ isOpen: true, setIndex: i })}
-                                                    className={`h-6 px-2 rounded-md border flex items-center justify-center transition-all duration-300 ${set.type === 'warmup'
+                                                    className={`min-h-[36px] sm:min-h-[44px] px-2 rounded-md border flex items-center justify-center transition-all duration-300 ${set.type === 'warmup'
                                                         ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800/50 text-amber-600'
                                                         : set.type === 'failure'
                                                             ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800/50 text-red-600'
@@ -414,7 +491,7 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({ item, index, onUpdate, onDe
                                                                 : set.type === 'preparation'
                                                                     ? 'bg-cyan-50 dark:bg-cyan-900/20 border-cyan-200 dark:border-cyan-800/50 text-cyan-600'
                                                                     : 'bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-sky-600'
-                                                        } hover:scale-105 active:scale-95 shadow-sm p-0`}
+                                                        } hover:scale-105 active:scale-95 shadow-sm`}
                                                 >
                                                     {set.type === 'working' ? (
                                                         <span className="font-black text-[9px] sm:text-xs uppercase tracking-tighter">Série {workingSetIndex} (HIIT)</span>
@@ -425,92 +502,105 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({ item, index, onUpdate, onDe
                                                         </span>
                                                     )}
                                                 </button>
-                                                <span className="material-symbols-rounded text-sky-500 text-sm">bolt</span>
+                                                <span className="material-symbols-rounded text-sky-500 text-sm" aria-hidden="true">bolt</span>
                                             </div>
                                             <div className="flex items-center gap-2">
                                                 <button
                                                     type="button"
+                                                    aria-label="Mudar para cardio tradicional"
                                                     onClick={() => handleSetChange(i, 'is_hiit', false)}
-                                                    className="text-[9px] font-bold text-slate-500 hover:text-primary flex items-center gap-0.5 bg-white dark:bg-slate-800 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-700 shadow-sm transition-all"
+                                                    className="text-[9px] font-bold text-slate-500 hover:text-primary flex items-center gap-0.5 bg-white dark:bg-slate-800 px-2 py-1 min-h-[36px] rounded border border-slate-200 dark:border-slate-700 shadow-sm transition-all"
                                                 >
-                                                    <span className="material-symbols-rounded text-xs">directions_run</span>
+                                                    <span className="material-symbols-rounded text-xs" aria-hidden="true">directions_run</span>
                                                     Tradicional
                                                 </button>
-                                                <button onClick={() => handleRemoveSet(i)} className="text-slate-400 hover:text-red-500">
-                                                    <span className="material-symbols-rounded text-base">close</span>
+                                                <button
+                                                    type="button"
+                                                    aria-label={`Remover série HIIT ${i + 1}`}
+                                                    onClick={() => handleRemoveSet(i)}
+                                                    className="min-h-[36px] min-w-[36px] flex items-center justify-center text-slate-400 hover:text-red-500 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                                                >
+                                                    <span className="material-symbols-rounded text-base" aria-hidden="true">close</span>
                                                 </button>
                                             </div>
                                         </div>
 
                                         <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 text-xs">
                                             <div>
-                                                <label className="block text-[8px] font-bold text-slate-400 uppercase mb-0.5">Tiro (s)</label>
+                                                <label htmlFor={`hiit-work-sec-${item.id || index}-${i}`} className="block text-[9px] font-bold text-slate-600 dark:text-slate-400 uppercase mb-1">Tiro (s)</label>
                                                 <input
+                                                    id={`hiit-work-sec-${item.id || index}-${i}`}
                                                     type="number"
                                                     placeholder="Ex: 30"
-                                                    className="w-full h-8 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-center font-bold text-slate-700 dark:text-slate-200 outline-none focus:ring-1 focus:ring-primary/50 text-[11px]"
+                                                    className="w-full min-h-[40px] h-10 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-center font-bold text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-primary/40 text-xs shadow-sm"
                                                     value={set.hiit_work_seconds ?? ''}
                                                     onChange={(e) => handleSetChange(i, 'hiit_work_seconds', e.target.value)}
                                                 />
                                             </div>
                                             <div>
-                                                <label className="block text-[8px] font-bold text-slate-400 uppercase mb-0.5">Vel. Tiro (km/h)</label>
+                                                <label htmlFor={`hiit-work-spd-${item.id || index}-${i}`} className="block text-[9px] font-bold text-slate-600 dark:text-slate-400 uppercase mb-1">Vel. Tiro (km/h)</label>
                                                 <input
+                                                    id={`hiit-work-spd-${item.id || index}-${i}`}
                                                     type="number"
                                                     step="0.1"
                                                     placeholder="Ex: 15"
-                                                    className="w-full h-8 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-center font-bold text-slate-700 dark:text-slate-200 outline-none focus:ring-1 focus:ring-primary/50 text-[11px]"
+                                                    className="w-full min-h-[40px] h-10 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-center font-bold text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-primary/40 text-xs shadow-sm"
                                                     value={set.hiit_work_speed ?? ''}
                                                     onChange={(e) => handleSetChange(i, 'hiit_work_speed', e.target.value)}
                                                 />
                                             </div>
                                             <div>
-                                                <label className="block text-[8px] font-bold text-slate-400 uppercase mb-0.5">Descanso (s)</label>
+                                                <label htmlFor={`hiit-rest-sec-${item.id || index}-${i}`} className="block text-[9px] font-bold text-slate-600 dark:text-slate-400 uppercase mb-1">Descanso (s)</label>
                                                 <input
+                                                    id={`hiit-rest-sec-${item.id || index}-${i}`}
                                                     type="number"
                                                     placeholder="Ex: 30"
-                                                    className="w-full h-8 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-center font-bold text-slate-700 dark:text-slate-200 outline-none focus:ring-1 focus:ring-primary/50 text-[11px]"
+                                                    className="w-full min-h-[40px] h-10 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-center font-bold text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-primary/40 text-xs shadow-sm"
                                                     value={set.hiit_rest_seconds ?? ''}
                                                     onChange={(e) => handleSetChange(i, 'hiit_rest_seconds', e.target.value)}
                                                 />
                                             </div>
                                             <div>
-                                                <label className="block text-[8px] font-bold text-slate-400 uppercase mb-0.5">Vel. Desc. (km/h)</label>
+                                                <label htmlFor={`hiit-rest-spd-${item.id || index}-${i}`} className="block text-[9px] font-bold text-slate-600 dark:text-slate-400 uppercase mb-1">Vel. Desc. (km/h)</label>
                                                 <input
+                                                    id={`hiit-rest-spd-${item.id || index}-${i}`}
                                                     type="number"
                                                     step="0.1"
                                                     placeholder="Ex: 6"
-                                                    className="w-full h-8 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-center font-bold text-slate-700 dark:text-slate-200 outline-none focus:ring-1 focus:ring-primary/50 text-[11px]"
+                                                    className="w-full min-h-[40px] h-10 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-center font-bold text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-primary/40 text-xs shadow-sm"
                                                     value={set.hiit_rest_speed ?? ''}
                                                     onChange={(e) => handleSetChange(i, 'hiit_rest_speed', e.target.value)}
                                                 />
                                             </div>
                                             <div className="col-span-2 sm:col-span-1">
-                                                <label className="block text-[8px] font-bold text-slate-400 uppercase mb-0.5">Ciclos</label>
+                                                <label htmlFor={`hiit-cycles-${item.id || index}-${i}`} className="block text-[9px] font-bold text-slate-600 dark:text-slate-400 uppercase mb-1">Ciclos</label>
                                                 <input
+                                                    id={`hiit-cycles-${item.id || index}-${i}`}
                                                     type="number"
                                                     placeholder="Ex: 8"
-                                                    className="w-full h-8 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-center font-bold text-slate-700 dark:text-slate-200 outline-none focus:ring-1 focus:ring-primary/50 text-[11px]"
+                                                    className="w-full min-h-[40px] h-10 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-center font-bold text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-primary/40 text-xs shadow-sm"
                                                     value={set.hiit_cycles ?? ''}
                                                     onChange={(e) => handleSetChange(i, 'hiit_cycles', e.target.value)}
                                                 />
                                             </div>
                                         </div>
 
-                                        <div className="grid grid-cols-2 gap-2 pt-1 border-t border-sky-100/30 dark:border-sky-900/10 text-xs">
+                                        <div className="grid grid-cols-2 gap-2 pt-2 border-t border-sky-100/30 dark:border-sky-900/10 text-xs items-center">
                                             <div className="flex items-center gap-2">
-                                                <span className="text-[9px] font-bold text-slate-400 uppercase">Descanso Série (s):</span>
+                                                <label htmlFor={`hiit-set-rest-${item.id || index}-${i}`} className="text-[9px] font-bold text-slate-600 dark:text-slate-400 uppercase cursor-pointer">Descanso Série (s):</label>
                                                 <input
+                                                    id={`hiit-set-rest-${item.id || index}-${i}`}
                                                     type="number"
-                                                    className="w-16 h-7 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-center font-bold text-slate-700 dark:text-slate-200 outline-none focus:ring-1 focus:ring-primary/50 text-[11px]"
+                                                    className="w-20 min-h-[40px] h-10 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-center font-bold text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-primary/40 text-xs shadow-sm"
                                                     value={set.rest_seconds ?? ''}
                                                     onChange={(e) => handleSetChange(i, 'rest_seconds', e.target.value)}
                                                 />
                                             </div>
                                             <div className="flex items-center justify-end gap-2">
-                                                <span className="text-[9px] font-bold text-slate-400 uppercase">PSE (RPE):</span>
+                                                <span className="text-[9px] font-bold text-slate-600 dark:text-slate-400 uppercase">PSE (RPE):</span>
                                                 <select
-                                                    className="w-16 h-7 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-center font-bold text-slate-700 dark:text-slate-200 outline-none focus:ring-1 focus:ring-primary/50 text-[11px]"
+                                                    aria-label={`Esforço percebido PSE para série ${i + 1}`}
+                                                    className="w-20 min-h-[40px] h-10 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-center font-bold text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-primary/40 text-xs shadow-sm cursor-pointer"
                                                     value={set.rpe_target ?? ''}
                                                     onChange={(e) => handleSetChange(i, 'rpe_target', e.target.value)}
                                                 >
@@ -540,8 +630,10 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({ item, index, onUpdate, onDe
                                 >
                                     {/* Type Selector */}
                                     <button
+                                        type="button"
                                         onClick={() => setTypeModal({ isOpen: true, setIndex: i })}
-                                        className={`w-full h-7 sm:h-10 rounded-md sm:rounded-xl border flex items-center justify-center transition-all duration-300 ${set.type === 'warmup'
+                                        aria-label={`Alterar tipo da série ${workingSetIndex}`}
+                                        className={`w-full min-h-[44px] h-11 rounded-xl border flex items-center justify-center transition-all duration-300 ${set.type === 'warmup'
                                             ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800/50 text-amber-600'
                                             : set.type === 'failure'
                                                 ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800/50 text-red-600'
@@ -550,10 +642,10 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({ item, index, onUpdate, onDe
                                                     : set.type === 'preparation'
                                                         ? 'bg-cyan-50 dark:bg-cyan-900/20 border-cyan-200 dark:border-cyan-800/50 text-cyan-600'
                                                         : 'bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-sky-600'
-                                            } hover:scale-105 active:scale-95 shadow-sm p-0`}
+                                            } hover:scale-105 active:scale-95 shadow-sm p-0 focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none cursor-pointer`}
                                     >
                                         {set.type === 'working' ? (
-                                            <span className="font-black text-[9px] sm:text-xs uppercase tracking-tighter">{workingSetIndex}</span>
+                                            <span className="font-black text-xs uppercase tracking-tighter">{workingSetIndex}</span>
                                         ) : (
                                             getSetTypeIcon(set.type, false)
                                         )}
@@ -567,7 +659,8 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({ item, index, onUpdate, onDe
                                                 type="number"
                                                 step="0.1"
                                                 placeholder="-"
-                                                className="w-full h-7 sm:h-10 rounded-md sm:rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-center font-bold text-slate-700 dark:text-slate-200 outline-none focus:ring-1 focus:ring-primary/50 px-0 text-[10px] sm:text-base min-w-0"
+                                                aria-label={`Distância alvo em km para série ${i + 1}`}
+                                                className="w-full min-h-[44px] h-11 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-center font-bold text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-primary/40 px-0 text-xs sm:text-base min-w-0"
                                                 value={set.distance_target ?? ''}
                                                 onChange={(e) => handleSetChange(i, 'distance_target', e.target.value)}
                                             />
@@ -576,13 +669,15 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({ item, index, onUpdate, onDe
                                                 type="number"
                                                 step="0.1"
                                                 placeholder="-"
-                                                className="w-full h-7 sm:h-10 rounded-md sm:rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-center font-bold text-slate-700 dark:text-slate-200 outline-none focus:ring-1 focus:ring-primary/50 px-0 text-[10px] sm:text-base min-w-0"
+                                                aria-label={`Velocidade alvo em km/h para série ${i + 1}`}
+                                                className="w-full min-h-[44px] h-11 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-center font-bold text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-primary/40 px-0 text-xs sm:text-base min-w-0"
                                                 value={set.speed_target ?? ''}
                                                 onChange={(e) => handleSetChange(i, 'speed_target', e.target.value)}
                                             />
                                             {/* Time Target Select em Minutos */}
                                             <select
-                                                className="w-full h-7 sm:h-10 rounded-md sm:rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-center font-bold text-slate-700 dark:text-slate-200 outline-none focus:ring-1 focus:ring-primary/50 text-[10px] sm:text-sm min-w-0 px-1"
+                                                aria-label={`Tempo alvo para série ${i + 1}`}
+                                                className="w-full min-h-[44px] h-11 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-center font-bold text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-primary/40 text-xs sm:text-sm min-w-0 px-1 cursor-pointer"
                                                 value={set.time_target ?? ''}
                                                 onChange={(e) => handleSetChange(i, 'time_target', e.target.value)}
                                             >
@@ -598,7 +693,8 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({ item, index, onUpdate, onDe
                                             <input
                                                 type="number"
                                                 placeholder="-"
-                                                className="w-full h-7 sm:h-10 rounded-md sm:rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-center font-bold text-slate-700 dark:text-slate-200 outline-none focus:ring-1 focus:ring-primary/50 px-0 text-[10px] sm:text-base min-w-0"
+                                                aria-label={`Carga alvo em kg para série ${i + 1}`}
+                                                className="w-full min-h-[44px] h-11 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-center font-bold text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-primary/40 px-0 text-xs sm:text-base min-w-0"
                                                 value={set.weight_target ?? ''}
                                                 onChange={(e) => handleSetChange(i, 'weight_target', e.target.value)}
                                             />
@@ -607,7 +703,8 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({ item, index, onUpdate, onDe
                                                 <input
                                                     type="number"
                                                     placeholder="60"
-                                                    className="w-full h-7 sm:h-10 rounded-md sm:rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-center font-bold text-slate-700 dark:text-slate-200 outline-none focus:ring-1 focus:ring-primary/50 px-0 text-[10px] sm:text-base min-w-0"
+                                                    aria-label={`Tempo alvo em segundos para série ${i + 1}`}
+                                                    className="w-full min-h-[44px] h-11 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-center font-bold text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-primary/40 px-0 text-xs sm:text-base min-w-0"
                                                     value={set.time_target ?? ''}
                                                     onChange={(e) => handleSetChange(i, 'time_target', e.target.value)}
                                                 />
@@ -624,7 +721,8 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({ item, index, onUpdate, onDe
                                             <input
                                                 type="number"
                                                 placeholder="-"
-                                                className="w-full h-7 sm:h-10 rounded-md sm:rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-center font-bold text-slate-700 dark:text-slate-200 outline-none focus:ring-1 focus:ring-primary/50 px-0 text-[10px] sm:text-base min-w-0"
+                                                aria-label={`Carga alvo em kg para série ${i + 1}`}
+                                                className="w-full min-h-[44px] h-11 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-center font-bold text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-primary/40 px-0 text-xs sm:text-base min-w-0"
                                                 value={set.weight_target ?? ''}
                                                 onChange={(e) => handleSetChange(i, 'weight_target', e.target.value)}
                                             />
@@ -633,7 +731,8 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({ item, index, onUpdate, onDe
                                                 type="text"
                                                 inputMode="numeric"
                                                 placeholder="10"
-                                                className="w-full h-7 sm:h-10 rounded-md sm:rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-center font-bold text-slate-700 dark:text-slate-200 outline-none focus:ring-1 focus:ring-primary/50 px-0 text-[10px] sm:text-base min-w-0"
+                                                aria-label={`Repetições alvo para série ${i + 1}`}
+                                                className="w-full min-h-[44px] h-11 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-center font-bold text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-primary/40 px-0 text-xs sm:text-base min-w-0"
                                                 value={set.reps_target ?? ''}
                                                 onChange={(e) => handleSetChange(i, 'reps_target', e.target.value)}
                                             />
@@ -645,7 +744,8 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({ item, index, onUpdate, onDe
                                         <input
                                             type="number"
                                             placeholder="60"
-                                            className="w-full h-7 sm:h-10 rounded-md sm:rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-center font-bold text-slate-700 dark:text-slate-200 outline-none focus:ring-1 focus:ring-primary/50 px-0 text-[10px] sm:text-base min-w-0"
+                                            aria-label={`Descanso em segundos para série ${i + 1}`}
+                                            className="w-full min-h-[44px] h-11 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-center font-bold text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-primary/40 px-0 text-xs sm:text-base min-w-0"
                                             value={set.rest_seconds ?? ''}
                                             onChange={(e) => handleSetChange(i, 'rest_seconds', e.target.value)}
                                         />
@@ -655,7 +755,8 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({ item, index, onUpdate, onDe
                                     {item.exercise?.exercise_type !== 'cardio' ? (
                                         <div className="relative group/rpe min-w-0">
                                             <select
-                                                className={`w-full h-7 sm:h-10 rounded-md sm:rounded-xl border text-center font-bold outline-none focus:ring-2 focus:ring-primary/20 appearance-none px-0 transition-all duration-300 text-[10px] sm:text-base min-w-0
+                                                aria-label={`PSE para série ${i + 1}`}
+                                                className={`w-full min-h-[44px] h-11 rounded-xl border text-center font-bold outline-none focus:ring-2 focus:ring-primary/20 appearance-none px-0 transition-all duration-300 text-xs sm:text-base min-w-0 cursor-pointer
                                                     ${parseFloat(set.rpe_target) >= 9
                                                         ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800/50 text-red-600'
                                                         : parseFloat(set.rpe_target) >= 7
@@ -676,23 +777,34 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({ item, index, onUpdate, onDe
                                         <button
                                             type="button"
                                             onClick={() => handleSetChange(i, 'is_hiit', true)}
-                                            className="p-1 rounded bg-sky-100 hover:bg-sky-200 text-sky-600 dark:bg-sky-900/30 dark:hover:bg-sky-900/50 dark:text-sky-400 flex items-center justify-center transition-colors h-7 sm:h-10 w-full"
+                                            aria-label="Configurar Protocolo HIIT"
+                                            className="p-1 rounded-xl bg-sky-100 hover:bg-sky-200 text-sky-600 dark:bg-sky-900/30 dark:hover:bg-sky-900/50 dark:text-sky-400 flex items-center justify-center transition-colors min-h-[44px] h-11 w-full"
                                             title="Configurar Protocolo HIIT"
                                         >
-                                            <span className="material-symbols-rounded text-sm sm:text-lg">bolt</span>
+                                            <span className="material-symbols-rounded text-sm sm:text-lg" aria-hidden="true">bolt</span>
                                         </button>
                                     )}
 
                                     {/* Delete Set */}
-                                    <button onClick={() => handleRemoveSet(i)} className="p-0 text-slate-300 hover:text-red-500 transition-colors flex justify-center items-center w-full h-full hover:rotate-90 transition-transform">
-                                        <span className="material-symbols-rounded text-xs sm:text-lg">close</span>
+                                    <button
+                                        type="button"
+                                        onClick={() => handleRemoveSet(i)}
+                                        aria-label={`Excluir série ${i + 1}`}
+                                        className="p-1 text-slate-400 hover:text-red-600 transition-colors flex justify-center items-center w-full min-h-[44px] h-11 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
+                                    >
+                                        <span className="material-symbols-rounded text-base sm:text-lg" aria-hidden="true">close</span>
                                     </button>
                                 </div>
                             );
                         })}
 
-                        <button onClick={handleAddSet} className="w-full py-2 sm:py-2.5 mt-2 border border-dashed border-primary/30 text-primary rounded-xl font-bold text-xs sm:text-sm bg-primary/5 hover:bg-primary/10 transition-colors flex items-center justify-center gap-2">
-                            <span className="material-symbols-rounded text-base sm:text-lg">add</span>
+                        <button
+                            type="button"
+                            onClick={handleAddSet}
+                            aria-label="Adicionar nova série ao exercício"
+                            className="w-full min-h-[44px] py-2 sm:py-2.5 mt-2 border border-dashed border-primary/30 text-primary rounded-xl font-bold text-xs sm:text-sm bg-primary/5 hover:bg-primary/10 transition-colors flex items-center justify-center gap-2"
+                        >
+                            <span className="material-symbols-rounded text-base sm:text-lg" aria-hidden="true">add</span>
                             Adicionar Série
                         </button>
                     </div>
@@ -701,11 +813,12 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({ item, index, onUpdate, onDe
 
             {/* Coach Notes */}
             <div className="mt-2 px-3 pb-3 pt-2 border-t border-slate-50 dark:border-slate-700/50">
-                <label className="text-[10px] font-bold text-slate-400 uppercase ml-1 flex items-center gap-1">
-                    <span className="material-symbols-rounded text-sm">edit_note</span>
+                <label htmlFor={`coach-notes-${item.id || index}`} className="text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase ml-1 flex items-center gap-1">
+                    <span className="material-symbols-rounded text-sm" aria-hidden="true">edit_note</span>
                     Notas do Treinador
                 </label>
                 <textarea
+                    id={`coach-notes-${item.id || index}`}
                     placeholder="Ex: Controlar a excêntrica..."
                     className="w-full mt-1 bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-700/50 rounded-xl p-3 text-sm focus:ring-1 focus:ring-primary/50 outline-none resize-none h-16 sm:h-20"
                     value={notes}

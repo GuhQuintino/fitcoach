@@ -63,14 +63,25 @@ const ExerciseFormModal: React.FC<ExerciseFormModalProps> = ({ isOpen, onClose, 
     };
 
     return (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in" onClick={onClose}>
+        <div
+            role="dialog"
+            aria-modal="true"
+            aria-label={initialData ? 'Editar Exercício' : 'Novo Exercício'}
+            className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in"
+            onClick={onClose}
+        >
             <div className="bg-white dark:bg-slate-900 w-full max-w-lg rounded-2xl shadow-xl overflow-hidden flex flex-col max-h-[calc(100vh-140px)] animate-scale-up" onClick={e => e.stopPropagation()}>
                 <div className="p-5 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
                     <h3 className="font-bold text-lg text-slate-900 dark:text-white">
                         {initialData ? 'Editar Exercício' : 'Novo Exercício'}
                     </h3>
-                    <button onClick={onClose} className="p-2 -mr-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
-                        <span className="material-symbols-rounded">close</span>
+                    <button
+                        type="button"
+                        onClick={onClose}
+                        aria-label="Fechar formulário de exercício"
+                        className="min-w-[44px] min-h-[44px] p-2 -mr-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 flex items-center justify-center rounded-xl"
+                    >
+                        <span className="material-symbols-rounded" aria-hidden="true">close</span>
                     </button>
                 </div>
 
@@ -85,11 +96,12 @@ const ExerciseFormModal: React.FC<ExerciseFormModalProps> = ({ isOpen, onClose, 
 
                         {/* Name */}
                         <div>
-                            <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">Nome do Exercício</label>
+                            <label htmlFor="ex-form-name" className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">Nome do Exercício</label>
                             <input
+                                id="ex-form-name"
                                 type="text"
                                 required
-                                className="w-full p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-primary/50 outline-none text-slate-900 dark:text-white"
+                                className="w-full min-h-[44px] p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-primary/50 outline-none text-slate-900 dark:text-white"
                                 placeholder="Ex: Supino Reto"
                                 value={formData.name}
                                 onChange={e => setFormData({ ...formData, name: e.target.value })}
@@ -98,9 +110,10 @@ const ExerciseFormModal: React.FC<ExerciseFormModalProps> = ({ isOpen, onClose, 
 
                         {/* Muscle Group */}
                         <div>
-                            <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">Grupo Muscular</label>
+                            <label htmlFor="ex-form-group" className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">Grupo Muscular</label>
                             <select
-                                className="w-full p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-primary/50 outline-none text-slate-900 dark:text-white appearance-none"
+                                id="ex-form-group"
+                                className="w-full min-h-[44px] p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-primary/50 outline-none text-slate-900 dark:text-white appearance-none"
                                 value={formData.muscle_group}
                                 onChange={e => setFormData({ ...formData, muscle_group: e.target.value })}
                             >
@@ -112,9 +125,10 @@ const ExerciseFormModal: React.FC<ExerciseFormModalProps> = ({ isOpen, onClose, 
 
                         {/* Tipo de Exercício */}
                         <div>
-                            <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">Tipo de Exercício</label>
+                            <label htmlFor="ex-form-type" className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">Tipo de Exercício</label>
                             <select
-                                className="w-full p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-primary/50 outline-none text-slate-900 dark:text-white appearance-none"
+                                id="ex-form-type"
+                                className="w-full min-h-[44px] p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-primary/50 outline-none text-slate-900 dark:text-white appearance-none"
                                 value={formData.exercise_type}
                                 onChange={e => setFormData({ ...formData, exercise_type: e.target.value })}
                             >
@@ -127,8 +141,8 @@ const ExerciseFormModal: React.FC<ExerciseFormModalProps> = ({ isOpen, onClose, 
                         {/* Ativação Muscular (Pesos) */}
                         <div className="bg-slate-50 dark:bg-slate-800/40 p-4 rounded-2xl border border-slate-100 dark:border-slate-800 space-y-3">
                             <div className="flex justify-between items-center">
-                                <label className="block text-sm font-bold text-slate-700 dark:text-slate-300">Ativação Muscular (Subgrupos)</label>
-                                <span className="text-[10px] text-slate-400 font-medium">Valores de 0% a 100%</span>
+                                <span className="block text-sm font-bold text-slate-700 dark:text-slate-300">Ativação Muscular (Subgrupos)</span>
+                                <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">Valores de 0% a 100%</span>
                             </div>
                             <div className="grid grid-cols-1 gap-2.5 max-h-64 overflow-y-auto pr-1">
                                 {[
@@ -161,6 +175,7 @@ const ExerciseFormModal: React.FC<ExerciseFormModalProps> = ({ isOpen, onClose, 
                                                         <button
                                                             key={val}
                                                             type="button"
+                                                            aria-label={`Definir ativação de ${sub.label} para ${val * 100}%`}
                                                             onClick={() => {
                                                                 const currentWeights = { ...(formData.muscle_weights || {}) };
                                                                 if (val === 0) {
@@ -189,23 +204,25 @@ const ExerciseFormModal: React.FC<ExerciseFormModalProps> = ({ isOpen, onClose, 
 
                         {/* Video URL */}
                         <div>
-                            <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">Vídeo (YouTube, GIF ou Arquivo MP4 Local)</label>
+                            <label htmlFor="ex-form-video" className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">Vídeo (YouTube, GIF ou Arquivo MP4 Local)</label>
                             <input
+                                id="ex-form-video"
                                 type="text"
-                                className="w-full p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-primary/50 outline-none text-slate-900 dark:text-white"
+                                className="w-full min-h-[44px] p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-primary/50 outline-none text-slate-900 dark:text-white"
                                 placeholder="https://... ou /exercises/nome.mp4"
                                 value={formData.video_url}
                                 onChange={e => setFormData({ ...formData, video_url: e.target.value })}
                             />
-                            <p className="text-[10px] text-slate-400 mt-1">
+                            <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-1">
                                 Aceita URLs do YouTube, links diretos de GIF ou o caminho relativo de vídeo salvo no repositório.
                             </p>
                         </div>
 
                         {/* Description */}
                         <div>
-                            <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">Descrição / Observações</label>
+                            <label htmlFor="ex-form-desc" className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">Descrição / Observações</label>
                             <textarea
+                                id="ex-form-desc"
                                 className="w-full p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-primary/50 outline-none text-slate-900 dark:text-white resize-none h-24"
                                 placeholder="Detalhes sobre a execução..."
                                 value={formData.description}
@@ -218,16 +235,18 @@ const ExerciseFormModal: React.FC<ExerciseFormModalProps> = ({ isOpen, onClose, 
                         <button
                             type="button"
                             onClick={onClose}
-                            className="flex-1 py-3 rounded-xl font-bold text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                            aria-label="Cancelar e fechar formulário"
+                            className="flex-1 min-h-[44px] py-3 rounded-xl font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors flex items-center justify-center"
                         >
                             Cancelar
                         </button>
                         <button
                             type="submit"
                             disabled={loading}
-                            className="flex-1 py-3 rounded-xl font-bold !text-white bg-sky-500 hover:bg-sky-600 transition-colors shadow-lg shadow-sky-500/30 flex items-center justify-center gap-2"
+                            aria-label="Salvar exercício"
+                            className="flex-1 min-h-[44px] py-3 rounded-xl font-bold !text-white bg-sky-500 hover:bg-sky-600 transition-colors shadow-lg shadow-sky-500/30 flex items-center justify-center gap-2"
                         >
-                            {loading && <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
+                            {loading && <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" role="status" />}
                             Salvar
                         </button>
                     </div>

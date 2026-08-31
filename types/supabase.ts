@@ -378,7 +378,8 @@ export interface Database {
                     id: string
                     workout_log_id: string
                     exercise_id: string
-                    set_type: 'warmup' | 'working' | 'failure' | 'drop' | 'preparation'
+                    set_type: 'warmup' | 'working' | 'failure' | 'drop' | 'preparation' | string
+                    set_order?: number | null
                     weight_kg: number | null
                     reps_completed: number | null
                     rpe_actual: number | null
@@ -392,7 +393,8 @@ export interface Database {
                     id?: string
                     workout_log_id: string
                     exercise_id: string
-                    set_type?: 'warmup' | 'working' | 'failure' | 'drop' | 'preparation'
+                    set_type?: 'warmup' | 'working' | 'failure' | 'drop' | 'preparation' | string
+                    set_order?: number | null
                     weight_kg?: number | null
                     reps_completed?: number | null
                     rpe_actual?: number | null
@@ -406,7 +408,8 @@ export interface Database {
                     id?: string
                     workout_log_id?: string
                     exercise_id?: string
-                    set_type?: 'warmup' | 'working' | 'failure' | 'drop' | 'preparation'
+                    set_type?: 'warmup' | 'working' | 'failure' | 'drop' | 'preparation' | string
+                    set_order?: number | null
                     weight_kg?: number | null
                     reps_completed?: number | null
                     rpe_actual?: number | null

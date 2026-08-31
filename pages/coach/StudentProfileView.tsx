@@ -323,9 +323,12 @@ const StudentProfileView: React.FC = () => {
 
     const tmb = calculateTMB();
     const maintenance = Math.round(tmb * 1.35);
-    const weeklyData = getWeeklyVolumeData();
 
-    const getWeeklyVolumeByMuscle = () => {
+    const weeklyData = React.useMemo(() => {
+        return getWeeklyVolumeData();
+    }, [logs]);
+
+    const weeklyVolumeByMuscle = React.useMemo(() => {
         const muscleVolumes: Record<string, number> = {};
 
         // Se o aluno tiver treinos prescritos na rotina ativa, preferimos mostrar o volume prescrito
@@ -389,12 +392,13 @@ const StudentProfileView: React.FC = () => {
             label: SUB_MUSCLE_LABELS[muscle] || muscle,
             sets: Math.round((totalSets / divisor) * 10) / 10
         })).sort((a, b) => b.sets - a.sets);
-    };
+    }, [workouts, logs]);
 
     if (loading) return (
         <MainLayout>
-            <div className="flex-1 flex items-center justify-center">
-                <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+            <div className="flex-1 flex items-center justify-center min-h-[60vh]" role="status" aria-live="polite">
+                <div className="w-10 h-10 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+                <span className="sr-only">Carregando perfil do aluno...</span>
             </div>
         </MainLayout>
     );
@@ -405,13 +409,15 @@ const StudentProfileView: React.FC = () => {
         <MainLayout>
             <div className="min-h-full pb-8">
                 <header className="sticky top-0 z-30 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md px-4 py-3 flex items-center justify-between border-b border-slate-200 dark:border-white/5">
-                    <Link to="/coach/students" className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-                        <span className="material-symbols-rounded text-slate-700 dark:text-slate-200">arrow_back_ios_new</span>
+                    <Link
+                        to="/coach/students"
+                        aria-label="Voltar para lista de alunos"
+                        className="min-w-[44px] min-h-[44px] p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors flex items-center justify-center"
+                    >
+                        <span className="material-symbols-rounded text-slate-700 dark:text-slate-200" aria-hidden="true">arrow_back_ios_new</span>
                     </Link>
                     <h1 className="text-lg font-bold text-slate-900 dark:text-white">Perfil do Aluno</h1>
-                    <button className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors opacity-0 pointer-events-none">
-                        <span className="material-symbols-rounded">edit</span>
-                    </button>
+                    <div className="w-11 h-11" aria-hidden="true" />
                 </header>
 
                 <section className="flex flex-col items-center pt-8 pb-4 px-4">
@@ -430,18 +436,22 @@ const StudentProfileView: React.FC = () => {
                         <div className="flex flex-col items-center gap-2 mt-2">
                             {isExpired ? (
                                 <button
+                                    type="button"
                                     onClick={() => setIsEditingExpiration(true)}
-                                    className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 text-xs font-bold uppercase tracking-wider hover:bg-red-200 transition-colors border border-red-200 dark:border-red-800"
+                                    aria-label="Editar validade do plano do aluno (Plano Vencido)"
+                                    className="inline-flex items-center gap-1.5 px-4 py-2 min-h-[44px] rounded-full bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 text-xs font-bold uppercase tracking-wider hover:bg-red-200 transition-colors border border-red-200 dark:border-red-800 cursor-pointer"
                                 >
-                                    <span className="w-2 h-2 rounded-full bg-red-500"></span>
+                                    <span className="w-2 h-2 rounded-full bg-red-500" aria-hidden="true"></span>
                                     Plano Vencido (Editar)
                                 </button>
                             ) : (
                                 <button
+                                    type="button"
                                     onClick={() => setIsEditingExpiration(true)}
-                                    className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 text-xs font-bold uppercase tracking-wider hover:bg-emerald-200 transition-colors border border-emerald-200 dark:border-emerald-800"
+                                    aria-label={`Editar validade do plano do aluno (Ativo até ${new Date(studentData?.consultancy_expires_at).toLocaleDateString()})`}
+                                    className="inline-flex items-center gap-1.5 px-4 py-2 min-h-[44px] rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 text-xs font-bold uppercase tracking-wider hover:bg-emerald-200 transition-colors border border-emerald-200 dark:border-emerald-800 cursor-pointer"
                                 >
-                                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" aria-hidden="true"></span>
                                     Ativo até {new Date(studentData?.consultancy_expires_at).toLocaleDateString()}
                                 </button>
                             )}
@@ -452,12 +462,13 @@ const StudentProfileView: React.FC = () => {
                 <section className="px-6 py-4">
                     {profile?.phone && formatToWhatsappUrl(profile.phone) && (
                         <a
-                            className="flex items-center justify-center w-full bg-[#25D366] hover:bg-[#128C7E] text-white font-bold h-12 rounded-xl gap-2 transition-all active:scale-[0.98] shadow-lg shadow-green-500/20"
+                            className="flex items-center justify-center w-full min-h-[48px] bg-whatsapp hover:bg-whatsapp-dark text-white font-bold h-12 rounded-xl gap-2 transition-all active:scale-[0.98] shadow-lg shadow-whatsapp/20"
                             href={formatToWhatsappUrl(profile.phone)!}
                             target="_blank"
                             rel="noreferrer"
+                            aria-label={`Enviar mensagem via WhatsApp para ${profile?.full_name || 'Aluno'}`}
                         >
-                            <span className="material-symbols-rounded text-[24px]">chat</span>
+                            <span className="material-symbols-rounded text-[24px]" aria-hidden="true">chat</span>
                             <span>Mensagem via WhatsApp</span>
                         </a>
                     )}
@@ -466,15 +477,17 @@ const StudentProfileView: React.FC = () => {
                 <section className="px-4 sm:px-6 py-2">
                     <div className="flex items-center justify-between mb-4">
                         <h3 className="text-slate-900 dark:text-white text-lg font-bold flex items-center gap-2">
-                            <span className="material-symbols-rounded text-primary">fitness_center</span>
+                            <span className="material-symbols-rounded text-primary" aria-hidden="true">fitness_center</span>
                             Treino Atual
                         </h3>
                         {activeRoutine && (
                             <button
+                                type="button"
                                 onClick={handleUnassignRoutine}
-                                className="text-xs font-bold text-red-500 hover:text-red-600 flex items-center gap-1"
+                                aria-label="Remover rotina ativa do aluno"
+                                className="min-h-[44px] px-3 py-2 text-xs font-bold text-red-500 hover:text-red-600 flex items-center gap-1 cursor-pointer"
                             >
-                                <span className="material-symbols-rounded text-[16px]">delete</span>
+                                <span className="material-symbols-rounded text-[16px]" aria-hidden="true">delete</span>
                                 Remover Rotina
                             </button>
                         )}
@@ -488,13 +501,15 @@ const StudentProfileView: React.FC = () => {
                                     <h4 className="font-bold text-slate-900 dark:text-white">{activeRoutine.name}</h4>
                                 </div>
                                 <button
+                                    type="button"
                                     onClick={() => {
                                         setRoutineName(activeRoutine.name);
                                         setIsEditingRoutineModal(true);
                                     }}
-                                    className="p-2 text-slate-400 hover:text-primary transition-colors"
+                                    aria-label={`Editar nome da rotina ${activeRoutine.name}`}
+                                    className="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center p-2 text-slate-400 hover:text-primary transition-colors rounded-xl cursor-pointer"
                                 >
-                                    <span className="material-symbols-rounded text-xl">edit</span>
+                                    <span className="material-symbols-rounded text-xl" aria-hidden="true">edit</span>
                                 </button>
                             </div>
                             <div className="p-4 space-y-4">
@@ -514,32 +529,38 @@ const StudentProfileView: React.FC = () => {
                                                 <div className="flex items-center gap-1">
                                                     <div className="flex items-center bg-white dark:bg-slate-800 rounded-lg border border-slate-100 dark:border-slate-700 p-0.5">
                                                         <button
+                                                            type="button"
                                                             onClick={() => handleReorderWorkout(idx, 'up')}
                                                             disabled={idx === 0}
-                                                            className="p-1.5 text-slate-400 hover:text-primary disabled:opacity-20 transition-colors"
+                                                            aria-label={`Mover treino ${w.name} para cima`}
+                                                            className="w-9 h-9 min-w-[36px] min-h-[36px] flex items-center justify-center text-slate-400 hover:text-primary disabled:opacity-20 transition-colors cursor-pointer"
                                                             title="Mover para cima"
                                                         >
-                                                            <span className="material-symbols-rounded text-base">keyboard_arrow_up</span>
+                                                            <span className="material-symbols-rounded text-base" aria-hidden="true">keyboard_arrow_up</span>
                                                         </button>
                                                         <div className="w-[1px] h-4 bg-slate-100 dark:bg-slate-700 mx-0.5" />
                                                         <button
+                                                            type="button"
                                                             onClick={() => handleReorderWorkout(idx, 'down')}
                                                             disabled={idx === workouts.length - 1}
-                                                            className="p-1.5 text-slate-400 hover:text-primary disabled:opacity-20 transition-colors"
+                                                            aria-label={`Mover treino ${w.name} para baixo`}
+                                                            className="w-9 h-9 min-w-[36px] min-h-[36px] flex items-center justify-center text-slate-400 hover:text-primary disabled:opacity-20 transition-colors cursor-pointer"
                                                             title="Mover para baixo"
                                                         >
-                                                            <span className="material-symbols-rounded text-base">keyboard_arrow_down</span>
+                                                            <span className="material-symbols-rounded text-base" aria-hidden="true">keyboard_arrow_down</span>
                                                         </button>
                                                     </div>
                                                     <button
+                                                        type="button"
                                                         onClick={() => {
                                                             setEditingWorkoutItem(w);
                                                             setWorkoutName(w.name);
                                                         }}
-                                                        className="p-2 text-slate-400 hover:text-primary transition-colors flex items-center justify-center"
+                                                        aria-label={`Renomear treino ${w.name}`}
+                                                        className="w-11 h-11 min-w-[44px] min-h-[44px] text-slate-400 hover:text-primary transition-colors flex items-center justify-center rounded-xl cursor-pointer"
                                                         title="Renomear"
                                                     >
-                                                        <span className="material-symbols-rounded text-lg">edit</span>
+                                                        <span className="material-symbols-rounded text-lg" aria-hidden="true">edit</span>
                                                     </button>
                                                 </div>
                                             </div>
@@ -617,25 +638,37 @@ const StudentProfileView: React.FC = () => {
                                             weight: h.weight_kg,
                                             date: new Date(h.recorded_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })
                                         }))}>
-                                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-slate-100, #f1f5f9)" />
                                             <XAxis dataKey="date" hide />
                                             <YAxis hide domain={['auto', 'auto']} />
                                             <Tooltip
-                                                contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }}
-                                                formatter={(val: number) => [`${val} kg`, 'Peso']}
+                                                content={({ active, payload, label }) => {
+                                                    if (active && payload && payload.length) {
+                                                        return (
+                                                            <div className="bg-white dark:bg-slate-800 p-2.5 rounded-2xl shadow-elevated border border-slate-100 dark:border-slate-700 text-xs">
+                                                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">{payload[0].payload?.date || label}</p>
+                                                                <p className="font-black text-slate-900 dark:text-white flex items-center gap-1.5">
+                                                                    <span className="w-2 h-2 rounded-full bg-primary inline-block"></span>
+                                                                    {payload[0].value} kg
+                                                                </p>
+                                                            </div>
+                                                        );
+                                                    }
+                                                    return null;
+                                                }}
                                             />
                                             <Line
                                                 type="monotone"
                                                 dataKey="weight"
-                                                stroke="#0ea5e9"
+                                                stroke="var(--color-primary, #0ea5e9)"
                                                 strokeWidth={4}
-                                                dot={{ r: 4, fill: '#0ea5e9', strokeWidth: 2, stroke: '#fff' }}
-                                                activeDot={{ r: 6, fill: '#0ea5e9', strokeWidth: 0 }}
+                                                dot={{ r: 4, fill: 'var(--color-primary, #0ea5e9)', strokeWidth: 2, stroke: '#fff' }}
+                                                activeDot={{ r: 6, fill: 'var(--color-primary, #0ea5e9)', strokeWidth: 0 }}
                                             />
                                         </LineChart>
                                     </ResponsiveContainer>
                                 ) : (
-                                    <div className="h-full flex flex-col items-center justify-center text-slate-400 gap-2">
+                                    <div className="h-full flex flex-col items-center justify-center text-slate-500 dark:text-slate-400 gap-2">
                                         <span className="material-symbols-rounded text-4xl opacity-20">show_chart</span>
                                         <p className="text-xs font-medium">Histórico insuficiente</p>
                                     </div>
@@ -646,29 +679,41 @@ const StudentProfileView: React.FC = () => {
                         {/* Volume Evolution Chart */}
                         <div className="bg-white dark:bg-slate-800 p-6 rounded-[2.5rem] shadow-soft border border-slate-100 dark:border-slate-700 animate-slide-up">
                             <div className="flex items-center gap-2 mb-6">
-                                <span className="material-symbols-rounded text-indigo-500">bar_chart</span>
+                                <span className="material-symbols-rounded text-primary">bar_chart</span>
                                 <h3 className="font-bold text-slate-900 dark:text-white">Volume Semanal</h3>
                             </div>
                             <div className="h-44 w-full">
                                 {weeklyData.some(d => d.volume > 0) ? (
                                     <ResponsiveContainer width="100%" height="100%">
                                         <BarChart data={weeklyData}>
-                                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-slate-100, #f1f5f9)" />
                                             <XAxis
                                                 dataKey="name"
                                                 axisLine={false}
                                                 tickLine={false}
-                                                tick={{ fontSize: 10, fill: '#94a3b8', fontWeight: 600 }}
+                                                tick={{ fontSize: 10, fill: 'var(--color-slate-400, #94a3b8)', fontWeight: 600 }}
                                             />
                                             <YAxis hide />
                                             <Tooltip
-                                                cursor={{ fill: 'transparent' }}
-                                                contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }}
-                                                formatter={(val: number) => [`${Math.round(val).toLocaleString()} kg`, 'Volume']}
+                                                cursor={{ fill: 'rgba(14, 165, 233, 0.08)' }}
+                                                content={({ active, payload, label }) => {
+                                                    if (active && payload && payload.length) {
+                                                        return (
+                                                            <div className="bg-white dark:bg-slate-800 p-2.5 rounded-2xl shadow-elevated border border-slate-100 dark:border-slate-700 text-xs">
+                                                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">{label}</p>
+                                                                <p className="font-black text-slate-900 dark:text-white flex items-center gap-1.5">
+                                                                    <span className="w-2 h-2 rounded-full bg-primary inline-block"></span>
+                                                                    {Math.round(Number(payload[0].value)).toLocaleString()} kg
+                                                                </p>
+                                                            </div>
+                                                        );
+                                                    }
+                                                    return null;
+                                                }}
                                             />
                                             <Bar dataKey="volume" radius={[6, 6, 6, 6]} barSize={32}>
                                                 {weeklyData.map((entry, index) => (
-                                                    <Cell key={`cell-${index}`} fill={index === 4 ? '#3b82f6' : '#bfdbfe'} />
+                                                    <Cell key={`cell-${index}`} fill={index === 4 ? 'var(--color-primary, #0ea5e9)' : 'var(--color-primary-light, #bae6fd)'} />
                                                 ))}
                                             </Bar>
                                         </BarChart>
@@ -695,7 +740,7 @@ const StudentProfileView: React.FC = () => {
                                 : "Média de séries de trabalho realizadas por semana"}
                         </p>
                         {(() => {
-                            const muscleData = getWeeklyVolumeByMuscle();
+                            const muscleData = weeklyVolumeByMuscle;
                             if (muscleData.length === 0) {
                                 return (
                                     <div className="py-6 text-center text-slate-400 dark:text-slate-500 italic text-xs">
@@ -773,33 +818,61 @@ const StudentProfileView: React.FC = () => {
 
                 {/* Edit Expiration Modal */}
                 {isEditingExpiration && (
-                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-5 bg-black/50 backdrop-blur-md animate-fade-in">
+                    <div
+                        role="dialog"
+                        aria-modal="true"
+                        aria-label="Alterar Validade da Consultoria"
+                        className="fixed inset-0 z-[100] flex items-center justify-center p-5 bg-black/50 backdrop-blur-md animate-fade-in"
+                    >
                         <div className="bg-white dark:bg-slate-800 w-full max-w-sm rounded-[2rem] p-6 shadow-2xl animate-scale-up border border-slate-100 dark:border-slate-700">
-                            <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-2 text-center">Alterar Validade</h2>
-                            <p className="text-slate-500 dark:text-slate-400 text-sm text-center mb-6">
+                            <div className="flex justify-between items-center mb-2">
+                                <h2 className="text-xl font-bold text-slate-900 dark:text-white">Alterar Validade</h2>
+                                <button
+                                    type="button"
+                                    onClick={() => setIsEditingExpiration(false)}
+                                    aria-label="Fechar janela"
+                                    className="w-11 h-11 min-w-[44px] min-h-[44px] p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors flex items-center justify-center"
+                                >
+                                    <span className="material-symbols-rounded" aria-hidden="true">close</span>
+                                </button>
+                            </div>
+                            <p className="text-slate-600 dark:text-slate-400 text-sm mb-4">
                                 Defina uma nova data de vencimento para o plano deste aluno.
                             </p>
 
+                            <label htmlFor="student-new-expiration" className="block text-xs font-bold text-slate-600 dark:text-slate-300 uppercase mb-1">Data de Vencimento</label>
                             <input
+                                id="student-new-expiration"
                                 type="date"
                                 value={newExpirationDate}
                                 onChange={(e) => setNewExpirationDate(e.target.value)}
-                                className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-slate-900 dark:text-white font-bold focus:outline-none focus:ring-2 focus:ring-primary/50 mb-6"
+                                className="w-full min-h-[44px] bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-slate-900 dark:text-white font-bold focus:outline-none focus:ring-2 focus:ring-primary/50 mb-6"
                             />
 
                             <div className="flex gap-3">
                                 <button
+                                    type="button"
                                     onClick={() => setIsEditingExpiration(false)}
-                                    className="flex-1 py-3 rounded-xl font-bold text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+                                    aria-label="Cancelar alteração"
+                                    className="flex-1 min-h-[44px] py-3 rounded-xl font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors flex items-center justify-center"
                                 >
                                     Cancelar
                                 </button>
                                 <button
+                                    type="button"
                                     onClick={handleUpdateExpiration}
                                     disabled={savingExpiration}
-                                    className="flex-1 bg-primary text-white py-3 rounded-xl font-bold shadow-lg shadow-primary/25 active:scale-[0.98] transition-transform flex items-center justify-center gap-2 disabled:opacity-50"
+                                    aria-label="Salvar nova data de validade"
+                                    className="flex-1 min-h-[44px] bg-primary text-white py-3 rounded-xl font-bold shadow-lg shadow-primary/25 active:scale-[0.98] transition-transform flex items-center justify-center gap-2 disabled:opacity-50"
                                 >
-                                    {savingExpiration ? 'Salvando...' : 'Salvar'}
+                                    {savingExpiration ? (
+                                        <>
+                                            <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" role="status"></div>
+                                            <span>Salvando...</span>
+                                        </>
+                                    ) : (
+                                        <span>Salvar</span>
+                                    )}
                                 </button>
                             </div>
                         </div>
@@ -809,18 +882,25 @@ const StudentProfileView: React.FC = () => {
             {/* History Modal */}
             {
                 showHistoryModal && (
-                    <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300">
+                    <div
+                        role="dialog"
+                        aria-modal="true"
+                        aria-label={`Histórico de Treinos de ${profile?.full_name || 'Aluno'}`}
+                        className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300"
+                    >
                         <div className="bg-slate-50 dark:bg-slate-900 w-full max-w-lg rounded-t-[2.5rem] sm:rounded-[2.5rem] max-h-[90vh] flex flex-col shadow-2xl animate-in slide-in-from-bottom duration-500 overflow-hidden">
                             <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between sticky top-0 bg-slate-50 dark:bg-slate-900 z-10">
                                 <div>
                                     <h2 className="text-xl font-bold text-slate-900 dark:text-white">Histórico de Treinos</h2>
-                                    <p className="text-xs text-slate-500 uppercase font-black tracking-widest mt-1">{profile?.full_name}</p>
+                                    <p className="text-xs text-slate-500 dark:text-slate-400 uppercase font-black tracking-widest mt-1">{profile?.full_name}</p>
                                 </div>
                                 <button
+                                    type="button"
                                     onClick={() => setShowHistoryModal(false)}
-                                    className="w-10 h-10 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500 hover:bg-slate-200 transition-all"
+                                    aria-label="Fechar histórico de treinos"
+                                    className="w-11 h-11 min-w-[44px] min-h-[44px] rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all"
                                 >
-                                    <span className="material-symbols-rounded">close</span>
+                                    <span className="material-symbols-rounded" aria-hidden="true">close</span>
                                 </button>
                             </div>
 
@@ -838,11 +918,11 @@ const StudentProfileView: React.FC = () => {
                                                         <h4 className="font-bold text-slate-900 dark:text-white text-base line-clamp-1">{log.workout?.name || 'Treino s/ nome'}</h4>
                                                         <div className="flex items-center gap-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">
                                                             <span className="flex items-center gap-1">
-                                                                <span className="material-symbols-rounded text-sm">schedule</span>
+                                                                <span className="material-symbols-rounded text-sm" aria-hidden="true">schedule</span>
                                                                 {Math.floor((new Date(log.finished_at).getTime() - new Date(log.started_at).getTime()) / 60000)} min
                                                             </span>
                                                             <span className="flex items-center gap-1 text-primary">
-                                                                <span className="material-symbols-rounded text-sm">bolt</span>
+                                                                <span className="material-symbols-rounded text-sm" aria-hidden="true">bolt</span>
                                                                 {log.effort_rating || 0}/10 Esforço
                                                             </span>
                                                         </div>
@@ -875,8 +955,8 @@ const StudentProfileView: React.FC = () => {
                                     ))
                                 ) : (
                                     <div className="py-12 text-center">
-                                        <span className="material-symbols-rounded text-4xl text-slate-200 mb-2">history</span>
-                                        <p className="text-sm text-slate-400 italic">Nenhum treino realizado ainda.</p>
+                                        <span className="material-symbols-rounded text-4xl text-slate-300 dark:text-slate-600 mb-2" aria-hidden="true">history</span>
+                                        <p className="text-sm text-slate-500 dark:text-slate-400 italic">Nenhum treino realizado ainda.</p>
                                     </div>
                                 )}
                             </div>
@@ -888,24 +968,50 @@ const StudentProfileView: React.FC = () => {
             {/* Edit Routine Name Modal */}
             {
                 isEditingRoutineModal && (
-                    <div className="fixed inset-0 z-[110] flex items-center justify-center p-5 bg-black/60 backdrop-blur-sm animate-fade-in">
+                    <div
+                        role="dialog"
+                        aria-modal="true"
+                        aria-label="Editar Nome da Rotina"
+                        className="fixed inset-0 z-[110] flex items-center justify-center p-5 bg-black/60 backdrop-blur-sm animate-fade-in"
+                    >
                         <div className="bg-white dark:bg-slate-800 w-full max-w-sm rounded-[2rem] p-6 shadow-2xl animate-scale-up border border-slate-100 dark:border-slate-700">
-                            <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Editar Nome da Rotina</h2>
+                            <div className="flex justify-between items-center mb-2">
+                                <h2 className="text-xl font-bold text-slate-900 dark:text-white">Editar Nome da Rotina</h2>
+                                <button
+                                    type="button"
+                                    onClick={() => setIsEditingRoutineModal(false)}
+                                    aria-label="Fechar janela"
+                                    className="w-11 h-11 min-w-[44px] min-h-[44px] p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors flex items-center justify-center"
+                                >
+                                    <span className="material-symbols-rounded" aria-hidden="true">close</span>
+                                </button>
+                            </div>
+                            <label htmlFor="student-edit-routine-name" className="block text-xs font-bold text-slate-600 dark:text-slate-300 uppercase mb-1">Nome da Rotina</label>
                             <input
+                                id="student-edit-routine-name"
                                 type="text"
                                 value={routineName}
                                 onChange={(e) => setRoutineName(e.target.value)}
                                 placeholder="Nome da rotina"
-                                className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-slate-900 dark:text-white font-bold focus:outline-none focus:ring-2 focus:ring-primary/50 mb-6"
+                                className="w-full min-h-[44px] bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-slate-900 dark:text-white font-bold focus:outline-none focus:ring-2 focus:ring-primary/50 mb-6"
                             />
                             <div className="flex gap-3">
-                                <button onClick={() => setIsEditingRoutineModal(false)} className="flex-1 py-3 text-slate-500 font-bold">Cancelar</button>
+                                <button type="button" onClick={() => setIsEditingRoutineModal(false)} aria-label="Cancelar" className="flex-1 min-h-[44px] py-3 text-slate-600 dark:text-slate-300 font-bold hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl transition-colors flex items-center justify-center">Cancelar</button>
                                 <button
+                                    type="button"
                                     onClick={handleUpdateRoutineName}
                                     disabled={savingRoutine}
-                                    className="flex-1 bg-primary text-white py-3 rounded-xl font-bold disabled:opacity-50"
+                                    aria-label="Salvar nome da rotina"
+                                    className="flex-1 min-h-[44px] bg-primary text-white py-3 rounded-xl font-bold disabled:opacity-50 flex items-center justify-center gap-2"
                                 >
-                                    {savingRoutine ? 'Salvando...' : 'Salvar'}
+                                    {savingRoutine ? (
+                                        <>
+                                            <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" role="status"></div>
+                                            <span>Salvando...</span>
+                                        </>
+                                    ) : (
+                                        <span>Salvar</span>
+                                    )}
                                 </button>
                             </div>
                         </div>
@@ -916,24 +1022,50 @@ const StudentProfileView: React.FC = () => {
             {/* Edit Workout Name Modal */}
             {
                 editingWorkoutItem && (
-                    <div className="fixed inset-0 z-[110] flex items-center justify-center p-5 bg-black/60 backdrop-blur-sm animate-fade-in">
+                    <div
+                        role="dialog"
+                        aria-modal="true"
+                        aria-label="Editar Nome do Treino"
+                        className="fixed inset-0 z-[110] flex items-center justify-center p-5 bg-black/60 backdrop-blur-sm animate-fade-in"
+                    >
                         <div className="bg-white dark:bg-slate-800 w-full max-w-sm rounded-[2rem] p-6 shadow-2xl animate-scale-up border border-slate-100 dark:border-slate-700">
-                            <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Editar Nome do Treino</h2>
+                            <div className="flex justify-between items-center mb-2">
+                                <h2 className="text-xl font-bold text-slate-900 dark:text-white">Editar Nome do Treino</h2>
+                                <button
+                                    type="button"
+                                    onClick={() => setEditingWorkoutItem(null)}
+                                    aria-label="Fechar janela"
+                                    className="w-11 h-11 min-w-[44px] min-h-[44px] p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors flex items-center justify-center"
+                                >
+                                    <span className="material-symbols-rounded" aria-hidden="true">close</span>
+                                </button>
+                            </div>
+                            <label htmlFor="student-edit-workout-name" className="block text-xs font-bold text-slate-600 dark:text-slate-300 uppercase mb-1">Nome do Treino</label>
                             <input
+                                id="student-edit-workout-name"
                                 type="text"
                                 value={workoutName}
                                 onChange={(e) => setWorkoutName(e.target.value)}
                                 placeholder="Ex: Treino de Perna"
-                                className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-slate-900 dark:text-white font-bold focus:outline-none focus:ring-2 focus:ring-primary/50 mb-6"
+                                className="w-full min-h-[44px] bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-slate-900 dark:text-white font-bold focus:outline-none focus:ring-2 focus:ring-primary/50 mb-6"
                             />
                             <div className="flex gap-3">
-                                <button onClick={() => setEditingWorkoutItem(null)} className="flex-1 py-3 text-slate-500 font-bold">Cancelar</button>
+                                <button type="button" onClick={() => setEditingWorkoutItem(null)} aria-label="Cancelar" className="flex-1 min-h-[44px] py-3 text-slate-600 dark:text-slate-300 font-bold hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl transition-colors flex items-center justify-center">Cancelar</button>
                                 <button
+                                    type="button"
                                     onClick={handleUpdateWorkoutName}
                                     disabled={savingWorkout}
-                                    className="flex-1 bg-primary text-white py-3 rounded-xl font-bold disabled:opacity-50"
+                                    aria-label="Salvar nome do treino"
+                                    className="flex-1 min-h-[44px] bg-primary text-white py-3 rounded-xl font-bold disabled:opacity-50 flex items-center justify-center gap-2"
                                 >
-                                    {savingWorkout ? 'Salvando...' : 'Salvar'}
+                                    {savingWorkout ? (
+                                        <>
+                                            <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" role="status"></div>
+                                            <span>Salvando...</span>
+                                        </>
+                                    ) : (
+                                        <span>Salvar</span>
+                                    )}
                                 </button>
                             </div>
                         </div>

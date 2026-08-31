@@ -309,8 +309,13 @@ const Evolution: React.FC = () => {
         <MainLayout>
             {/* Header */}
             <header className="w-full px-5 py-4 flex items-center gap-3 sticky top-0 bg-white dark:bg-slate-900 z-30 border-b border-slate-100 dark:border-slate-800">
-                <button onClick={() => navigate(-1)} className="p-2 -ml-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-                    <span className="material-symbols-rounded text-slate-500">arrow_back</span>
+                <button
+                    type="button"
+                    onClick={() => navigate(-1)}
+                    aria-label="Voltar para a página anterior"
+                    className="w-11 h-11 min-w-[44px] min-h-[44px] -ml-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors flex items-center justify-center"
+                >
+                    <span className="material-symbols-rounded text-slate-500" aria-hidden="true">arrow_back</span>
                 </button>
                 <div>
                     <h1 className="text-xl font-bold text-slate-900 dark:text-white font-display">Evolução</h1>
@@ -318,7 +323,7 @@ const Evolution: React.FC = () => {
                 </div>
             </header>
 
-            <main className="w-full px-4 sm:px-5 pt-6 max-w-2xl mx-auto pb-24 space-y-6">
+            <div className="w-full px-4 sm:px-5 pt-6 max-w-2xl mx-auto pb-24 space-y-6">
                 {loading ? (
                     <div className="space-y-4 animate-pulse">
                         <div className="grid grid-cols-2 gap-3">
@@ -334,35 +339,35 @@ const Evolution: React.FC = () => {
                         <div className="grid grid-cols-2 gap-3">
                             <div className="bg-gradient-to-br from-blue-50 to-white dark:from-blue-900/20 dark:to-slate-800 p-4 rounded-2xl border border-blue-100/50 dark:border-blue-700/30">
                                 <div className="flex items-center gap-2 mb-2">
-                                    <span className="material-symbols-rounded text-blue-500 text-lg">fitness_center</span>
-                                    <span className="text-xs font-bold text-slate-400 uppercase">Treinos</span>
+                                    <span className="material-symbols-rounded text-blue-500 text-lg" aria-hidden="true">fitness_center</span>
+                                    <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase">Treinos</span>
                                 </div>
-                                <p className="text-2xl font-black text-slate-900 dark:text-white">{totalWorkouts}</p>
+                                <p className="text-2xl font-black text-slate-900 dark:text-white tabular-nums">{totalWorkouts}</p>
                             </div>
 
                             <div className="bg-gradient-to-br from-emerald-50 to-white dark:from-emerald-900/20 dark:to-slate-800 p-4 rounded-2xl border border-emerald-100/50 dark:border-emerald-700/30">
                                 <div className="flex items-center gap-2 mb-2">
-                                    <span className="material-symbols-rounded text-emerald-500 text-lg">monitoring</span>
-                                    <span className="text-xs font-bold text-slate-400 uppercase">Volume Total</span>
+                                    <span className="material-symbols-rounded text-emerald-500 text-lg" aria-hidden="true">monitoring</span>
+                                    <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase">Volume Total</span>
                                 </div>
-                                <p className="text-2xl font-black text-slate-900 dark:text-white">
+                                <p className="text-2xl font-black text-slate-900 dark:text-white tabular-nums">
                                     {totalVolume >= 1000 ? `${(totalVolume / 1000).toFixed(1)}t` : `${totalVolume.toFixed(0)}kg`}
                                 </p>
                             </div>
 
                             <div className="bg-gradient-to-br from-purple-50 to-white dark:from-purple-900/20 dark:to-slate-800 p-4 rounded-2xl border border-purple-100/50 dark:border-purple-700/30">
                                 <div className="flex items-center gap-2 mb-2">
-                                    <span className="material-symbols-rounded text-purple-500 text-lg">analytics</span>
-                                    <span className="text-xs font-bold text-slate-400 uppercase">Monitorados</span>
+                                    <span className="material-symbols-rounded text-purple-500 text-lg" aria-hidden="true">analytics</span>
+                                    <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase">Monitorados</span>
                                 </div>
-                                <p className="text-2xl font-black text-slate-900 dark:text-white">{exerciseStats.length}</p>
-                                <p className="text-[10px] text-slate-400">exercícios ≥4 sessões</p>
+                                <p className="text-2xl font-black text-slate-900 dark:text-white tabular-nums">{exerciseStats.length}</p>
+                                <p className="text-[10px] text-slate-500 dark:text-slate-400">exercícios ≥4 sessões</p>
                             </div>
 
                             <div className="bg-gradient-to-br from-amber-50 to-white dark:from-amber-900/20 dark:to-slate-800 p-4 rounded-2xl border border-amber-100/50 dark:border-amber-700/30">
                                 <div className="flex items-center gap-2 mb-2">
-                                    <span className="material-symbols-rounded text-amber-500 text-lg">favorite</span>
-                                    <span className="text-xs font-bold text-slate-400 uppercase">Favorito</span>
+                                    <span className="material-symbols-rounded text-amber-500 text-lg" aria-hidden="true">favorite</span>
+                                    <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase">Favorito</span>
                                 </div>
                                 <p className="text-sm font-bold text-slate-900 dark:text-white truncate">{favoriteExercise}</p>
                             </div>
@@ -460,14 +465,17 @@ const Evolution: React.FC = () => {
                                     </div>
 
                                     {/* Rep Range Tabs */}
-                                    <div className="px-4 pt-3 flex gap-2 overflow-x-auto pb-1 no-scrollbar">
+                                    <div className="flex gap-2 p-4 pb-0 overflow-x-auto no-scrollbar" role="tablist" aria-label="Faixas de repetições">
                                         {availableReps.map(r => (
                                             <button
                                                 key={r}
+                                                type="button"
+                                                role="tab"
+                                                aria-selected={selectedReps === r}
                                                 onClick={() => setSelectedReps(r)}
-                                                className={`px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all ${selectedReps === r
+                                                className={`px-4 py-2 min-h-[44px] flex items-center justify-center rounded-full text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${selectedReps === r
                                                     ? 'bg-primary text-white shadow-sm'
-                                                    : 'bg-slate-100 dark:bg-slate-700 text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-600'
+                                                    : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
                                                     }`}
                                             >
                                                 {r} reps
@@ -489,12 +497,12 @@ const Evolution: React.FC = () => {
                                                     <CartesianGrid strokeDasharray="3 3" stroke="var(--color-slate-100, #f1f5f9)" />
                                                     <XAxis
                                                         dataKey="dateLabel"
-                                                        tick={{ fontSize: 10, fill: '#94a3b8' }}
+                                                        tick={{ fontSize: 10, fill: 'var(--color-slate-400, #94a3b8)' }}
                                                         tickLine={false}
                                                         axisLine={false}
                                                     />
                                                     <YAxis
-                                                        tick={{ fontSize: 10, fill: '#94a3b8' }}
+                                                        tick={{ fontSize: 10, fill: 'var(--color-slate-400, #94a3b8)' }}
                                                         tickLine={false}
                                                         axisLine={false}
                                                         unit="kg"
@@ -504,7 +512,7 @@ const Evolution: React.FC = () => {
                                                     <Line
                                                         type="monotone"
                                                         dataKey="maxWeight"
-                                                        stroke="#6366f1"
+                                                        stroke="var(--color-primary, #0ea5e9)"
                                                         strokeWidth={2.5}
                                                         dot={(props: any) => {
                                                             const { cx, cy, payload } = props;
@@ -516,7 +524,7 @@ const Evolution: React.FC = () => {
                                                                     </g>
                                                                 );
                                                             }
-                                                            return <circle key={`dot-${cx}-${cy}`} cx={cx} cy={cy} r={3.5} fill="#6366f1" stroke="#fff" strokeWidth={1.5} />;
+                                                            return <circle key={`dot-${cx}-${cy}`} cx={cx} cy={cy} r={3.5} fill="#0ea5e9" stroke="#fff" strokeWidth={1.5} />;
                                                         }}
                                                         activeDot={{ r: 6, strokeWidth: 2 }}
                                                     />
@@ -594,7 +602,7 @@ const Evolution: React.FC = () => {
                         )}
                     </>
                 )}
-            </main>
+            </div>
         </MainLayout>
     );
 };

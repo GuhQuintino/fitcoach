@@ -8,6 +8,17 @@ interface VideoPlayerModalProps {
 }
 
 const VideoPlayerModal: React.FC<VideoPlayerModalProps> = ({ isOpen, onClose, videoUrl, title }) => {
+    React.useEffect(() => {
+        if (!isOpen) return;
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') {
+                onClose();
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [isOpen, onClose]);
+
     if (!isOpen || !videoUrl) return null;
 
     const isOffline = typeof navigator !== 'undefined' && !navigator.onLine;
@@ -40,6 +51,9 @@ const VideoPlayerModal: React.FC<VideoPlayerModalProps> = ({ isOpen, onClose, vi
 
     return (
         <div
+            role="dialog"
+            aria-modal="true"
+            aria-label={title ? `Vídeo demonstrativo: ${title}` : "Vídeo demonstrativo do exercício"}
             className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-md flex items-center justify-center animate-fade-in p-4"
             onClick={handleBackdropClick}
         >
@@ -48,10 +62,12 @@ const VideoPlayerModal: React.FC<VideoPlayerModalProps> = ({ isOpen, onClose, vi
                 {/* Header / Close Button */}
                 <div className="absolute top-0 right-0 p-4 z-10 flex gap-2">
                     <button
+                        type="button"
                         onClick={onClose}
-                        className="bg-black/50 text-white p-2 rounded-full hover:bg-white/20 transition-colors backdrop-blur-sm"
+                        aria-label="Fechar reprodução de vídeo"
+                        className="bg-black/50 text-white min-w-[44px] min-h-[44px] p-2 rounded-full hover:bg-white/20 transition-colors backdrop-blur-sm flex items-center justify-center"
                     >
-                        <span className="material-symbols-rounded">close</span>
+                        <span className="material-symbols-rounded" aria-hidden="true">close</span>
                     </button>
                 </div>
 
@@ -65,8 +81,10 @@ const VideoPlayerModal: React.FC<VideoPlayerModalProps> = ({ isOpen, onClose, vi
                             A reprodução de vídeos requer conexão com a internet. No entanto, as instruções, metas de carga, repetições e cronômetros continuam funcionando normalmente!
                         </p>
                         <button
+                            type="button"
                             onClick={onClose}
-                            className="bg-white/10 hover:bg-white/20 text-white px-5 py-2 rounded-xl text-xs font-bold transition-all"
+                            aria-label="Voltar ao treino e fechar visualização"
+                            className="min-h-[44px] bg-white/10 hover:bg-white/20 active:scale-95 text-white px-6 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center cursor-pointer"
                         >
                             Voltar ao Treino
                         </button>
@@ -98,7 +116,8 @@ const VideoPlayerModal: React.FC<VideoPlayerModalProps> = ({ isOpen, onClose, vi
                     <div className="w-full h-auto max-h-[80vh] flex items-center justify-center bg-black">
                         <img
                             src={videoUrl}
-                            alt={title || "Exercise Preview"}
+                            alt={title || "Demonstração do Exercício"}
+                            loading="lazy"
                             className="max-w-full max-h-[80vh] object-contain"
                         />
                     </div>

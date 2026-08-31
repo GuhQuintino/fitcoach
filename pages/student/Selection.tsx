@@ -137,8 +137,9 @@ const Selection: React.FC = () => {
 
     if (loading) return (
         <MainLayout>
-            <div className="flex items-center justify-center h-[80vh]">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+            <div className="flex items-center justify-center h-[80vh]" role="status" aria-live="polite">
+                <div className="w-10 h-10 rounded-full border-2 border-primary border-t-transparent animate-spin"></div>
+                <span className="sr-only">Carregando treinos disponíveis...</span>
             </div>
         </MainLayout>
     );
@@ -146,21 +147,21 @@ const Selection: React.FC = () => {
     if (!routine) return (
         <MainLayout>
             <header className="sticky top-0 z-30 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md px-4 py-3 flex items-center justify-between border-b border-slate-200 dark:border-white/5">
-                <Link to="/student/dashboard" className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-                    <span className="material-symbols-rounded text-slate-700 dark:text-slate-200">arrow_back_ios_new</span>
+                <Link to="/student/dashboard" aria-label="Voltar para a tela inicial" className="min-w-[44px] min-h-[44px] p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors flex items-center justify-center">
+                    <span className="material-symbols-rounded text-slate-700 dark:text-slate-200" aria-hidden="true">arrow_back_ios_new</span>
                 </Link>
                 <h1 className="text-lg font-bold text-slate-900 dark:text-white">Seleção de Treino</h1>
                 <div className="w-10"></div>
             </header>
             <div className="flex flex-col items-center justify-center min-h-[60vh] px-6 text-center space-y-4">
-                <div className="w-20 h-20 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center text-slate-300 dark:text-slate-600">
-                    <span className="material-symbols-rounded text-4xl">fitness_center</span>
+                <div className="w-20 h-20 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center text-slate-400 dark:text-slate-500">
+                    <span className="material-symbols-rounded text-4xl" aria-hidden="true">fitness_center</span>
                 </div>
                 <div>
                     <h3 className="text-xl font-bold text-slate-900 dark:text-white">Nenhum treino ativo</h3>
-                    <p className="text-slate-500 dark:text-slate-400">Aguarde seu coach atribuir uma nova rotina.</p>
+                    <p className="text-slate-600 dark:text-slate-400 font-medium">Aguarde seu coach atribuir uma nova rotina.</p>
                 </div>
-                <Link to="/student/dashboard" className="text-primary font-bold hover:underline">Voltar ao Início</Link>
+                <Link to="/student/dashboard" aria-label="Voltar ao início" className="min-h-[44px] inline-flex items-center text-primary font-bold hover:underline px-4">Voltar ao Início</Link>
             </div>
         </MainLayout>
     );
@@ -174,27 +175,31 @@ const Selection: React.FC = () => {
             </div>
 
             <header className="relative sticky top-0 z-30 bg-white dark:bg-slate-900 px-4 py-3 flex items-center justify-between border-b border-slate-200/50 dark:border-white/5">
-                <Link to="/student/dashboard" className="w-10 h-10 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-400 hover:text-sky-500 hover:border-sky-300 dark:hover:border-sky-600 transition-colors shadow-sm active:scale-95">
-                    <span className="material-symbols-rounded text-xl">arrow_back</span>
+                <Link to="/student/dashboard" aria-label="Voltar para a tela inicial" className="w-11 h-11 min-w-[44px] min-h-[44px] rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-500 hover:text-sky-500 hover:border-sky-300 dark:hover:border-sky-600 transition-colors shadow-sm active:scale-95">
+                    <span className="material-symbols-rounded text-xl" aria-hidden="true">arrow_back</span>
                 </Link>
                 <div className="flex-1 px-4 text-center">
                     <h1 className="text-base font-bold text-slate-900 dark:text-white truncate">{routine.name}</h1>
                     <p className="text-xs text-slate-500 dark:text-slate-400">Rotina Atual</p>
                 </div>
-                <button className="p-2 -mr-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 transition-colors">
-                    <span className="material-symbols-rounded">info</span>
+                <button
+                    type="button"
+                    aria-label="Informações sobre a rotina"
+                    onClick={() => toast(routine.description || `Rotina prescrita: ${routine.name}`, { icon: 'ℹ️' })}
+                    className="w-11 h-11 min-w-[44px] min-h-[44px] p-2 -mr-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 transition-colors flex items-center justify-center"
+                >
+                    <span className="material-symbols-rounded" aria-hidden="true">info</span>
                 </button>
             </header>
 
-
-            <main className="relative p-4 space-y-6">
+            <div className="relative p-4 space-y-6">
                 {/* Active Workout Banner */}
                 {activeWorkout && (
                     <div className="bg-slate-900 dark:bg-slate-800 rounded-3xl p-5 shadow-xl border border-white/5 animate-slide-up">
                         <div className="flex items-center gap-4">
                             <div className="w-12 h-12 rounded-2xl bg-sky-500/20 flex items-center justify-center text-sky-500 relative overflow-hidden">
                                 <div className="absolute inset-0 bg-sky-500/10 animate-pulse"></div>
-                                <span className="material-symbols-rounded text-2xl relative z-10">timer</span>
+                                <span className="material-symbols-rounded text-2xl relative z-10" aria-hidden="true">timer</span>
                             </div>
                             <div className="flex-1">
                                 <h4 className="text-white font-bold">Treino em andamento!</h4>
@@ -203,14 +208,16 @@ const Selection: React.FC = () => {
                         </div>
                         <div className="grid grid-cols-2 gap-3 mt-4">
                             <button
+                                type="button"
                                 onClick={handleDiscardWorkout}
-                                className="py-2.5 rounded-xl text-slate-400 font-bold text-sm bg-slate-800 hover:bg-slate-700 transition-colors border border-white/5"
+                                className="min-h-[44px] py-2.5 rounded-xl text-slate-400 font-bold text-sm bg-slate-800 hover:bg-slate-700 transition-colors border border-white/5 flex items-center justify-center"
                             >
                                 Descartar
                             </button>
                             <button
+                                type="button"
                                 onClick={() => navigate(`/student/workout/${activeWorkout.workoutId}`)}
-                                className="py-2.5 rounded-xl bg-sky-500 text-white font-bold text-sm shadow-lg shadow-sky-500/20 active:scale-[0.98] transition-all"
+                                className="min-h-[44px] py-2.5 rounded-xl bg-sky-500 text-white font-bold text-sm shadow-lg shadow-sky-500/20 active:scale-[0.98] transition-all flex items-center justify-center"
                             >
                                 Continuar
                             </button>
@@ -252,6 +259,7 @@ const Selection: React.FC = () => {
                                 <Link
                                     key={workout.id}
                                     to={`/student/workout/${workout.id}`}
+                                    aria-label={`Iniciar treino ${workout.name || index + 1}`}
                                     className="block group relative"
                                 >
                                     {index === suggestedIndex && (
@@ -271,32 +279,33 @@ const Selection: React.FC = () => {
                                             w-14 h-14 rounded-2xl flex items-center justify-center font-bold text-xl border
                                             ${index === suggestedIndex
                                                 ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 border-emerald-100 dark:border-emerald-800'
-                                                : 'bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-slate-100 dark:border-slate-700 group-hover:bg-sky-500/5 group-hover:text-sky-500 group-hover:border-sky-500/20 transition-colors'
+                                                : 'bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-100 dark:border-slate-700 group-hover:bg-primary/10 group-hover:text-primary group-hover:border-primary/20 transition-colors'
                                             }
                                         `}>
                                             {String.fromCharCode(65 + index)}
                                         </div>
 
                                         <div className="flex-1 min-w-0">
-                                            <h4 className="font-bold text-lg text-slate-900 dark:text-white group-hover:text-sky-500 transition-colors truncate">{workout.name}</h4>
+                                            <h4 className="font-bold text-lg text-slate-900 dark:text-white group-hover:text-primary transition-colors truncate">{workout.name}</h4>
 
                                             <div className="flex items-center gap-3 mt-1">
-                                                <span className="inline-flex items-center text-xs text-slate-500 dark:text-slate-400 font-medium">
-                                                    <span className="material-symbols-rounded text-[14px] mr-1 text-slate-400">timer</span>
+                                                <span className="inline-flex items-center text-xs text-slate-600 dark:text-slate-400 font-medium">
+                                                    <span className="material-symbols-rounded text-[14px] mr-1 text-slate-400" aria-hidden="true">timer</span>
                                                     ~60 min
                                                 </span>
-                                                <span className="inline-flex items-center text-xs text-slate-500 dark:text-slate-400 font-medium">
-                                                    <span className="material-symbols-rounded text-[14px] mr-1 text-slate-400">fitness_center</span>
+                                                <span className="inline-flex items-center text-xs text-slate-600 dark:text-slate-400 font-medium">
+                                                    <span className="material-symbols-rounded text-[14px] mr-1 text-slate-400" aria-hidden="true">fitness_center</span>
                                                     Ver detalhes
                                                 </span>
                                             </div>
                                         </div>
 
-                                        <div className={`
-                                            w-8 h-8 rounded-full flex items-center justify-center transition-colors
-                                            ${index === suggestedIndex ? 'text-emerald-500 bg-emerald-50 dark:bg-emerald-900/10' : 'text-slate-300 group-hover:text-primary group-hover:bg-primary/5'}
-                                        `}>
-                                            <span className="material-symbols-rounded">arrow_forward_ios</span>
+                                        <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${
+                                            index === suggestedIndex
+                                                ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-100/60 dark:bg-emerald-900/30'
+                                                : 'text-slate-400 dark:text-slate-500 group-hover:text-primary group-hover:bg-primary/10'
+                                        }`}>
+                                            <span className="material-symbols-rounded" aria-hidden="true">arrow_forward_ios</span>
                                         </div>
                                     </div>
                                 </Link>
@@ -304,7 +313,7 @@ const Selection: React.FC = () => {
                         })
                     )}
                 </div>
-            </main>
+            </div>
         </MainLayout>
     );
 };

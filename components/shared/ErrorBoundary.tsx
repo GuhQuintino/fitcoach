@@ -39,10 +39,14 @@ class ErrorBoundary extends Component<Props, State> {
     public render() {
         if (this.state.hasError) {
             return (
-                <div className="min-h-screen flex items-center justify-center p-6 bg-slate-50 dark:bg-slate-900">
+                <div
+                    role="alert"
+                    aria-live="assertive"
+                    className="min-h-screen flex items-center justify-center p-6 bg-slate-50 dark:bg-slate-900"
+                >
                     <div className="max-w-md w-full bg-white dark:bg-slate-800 p-8 rounded-[2.5rem] shadow-2xl text-center border border-slate-100 dark:border-slate-700">
                         <div className="w-20 h-20 bg-amber-500/10 text-amber-500 rounded-3xl flex items-center justify-center mx-auto mb-6">
-                            <span className="material-symbols-rounded text-4xl">
+                            <span className="material-symbols-rounded text-4xl" aria-hidden="true">
                                 {this.state.errorType === 'chunk' ? 'system_update' : 'error'}
                             </span>
                         </div>
@@ -51,17 +55,19 @@ class ErrorBoundary extends Component<Props, State> {
                             {this.state.errorType === 'chunk' ? 'Atualização Necessária' : 'Algo deu errado'}
                         </h2>
 
-                        <p className="text-slate-500 dark:text-slate-400 text-sm mb-8 leading-relaxed">
+                        <p className="text-slate-600 dark:text-slate-400 text-sm mb-8 leading-relaxed">
                             {this.state.errorType === 'chunk'
                                 ? 'Uma nova versão do FitCoach está disponível. Precisamos recarregar para aplicar as mudanças.'
                                 : 'Ocorreu um erro inesperado. Tente recarregar a página para resolver.'}
                         </p>
 
                         <button
+                            type="button"
                             onClick={this.handleReload}
+                            aria-label="Recarregar aplicativo agora"
                             className="w-full py-4 px-6 bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-black rounded-2xl shadow-xl active:scale-95 transition-all text-sm uppercase tracking-widest flex items-center justify-center gap-3"
                         >
-                            <span className="material-symbols-rounded">refresh</span>
+                            <span className="material-symbols-rounded" aria-hidden="true">refresh</span>
                             Recarregar App
                         </button>
 

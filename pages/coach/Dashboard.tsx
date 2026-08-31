@@ -173,13 +173,14 @@ const CoachDashboard: React.FC = () => {
                         <div className="w-14 h-14 rounded-2xl overflow-hidden flex-shrink-0 shadow-soft border-2 border-slate-100 dark:border-slate-600">
                             {avatarUrl || user?.user_metadata?.avatar_url ? (
                                 <img
-                                    alt="Profile"
+                                    alt={`Foto de perfil de ${coachName}`}
+                                    loading="lazy"
                                     className="w-full h-full object-cover"
                                     src={getOptimizedImageUrl(avatarUrl || user?.user_metadata?.avatar_url, 120, 120)}
                                 />
                             ) : (
                                 <div className="w-full h-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-slate-400">
-                                    <span className="material-symbols-rounded text-3xl">account_circle</span>
+                                    <span className="material-symbols-rounded text-3xl" aria-hidden="true">account_circle</span>
                                 </div>
                             )}
                         </div>
@@ -219,7 +220,7 @@ const CoachDashboard: React.FC = () => {
                             <h2 className="font-display text-2xl font-bold mb-1">Alunos</h2>
                             <p className="text-white/70 text-sm mb-4">Visão geral</p>
                             <div className="flex flex-col gap-2">
-                                <span className="text-xs font-semibold uppercase tracking-wider text-white/50">Status atual</span>
+                                <span className="text-xs font-bold uppercase tracking-wider text-white/80">Status atual</span>
                                 <div className="flex items-center gap-2 flex-wrap">
                                     <div className="flex items-center gap-1.5 bg-white/20 px-3 py-1 rounded-full">
                                         <div className="w-2 h-2 rounded-full bg-green-400"></div>
@@ -259,14 +260,14 @@ const CoachDashboard: React.FC = () => {
                 </Link>
             </header>
 
-            <main className="flex-1 px-5 pt-6 space-y-5">
+            <div className="flex-1 px-5 pt-6 space-y-5">
                 <PWAInstallPrompt />
                 {/* Quick Actions */}
                 <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4">
                     <Link to="/coach/feedbacks" className="bg-gradient-to-br from-sky-50/80 to-white dark:from-sky-900/20 dark:to-slate-800 p-4 rounded-2xl shadow-sm border border-sky-100/50 dark:border-sky-700/30 flex flex-col items-center justify-center gap-3 group active:scale-95 transition-all h-28 relative card-hover overflow-hidden">
-                        <div className="absolute top-0 right-0 w-20 h-20 bg-sky-100/20 rounded-full blur-xl -translate-y-1/2 translate-x-1/2"></div>
+                        <div className="absolute top-0 right-0 w-20 h-20 bg-sky-100/20 rounded-full blur-xl -translate-y-1/2 translate-x-1/2" aria-hidden="true"></div>
                         <div className="relative p-3 bg-white dark:bg-sky-900/40 text-primary rounded-xl group-hover:scale-110 transition-transform shadow-sm">
-                            <span className="material-symbols-rounded text-2xl">chat_bubble</span>
+                            <span className="material-symbols-rounded text-2xl" aria-hidden="true">chat_bubble</span>
                             {recentFeedbacksCount > 0 && (
                                 <span className="absolute -top-1 -right-1 bg-danger text-white text-[10px] font-bold h-5 w-5 flex items-center justify-center rounded-full border-2 border-white dark:border-slate-800">
                                     {recentFeedbacksCount}
@@ -276,9 +277,9 @@ const CoachDashboard: React.FC = () => {
                         <span className="text-sm font-semibold text-slate-700 dark:text-slate-200 relative z-10">Feedbacks</span>
                     </Link>
                     <Link to="/coach/updates" className="bg-gradient-to-br from-amber-50/80 to-white dark:from-amber-900/20 dark:to-slate-800 p-4 rounded-2xl shadow-sm border border-amber-100/50 dark:border-amber-700/30 flex flex-col items-center justify-center gap-3 group active:scale-95 transition-all h-28 relative card-hover overflow-hidden">
-                        <div className="absolute top-0 right-0 w-20 h-20 bg-amber-100/20 rounded-full blur-xl -translate-y-1/2 translate-x-1/2"></div>
+                        <div className="absolute top-0 right-0 w-20 h-20 bg-amber-100/20 rounded-full blur-xl -translate-y-1/2 translate-x-1/2" aria-hidden="true"></div>
                         <div className="relative p-3 bg-white dark:bg-amber-900/40 text-warning rounded-xl group-hover:scale-110 transition-transform shadow-sm">
-                            <span className="material-symbols-rounded text-2xl">calendar_month</span>
+                            <span className="material-symbols-rounded text-2xl" aria-hidden="true">calendar_month</span>
                             {updatesCount > 0 && (
                                 <span className="absolute -top-1 -right-1 bg-danger text-white text-[10px] font-bold h-5 w-5 flex items-center justify-center rounded-full border-2 border-white dark:border-slate-800">
                                     {updatesCount}
@@ -294,10 +295,10 @@ const CoachDashboard: React.FC = () => {
                     <div className="w-full bg-white dark:bg-slate-800 p-5 rounded-2xl flex items-center justify-between group cursor-pointer transition-colors hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 shadow-sm">
                         <div className="flex flex-col gap-1">
                             <span className="text-xs font-bold text-primary uppercase tracking-wide">Ferramenta</span>
-                            <span className="text-lg font-bold text-slate-900 dark:text-white font-display">"Convidar Aluno"</span>
+                            <span className="text-lg font-bold text-slate-900 dark:text-white font-display">Convidar Aluno</span>
                         </div>
                         <div className="h-12 w-12 bg-white dark:bg-slate-800 rounded-full flex items-center justify-center shadow-soft text-primary group-hover:scale-110 transition-transform">
-                            <span className="material-symbols-rounded">person_add</span>
+                            <span className="material-symbols-rounded" aria-hidden="true">person_add</span>
                         </div>
                     </div>
                 </Link>
@@ -305,9 +306,9 @@ const CoachDashboard: React.FC = () => {
                 {/* Library Cards - Added mt-8 for better spacing */}
                 <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4 pb-12 mt-8">
                     <Link to="/coach/library" className="bg-gradient-to-br from-amber-50/80 to-white dark:from-amber-900/20 dark:to-slate-800 p-5 rounded-2xl shadow-sm border border-amber-100/50 dark:border-amber-700/30 flex flex-col items-start gap-4 text-left group active:scale-95 transition-all card-hover overflow-hidden relative">
-                        <div className="absolute top-0 right-0 w-24 h-24 bg-amber-100/20 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2"></div>
+                        <div className="absolute top-0 right-0 w-24 h-24 bg-amber-100/20 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2" aria-hidden="true"></div>
                         <div className="p-2.5 bg-white dark:bg-amber-900/40 rounded-xl text-warning shadow-sm relative z-10">
-                            <span className="material-symbols-rounded text-2xl">fitness_center</span>
+                            <span className="material-symbols-rounded text-2xl" aria-hidden="true">fitness_center</span>
                         </div>
                         <div className="relative z-10">
                             <span className="font-display text-xl font-bold block text-slate-900 dark:text-white">Treinos</span>
@@ -315,9 +316,9 @@ const CoachDashboard: React.FC = () => {
                         </div>
                     </Link>
                     <Link to="/coach/exercises" className="bg-gradient-to-br from-emerald-50/80 to-white dark:from-emerald-900/20 dark:to-slate-800 p-5 rounded-2xl shadow-sm border border-emerald-100/50 dark:border-emerald-700/30 flex flex-col items-start gap-4 text-left group active:scale-95 transition-all card-hover overflow-hidden relative">
-                        <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-100/20 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2"></div>
+                        <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-100/20 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2" aria-hidden="true"></div>
                         <div className="p-2.5 bg-white dark:bg-emerald-900/40 rounded-xl text-success shadow-sm relative z-10">
-                            <span className="material-symbols-rounded text-2xl">play_circle</span>
+                            <span className="material-symbols-rounded text-2xl" aria-hidden="true">play_circle</span>
                         </div>
                         <div className="relative z-10">
                             <span className="font-display text-xl font-bold block text-slate-900 dark:text-white">Exercícios</span>
@@ -325,7 +326,7 @@ const CoachDashboard: React.FC = () => {
                         </div>
                     </Link>
                 </div>
-            </main>
+            </div>
         </MainLayout>
     );
 };

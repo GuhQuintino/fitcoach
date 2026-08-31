@@ -30,10 +30,12 @@ const NotificationsSettings: React.FC = () => {
         <div className="bg-slate-50 dark:bg-slate-900 min-h-screen pb-20">
             <header className="bg-white dark:bg-slate-800 p-6 pt-12 border-b border-slate-100 dark:border-slate-700 flex items-center gap-4">
                 <button
+                    type="button"
                     onClick={() => navigate(-1)}
-                    className="w-10 h-10 flex items-center justify-center bg-slate-50 dark:bg-slate-700 rounded-xl text-slate-600 dark:text-slate-300 active:scale-95 transition-all"
+                    aria-label="Voltar"
+                    className="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center bg-slate-50 dark:bg-slate-700 rounded-xl text-slate-600 dark:text-slate-300 active:scale-95 transition-all"
                 >
-                    <span className="material-symbols-rounded">arrow_back_ios_new</span>
+                    <span className="material-symbols-rounded" aria-hidden="true">arrow_back_ios_new</span>
                 </button>
                 <div className="flex flex-col">
                     <h1 className="font-display text-xl font-black text-slate-900 dark:text-white">Notificações</h1>
@@ -41,13 +43,13 @@ const NotificationsSettings: React.FC = () => {
                 </div>
             </header>
 
-            <main className="p-6 space-y-8 max-w-2xl mx-auto">
+            <div className="p-6 space-y-8 max-w-2xl mx-auto">
                 {/* Global Toggle */}
                 <section className="bg-white dark:bg-slate-800 p-6 rounded-[2.5rem] shadow-soft border border-slate-100 dark:border-slate-700">
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-4">
                             <div className="w-12 h-12 bg-primary/10 text-primary rounded-2xl flex items-center justify-center">
-                                <span className="material-symbols-rounded text-2xl">notifications_active</span>
+                                <span className="material-symbols-rounded text-2xl" aria-hidden="true">notifications_active</span>
                             </div>
                             <div>
                                 <h3 className="font-bold text-slate-900 dark:text-white">Push Notifications</h3>
@@ -59,10 +61,12 @@ const NotificationsSettings: React.FC = () => {
                                 type="checkbox"
                                 checked={settings.push}
                                 onChange={() => setSettings(s => ({ ...s, push: !s.push }))}
+                                aria-label="Ativar notificações push"
                                 className="sr-only peer"
                                 id="push-main"
                             />
                             <label htmlFor="push-main" className="block w-12 h-7 bg-slate-200 dark:bg-slate-700 rounded-full cursor-pointer peer-checked:bg-primary transition-colors">
+                                <span className="sr-only">Ativar notificações push</span>
                                 <span className="absolute left-1 top-1 w-5 h-5 bg-white rounded-full shadow-md transition-transform peer-checked:translate-x-5"></span>
                             </label>
                         </div>
@@ -86,10 +90,12 @@ const NotificationsSettings: React.FC = () => {
                                     <input
                                         type="checkbox"
                                         defaultChecked
+                                        aria-label={`Ativar notificação para ${topic.label}`}
                                         className="sr-only peer"
                                         id={topic.id}
                                     />
                                     <label htmlFor={topic.id} className="block w-10 h-6 bg-slate-100 dark:bg-slate-600 rounded-full cursor-pointer peer-checked:bg-primary transition-colors">
+                                        <span className="sr-only">{`Ativar notificação para ${topic.label}`}</span>
                                         <span className="absolute left-1 top-1 w-4 h-4 bg-white rounded-full transition-transform peer-checked:translate-x-4"></span>
                                     </label>
                                 </div>
@@ -103,7 +109,7 @@ const NotificationsSettings: React.FC = () => {
                         "As notificações ajudam a manter a constância e o engajamento tanto do aluno quanto do coach."
                     </p>
                 </div>
-            </main>
+            </div>
         </div>
     );
 };

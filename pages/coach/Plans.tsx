@@ -36,16 +36,17 @@ const Plans: React.FC = () => {
                     <div className="px-5 py-4 flex items-center justify-between">
                         <Link
                             to="/coach/dashboard"
-                            className="w-10 h-10 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-400 hover:text-sky-500 hover:border-sky-300 dark:hover:border-sky-600 transition-all shadow-sm hover:shadow-md active:scale-95"
+                            aria-label="Voltar para a dashboard"
+                            className="w-11 h-11 min-w-[44px] min-h-[44px] rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-400 hover:text-sky-500 hover:border-sky-300 dark:hover:border-sky-600 transition-all shadow-sm hover:shadow-md active:scale-95"
                         >
-                            <span className="material-symbols-rounded text-xl">arrow_back</span>
+                            <span className="material-symbols-rounded text-xl" aria-hidden="true">arrow_back</span>
                         </Link>
                         <h1 className="text-lg font-bold text-slate-900 dark:text-white text-center flex-1">Minha Assinatura</h1>
                         <div className="w-10"></div>
                     </div>
                 </header>
 
-                <main className="px-5 py-8 max-w-lg mx-auto space-y-6 pb-32">
+                <div className="px-5 py-8 max-w-lg mx-auto space-y-6 pb-32">
                     {/* Current Subscription Card */}
                     {expInfo && (
                         <div className={`relative overflow-hidden rounded-3xl p-6 border ${expInfo.isExpired
@@ -141,7 +142,7 @@ const Plans: React.FC = () => {
                             </div>
                         </div>
                     </div>
-                </main>
+                </div>
             </div>
         </MainLayout>
     );

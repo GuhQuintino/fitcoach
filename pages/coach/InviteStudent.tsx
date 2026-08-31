@@ -34,9 +34,10 @@ const InviteStudent: React.FC = () => {
             <header className="relative bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl sticky top-0 z-20 px-5 py-4 flex items-center gap-4 border-b border-slate-100/50 dark:border-slate-700/50">
                 <Link
                     to="/coach/dashboard"
-                    className="w-10 h-10 rounded-xl bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 flex items-center justify-center text-slate-400 hover:text-sky-500 hover:border-sky-300 dark:hover:border-sky-600 transition-all shadow-sm hover:shadow-md active:scale-95"
+                    aria-label="Voltar para a dashboard"
+                    className="w-11 h-11 min-w-[44px] min-h-[44px] rounded-xl bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 flex items-center justify-center text-slate-400 hover:text-sky-500 hover:border-sky-300 dark:hover:border-sky-600 transition-all shadow-sm hover:shadow-md active:scale-95"
                 >
-                    <span className="material-symbols-rounded text-xl">arrow_back</span>
+                    <span className="material-symbols-rounded text-xl" aria-hidden="true">arrow_back</span>
                 </Link>
                 <div>
                     <h1 className="text-xl font-bold text-slate-900 dark:text-white font-display">Convidar Aluno</h1>
@@ -44,7 +45,7 @@ const InviteStudent: React.FC = () => {
                 </div>
             </header>
 
-            <main className="relative p-6 max-w-lg mx-auto space-y-8 pb-32">
+            <div className="relative p-6 max-w-lg mx-auto space-y-8 pb-32">
                 {/* Intro Card */}
                 <div className="text-center space-y-3 p-6 bg-gradient-to-br from-sky-50 to-indigo-50 dark:from-sky-900/20 dark:to-indigo-900/20 rounded-3xl border border-sky-100 dark:border-sky-800/30">
                     <div className="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-br from-sky-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-sky-500/25 mb-4">
@@ -87,13 +88,15 @@ const InviteStudent: React.FC = () => {
                             className="block w-full pl-12 pr-14 py-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-slate-600 dark:text-slate-300 text-sm focus:ring-2 focus:ring-sky-500/50 focus:border-sky-500 outline-none shadow-sm transition-all"
                         />
                         <button
+                            type="button"
                             onClick={handleCopy}
-                            className={`absolute inset-y-0 right-0 px-4 flex items-center ${copied
+                            aria-label={copied ? 'Link copiado com sucesso' : 'Copiar link de convite'}
+                            className={`min-w-[44px] min-h-[44px] absolute inset-y-0 right-0 px-4 flex items-center justify-center ${copied
                                     ? 'bg-emerald-500 text-white'
-                                    : 'bg-slate-100 dark:bg-slate-700 text-slate-500 hover:text-sky-500 hover:bg-sky-50 dark:hover:bg-sky-900/30'
+                                    : 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:text-sky-600 dark:hover:text-sky-400 hover:bg-slate-200 dark:hover:bg-slate-600'
                                 } rounded-r-2xl border-l border-slate-200 dark:border-slate-600 transition-all`}
                         >
-                            <span className="material-symbols-rounded text-lg">
+                            <span className="material-symbols-rounded text-lg" aria-hidden="true">
                                 {copied ? 'check' : 'content_copy'}
                             </span>
                         </button>
@@ -101,10 +104,12 @@ const InviteStudent: React.FC = () => {
 
                     {/* WhatsApp Button */}
                     <button
+                        type="button"
                         onClick={handleWhatsApp}
-                        className="w-full bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white py-4 rounded-2xl font-bold shadow-lg shadow-emerald-500/25 active:scale-[0.98] transition-all flex items-center justify-center gap-3"
+                        aria-label="Enviar link de convite pelo WhatsApp"
+                        className="w-full min-h-[44px] bg-whatsapp hover:bg-whatsapp-dark text-white py-4 rounded-2xl font-bold shadow-lg shadow-whatsapp/25 active:scale-[0.98] transition-all flex items-center justify-center gap-3"
                     >
-                        <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
+                        <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24" aria-hidden="true">
                             <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.414 0 .018 5.393 0 12.029c0 2.119.554 4.188 1.604 6.04L0 24l6.097-1.6c1.789.976 3.805 1.491 5.948 1.493h.005c6.634 0 12.032-5.396 12.036-12.033a11.83 11.83 0 00-3.479-8.502z" />
                         </svg>
                         Enviar no WhatsApp
@@ -121,7 +126,7 @@ const InviteStudent: React.FC = () => {
                         </p>
                     </div>
                 </div>
-            </main>
+            </div>
         </MainLayout>
     );
 };

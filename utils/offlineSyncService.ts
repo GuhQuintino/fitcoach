@@ -139,8 +139,8 @@ export async function flushOfflineQueue(): Promise<{ syncedCount: number; failed
             const { workoutLog, setLogs, exerciseFeedbacks } = item.payload;
 
             // 1. Inserir cabeçalho do log
-            const { data: logData, error: logError } = await supabase
-                .from('workout_logs')
+            const { data: logData, error: logError } = await (supabase
+                .from('workout_logs') as any)
                 .insert({
                     student_id: workoutLog.student_id,
                     workout_id: workoutLog.workout_id,
@@ -152,7 +152,7 @@ export async function flushOfflineQueue(): Promise<{ syncedCount: number; failed
                 .select()
                 .single();
 
-            if (logError) throw logError;
+            if (logError || !logData) throw logError || new Error('Falha ao obter ID do log de treino');
 
             // 2. Inserir set_logs vinculados
             if (setLogs && setLogs.length > 0) {
@@ -170,8 +170,8 @@ export async function flushOfflineQueue(): Promise<{ syncedCount: number; failed
                     hiit_cycles_completed: s.hiit_cycles_completed ?? null
                 }));
 
-                const { error: setsError } = await supabase
-                    .from('set_logs')
+                const { error: setsError } = await (supabase
+                    .from('set_logs') as any)
                     .insert(setsToInsert);
 
                 if (setsError) throw setsError;
@@ -185,8 +185,8 @@ export async function flushOfflineQueue(): Promise<{ syncedCount: number; failed
                     feedback_text: f.feedback_text
                 }));
 
-                const { error: feedbackError } = await supabase
-                    .from('exercise_feedback_logs')
+                const { error: feedbackError } = await (supabase
+                    .from('exercise_feedback_logs') as any)
                     .insert(feedbacksToInsert);
 
                 if (feedbackError) throw feedbackError;

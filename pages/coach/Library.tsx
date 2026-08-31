@@ -308,8 +308,12 @@ const Library: React.FC = () => {
         <MainLayout>
             <header className="px-5 py-6 flex items-center justify-between sticky top-0 bg-white dark:bg-slate-900 z-30 border-b border-slate-100 dark:border-slate-700">
                 <div className="flex items-center gap-3">
-                    <Link to="/coach/dashboard" className="p-2 -ml-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
-                        <span className="material-symbols-rounded text-slate-500">arrow_back</span>
+                    <Link
+                        to="/coach/dashboard"
+                        aria-label="Voltar para a dashboard"
+                        className="w-11 h-11 min-w-[44px] min-h-[44px] -ml-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors flex items-center justify-center"
+                    >
+                        <span className="material-symbols-rounded text-slate-500" aria-hidden="true">arrow_back</span>
                     </Link>
                     <div>
                         <h1 className="text-xl font-bold text-slate-900 dark:text-white font-display">Biblioteca de Rotinas</h1>
@@ -317,14 +321,15 @@ const Library: React.FC = () => {
                 </div>
             </header>
 
-            <main className="px-5 pt-4 space-y-4">
+            <div className="px-5 pt-4 space-y-4">
                 {/* Search & Filter */}
                 <div className="flex flex-col gap-3">
                     <div className="relative">
-                        <span className="absolute left-4 top-3.5 material-symbols-rounded text-slate-400">search</span>
+                        <span className="absolute left-4 top-3.5 material-symbols-rounded text-slate-400" aria-hidden="true">search</span>
                         <input
                             type="text"
                             placeholder="Buscar rotinas..."
+                            aria-label="Buscar rotinas"
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                             className="w-full pl-12 pr-4 py-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-primary/50 outline-none transition-all"
@@ -332,14 +337,17 @@ const Library: React.FC = () => {
                     </div>
 
                     {/* Level Filter Chips */}
-                    <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+                    <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1" role="tablist" aria-label="Filtro por nível de dificuldade">
                         {['all', 'Iniciante', 'Intermediário', 'Avançado'].map(level => (
                             <button
                                 key={level}
+                                type="button"
+                                role="tab"
+                                aria-selected={filterLevel === level}
                                 onClick={() => setFilterLevel(level)}
-                                className={`whitespace-nowrap px-3 py-1.5 rounded-lg text-xs font-bold transition-all border ${filterLevel === level
-                                    ? 'bg-slate-800 text-white border-slate-800 dark:bg-white dark:text-slate-900'
-                                    : 'bg-white dark:bg-slate-800 text-slate-500 border-slate-200 dark:border-slate-700'
+                                className={`whitespace-nowrap min-h-[44px] px-3.5 py-2 rounded-xl text-xs font-bold transition-all border flex items-center justify-center ${filterLevel === level
+                                    ? 'bg-slate-800 text-white border-slate-800 dark:bg-white dark:text-slate-900 shadow-sm'
+                                    : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700'
                                     }`}
                             >
                                 {level === 'all' ? 'Todos' : level}
@@ -350,8 +358,9 @@ const Library: React.FC = () => {
 
                 <div className="space-y-4">
                     {loading ? (
-                        <div className="text-center py-10">
-                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
+                        <div className="text-center py-10" role="status" aria-live="polite">
+                            <div className="w-8 h-8 rounded-full border-2 border-primary border-t-transparent animate-spin mx-auto mb-2"></div>
+                            <span className="sr-only">Carregando rotinas da biblioteca...</span>
                         </div>
                     ) : filteredRoutines.length === 0 ? (
                         <div className="text-center py-12 bg-white dark:bg-slate-800 rounded-2xl border border-dashed border-slate-200 dark:border-slate-700">
@@ -364,26 +373,35 @@ const Library: React.FC = () => {
                             return (
                                 <div
                                     key={routine.id}
+                                    role="button"
+                                    tabIndex={0}
+                                    aria-label={`Ver detalhes da rotina ${routine.name}`}
                                     onClick={() => navigate(`/coach/routine-details?id=${routine.id}`)}
-                                    className="bg-white dark:bg-slate-800 rounded-xl p-4 shadow-soft border border-slate-100 dark:border-slate-700 transition-all active:scale-[0.99] cursor-pointer"
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter' || e.key === ' ') {
+                                            e.preventDefault();
+                                            navigate(`/coach/routine-details?id=${routine.id}`);
+                                        }
+                                    }}
+                                    className="bg-white dark:bg-slate-800 rounded-xl p-4 shadow-soft border border-slate-100 dark:border-slate-700 transition-all active:scale-[0.99] cursor-pointer focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none"
                                 >
                                     <div className="mb-3">
                                         <h3 className="font-bold text-lg text-slate-900 dark:text-white">{routine.name}</h3>
                                         <div className="flex flex-wrap gap-2 mt-2">
                                             {meta.duration && (
                                                 <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
-                                                    <span className="material-symbols-rounded text-[12px] mr-1">timer</span>
+                                                    <span className="material-symbols-rounded text-[12px] mr-1" aria-hidden="true">timer</span>
                                                     {meta.duration} min
                                                 </span>
                                             )}
                                             {meta.level && (
                                                 <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300">
-                                                    <span className="material-symbols-rounded text-[12px] mr-1">fitness_center</span>
+                                                    <span className="material-symbols-rounded text-[12px] mr-1" aria-hidden="true">fitness_center</span>
                                                     {meta.level}
                                                 </span>
                                             )}
                                             <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">
-                                                <span className="material-symbols-rounded text-[12px] mr-1">calendar_today</span>
+                                                <span className="material-symbols-rounded text-[12px] mr-1" aria-hidden="true">calendar_today</span>
                                                 {meta.frequency ? `${meta.frequency}x Sem` : `${routine.workouts_count} Treinos`}
                                             </span>
                                         </div>
@@ -391,24 +409,30 @@ const Library: React.FC = () => {
 
                                     <div className="flex items-center justify-between pt-3 border-t border-slate-100 dark:border-slate-700 mt-2">
                                         <button
+                                            type="button"
                                             onClick={(e) => handleOpenAssignModal(routine, e)}
-                                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-primary hover:bg-primary/10 transition-colors text-sm font-bold"
+                                            aria-label={`Atribuir rotina ${routine.name} a um aluno`}
+                                            className="min-h-[44px] flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-primary hover:bg-primary/10 transition-colors text-sm font-bold"
                                         >
-                                            <span className="material-symbols-rounded text-lg">person_add</span>
+                                            <span className="material-symbols-rounded text-lg" aria-hidden="true">person_add</span>
                                             Atribuir
                                         </button>
                                         <div className="flex items-center gap-2">
                                             <button
+                                                type="button"
                                                 onClick={(e) => handleEdit(routine, e)}
-                                                className="p-2 text-slate-400 hover:text-primary transition-colors rounded-full hover:bg-slate-100 dark:hover:bg-slate-700"
+                                                aria-label={`Editar rotina ${routine.name}`}
+                                                className="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center p-2 text-slate-400 hover:text-primary transition-colors rounded-full hover:bg-slate-100 dark:hover:bg-slate-700"
                                             >
-                                                <span className="material-symbols-rounded text-xl">edit</span>
+                                                <span className="material-symbols-rounded text-xl" aria-hidden="true">edit</span>
                                             </button>
                                             <button
+                                                type="button"
                                                 onClick={(e) => handleDelete(routine.id, e)}
-                                                className="p-2 text-slate-400 hover:text-red-500 transition-colors rounded-full hover:bg-slate-100 dark:hover:bg-slate-700"
+                                                aria-label={`Excluir rotina ${routine.name}`}
+                                                className="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center p-2 text-slate-400 hover:text-red-500 transition-colors rounded-full hover:bg-slate-100 dark:hover:bg-slate-700"
                                             >
-                                                <span className="material-symbols-rounded text-xl">delete</span>
+                                                <span className="material-symbols-rounded text-xl" aria-hidden="true">delete</span>
                                             </button>
                                         </div>
                                     </div>
@@ -420,32 +444,50 @@ const Library: React.FC = () => {
 
                 <div className="pt-2 pb-6">
                     <button
+                        type="button"
                         onClick={() => {
                             setEditingRoutine(null);
                             setFormData({ name: '', duration_minutes: '50-60', level: 'Iniciante', frequency: '3' });
                             setIsRoutineModalOpen(true);
                         }}
-                        className="w-full bg-sky-500 text-white py-4 rounded-xl shadow-lg shadow-sky-500/30 flex items-center justify-center gap-2 font-bold text-lg hover:bg-sky-600 transition-all transform active:scale-[0.98]"
+                        aria-label="Adicionar nova rotina de treino"
+                        className="w-full min-h-[52px] bg-sky-500 text-white py-4 rounded-xl shadow-lg shadow-sky-500/30 flex items-center justify-center gap-2 font-bold text-lg hover:bg-sky-600 transition-all transform active:scale-[0.98]"
                     >
-                        <span className="material-symbols-rounded">add_circle</span>
+                        <span className="material-symbols-rounded" aria-hidden="true">add_circle</span>
                         Adicionar Nova Rotina
                     </button>
                 </div>
-            </main>
+            </div>
 
             {/* Routine Modal */}
             {isRoutineModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-5 bg-black/70">
-                    <div className="bg-white dark:bg-slate-800 w-full max-w-md rounded-2xl p-6 shadow-xl">
-                        <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-4">
-                            {editingRoutine ? 'Editar Rotina' : 'Nova Rotina'}
-                        </h2>
+                <div
+                    role="dialog"
+                    aria-modal="true"
+                    aria-label={editingRoutine ? 'Editar Rotina' : 'Nova Rotina'}
+                    className="fixed inset-0 z-50 flex items-center justify-center p-5 bg-black/70 backdrop-blur-sm animate-fade-in"
+                >
+                    <div className="bg-white dark:bg-slate-800 w-full max-w-md rounded-2xl p-6 shadow-xl animate-scale-up">
+                        <div className="flex justify-between items-center mb-4">
+                            <h2 className="text-xl font-bold text-slate-900 dark:text-white">
+                                {editingRoutine ? 'Editar Rotina' : 'Nova Rotina'}
+                            </h2>
+                            <button
+                                type="button"
+                                onClick={() => setIsRoutineModalOpen(false)}
+                                aria-label="Fechar janela de rotina"
+                                className="min-w-[44px] min-h-[44px] p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors flex items-center justify-center"
+                            >
+                                <span className="material-symbols-rounded" aria-hidden="true">close</span>
+                            </button>
+                        </div>
                         <form onSubmit={handleSaveRoutine} className="space-y-4">
                             <div>
-                                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Nome da Rotina</label>
+                                <label htmlFor="lib-routine-name" className="block text-xs font-bold text-slate-600 dark:text-slate-300 uppercase mb-1">Nome da Rotina</label>
                                 <input
+                                    id="lib-routine-name"
                                     required
-                                    className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-primary/50"
+                                    className="w-full min-h-[44px] bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-primary/50 text-slate-900 dark:text-white"
                                     value={formData.name}
                                     onChange={e => setFormData({ ...formData, name: e.target.value })}
                                     placeholder="Ex: Hipertrofia Avançada"
@@ -454,18 +496,20 @@ const Library: React.FC = () => {
 
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Duração Média (min)</label>
+                                    <label htmlFor="lib-routine-duration" className="block text-xs font-bold text-slate-600 dark:text-slate-300 uppercase mb-1">Duração Média (min)</label>
                                     <input
-                                        className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-primary/50"
+                                        id="lib-routine-duration"
+                                        className="w-full min-h-[44px] bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-primary/50 text-slate-900 dark:text-white"
                                         value={formData.duration_minutes}
                                         onChange={e => setFormData({ ...formData, duration_minutes: e.target.value })}
                                         placeholder="Ex: 50-70"
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Frequência Semanal</label>
+                                    <label htmlFor="lib-routine-freq" className="block text-xs font-bold text-slate-600 dark:text-slate-300 uppercase mb-1">Frequência Semanal</label>
                                     <select
-                                        className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-primary/50"
+                                        id="lib-routine-freq"
+                                        className="w-full min-h-[44px] bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-primary/50 text-slate-900 dark:text-white"
                                         value={formData.frequency}
                                         onChange={e => setFormData({ ...formData, frequency: e.target.value })}
                                     >
@@ -475,9 +519,10 @@ const Library: React.FC = () => {
                             </div>
 
                             <div>
-                                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Nível</label>
+                                <label htmlFor="lib-routine-level" className="block text-xs font-bold text-slate-600 dark:text-slate-300 uppercase mb-1">Nível</label>
                                 <select
-                                    className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-primary/50"
+                                    id="lib-routine-level"
+                                    className="w-full min-h-[44px] bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-primary/50 text-slate-900 dark:text-white"
                                     value={formData.level}
                                     onChange={e => setFormData({ ...formData, level: e.target.value })}
                                 >
@@ -488,10 +533,17 @@ const Library: React.FC = () => {
                             </div>
 
                             <div className="flex gap-3 pt-2">
-                                <button type="button" onClick={() => setIsRoutineModalOpen(false)} className="flex-1 py-3 text-slate-500 font-bold hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl transition-colors">Cancelar</button>
-                                <button type="submit" disabled={saveLoading} className="flex-1 bg-sky-500 text-white font-bold rounded-xl py-3 shadow-lg hover:bg-sky-600 transition-colors flex items-center justify-center gap-2">
-                                    {saveLoading && <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>}
-                                    Salvar
+                                <button type="button" onClick={() => setIsRoutineModalOpen(false)} aria-label="Cancelar edição de rotina" className="flex-1 min-h-[44px] py-3 text-slate-600 dark:text-slate-300 font-bold hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl transition-colors flex items-center justify-center">Cancelar</button>
+                                <button type="submit" disabled={saveLoading} aria-label="Salvar informações da rotina" className="flex-1 min-h-[44px] bg-primary text-white font-bold rounded-xl py-3 shadow-lg hover:bg-sky-600 transition-colors flex items-center justify-center gap-2">
+                                    {saveLoading ? (
+                                        <>
+                                            <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" role="status"></div>
+                                            <span className="sr-only">Salvando rotina...</span>
+                                            <span>Salvando...</span>
+                                        </>
+                                    ) : (
+                                        <span>Salvar</span>
+                                    )}
                                 </button>
                             </div>
                         </form>
@@ -501,12 +553,27 @@ const Library: React.FC = () => {
 
             {/* Assign Modal */}
             {isAssignModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-5 bg-black/70">
-                    <div className="bg-white dark:bg-slate-800 w-full max-w-md rounded-2xl p-6 shadow-xl max-h-[80vh] overflow-hidden flex flex-col">
-                        <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-4">
-                            Atribuir "{selectedRoutineForAssign?.name}"
-                        </h2>
-                        <p className="text-sm text-slate-500 mb-4">Selecione um aluno para atribuir esta rotina. A rotina anterior será substituída.</p>
+                <div
+                    role="dialog"
+                    aria-modal="true"
+                    aria-label={`Atribuir ${selectedRoutineForAssign?.name || 'rotina'}`}
+                    className="fixed inset-0 z-50 flex items-center justify-center p-5 bg-black/70 backdrop-blur-sm animate-fade-in"
+                >
+                    <div className="bg-white dark:bg-slate-800 w-full max-w-md rounded-2xl p-6 shadow-xl max-h-[80vh] overflow-hidden flex flex-col animate-scale-up">
+                        <div className="flex justify-between items-center mb-4">
+                            <h2 className="text-xl font-bold text-slate-900 dark:text-white">
+                                Atribuir "{selectedRoutineForAssign?.name}"
+                            </h2>
+                            <button
+                                type="button"
+                                onClick={() => setIsAssignModalOpen(false)}
+                                aria-label="Fechar janela de atribuição"
+                                className="min-w-[44px] min-h-[44px] p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors flex items-center justify-center"
+                            >
+                                <span className="material-symbols-rounded" aria-hidden="true">close</span>
+                            </button>
+                        </div>
+                        <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">Selecione um aluno para atribuir esta rotina. A rotina anterior será substituída.</p>
 
                         <div className="overflow-y-auto flex-1 space-y-2 pr-2">
                             {coachStudents.length === 0 ? (
@@ -516,16 +583,21 @@ const Library: React.FC = () => {
                                     <div key={student.id} className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-100 dark:border-slate-800">
                                         <div className="flex items-center gap-3">
                                             <img
-                                                src={student.profiles.avatar_url || `https://ui-avatars.com/api/?name=${student.profiles.full_name}&background=random`}
-                                                alt=""
-                                                className="w-10 h-10 rounded-full bg-slate-200"
+                                                src={student.profiles.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(student.profiles.full_name || 'Aluno')}&background=random`}
+                                                alt={`Avatar de ${student.profiles.full_name}`}
+                                                loading="lazy"
+                                                width="40"
+                                                height="40"
+                                                className="w-10 h-10 rounded-full bg-slate-200 object-cover"
                                             />
                                             <span className="font-bold text-slate-900 dark:text-white text-sm">{student.profiles.full_name}</span>
                                         </div>
                                         <button
+                                            type="button"
                                             disabled={assignLoading}
                                             onClick={() => handleAssign(student.id)}
-                                            className="px-3 py-1.5 bg-sky-500 text-white text-xs font-bold rounded-lg hover:bg-sky-600 transition-colors"
+                                            aria-label={`Atribuir rotina para o aluno ${student.profiles.full_name}`}
+                                            className="min-h-[44px] px-4 py-2 bg-primary text-white text-xs font-bold rounded-xl hover:bg-sky-600 active:scale-95 transition-all flex items-center justify-center disabled:opacity-50"
                                         >
                                             Selecionar
                                         </button>
@@ -535,8 +607,10 @@ const Library: React.FC = () => {
                         </div>
 
                         <button
+                            type="button"
                             onClick={() => setIsAssignModalOpen(false)}
-                            className="mt-4 w-full py-3 text-slate-500 font-bold hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl transition-colors"
+                            aria-label="Fechar janela"
+                            className="mt-4 w-full min-h-[44px] py-3 text-slate-600 dark:text-slate-300 font-bold hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl transition-colors flex items-center justify-center"
                         >
                             Fechar
                         </button>

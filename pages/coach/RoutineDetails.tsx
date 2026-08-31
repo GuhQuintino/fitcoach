@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import MainLayout from '../../layouts/MainLayout';
+import MainLayout from '../../components/Layout/MainLayout';
 import { supabase } from '../../lib/supabaseClient';
 import { useAuth } from '../../contexts/AuthContext';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
@@ -278,8 +278,12 @@ const RoutineDetails: React.FC = () => {
         <MainLayout className="pb-24">
             <header className="px-5 py-6 flex items-center justify-between sticky top-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm z-30 border-b border-slate-100 dark:border-slate-700 transition-all duration-300">
                 <div className="flex items-center gap-3">
-                    <Link to="/coach/library" className="p-2 -ml-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors active:scale-95">
-                        <span className="material-symbols-rounded text-slate-500">arrow_back</span>
+                    <Link
+                        to="/coach/library"
+                        aria-label="Voltar para a biblioteca"
+                        className="w-11 h-11 min-w-[44px] min-h-[44px] -ml-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors active:scale-95 flex items-center justify-center"
+                    >
+                        <span className="material-symbols-rounded text-slate-500" aria-hidden="true">arrow_back</span>
                     </Link>
                     <div>
                         {loading ? (
@@ -291,18 +295,20 @@ const RoutineDetails: React.FC = () => {
                 </div>
                 {/* Add Workout Button in Header */}
                 <button
+                    type="button"
+                    aria-label="Adicionar novo treino"
                     onClick={() => {
                         setEditingWorkout(null);
                         setFormData({ name: '', description: '', duration_minutes: '' });
                         setIsWorkoutModalOpen(true);
                     }}
-                    className="p-2 bg-primary text-white rounded-xl shadow-lg shadow-primary/30 flex items-center justify-center font-bold hover:bg-primary-dark transition-all transform active:scale-95 duration-200"
+                    className="w-11 h-11 min-w-[44px] min-h-[44px] bg-primary text-white rounded-xl shadow-lg shadow-primary/30 flex items-center justify-center font-bold hover:bg-primary-dark transition-all transform active:scale-95 duration-200"
                 >
-                    <span className="material-symbols-rounded">add</span>
+                    <span className="material-symbols-rounded" aria-hidden="true">add</span>
                 </button>
             </header>
 
-            <main className="px-5 pt-4 space-y-6">
+            <div className="px-5 pt-4 space-y-6">
                 {/* Routine Info Card */}
                 {!loading && routine && (
                     <div className="bg-white dark:bg-slate-800 rounded-2xl p-5 shadow-soft border border-slate-100 dark:border-slate-700">
@@ -394,8 +400,10 @@ const RoutineDetails: React.FC = () => {
                         <div className="text-center py-10 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-2xl">
                             <p className="text-slate-500 mb-2">Sem treinos ainda.</p>
                             <button
+                                type="button"
                                 onClick={() => setIsWorkoutModalOpen(true)}
-                                className="text-primary font-bold text-sm hover:underline"
+                                aria-label="Criar primeiro treino para esta rotina"
+                                className="text-primary font-bold text-sm hover:underline min-h-[44px] inline-flex items-center px-3 py-2 cursor-pointer"
                             >
                                 Criar primeiro treino
                             </button>
@@ -421,11 +429,27 @@ const RoutineDetails: React.FC = () => {
                                     style={{ touchAction: 'pan-y' }} // Improve touch handling - mostly for vertical scrolling
                                 >
                                     {/* Drag Handle Visual - Enhanced Target */}
-                                    <div className="text-slate-300 p-2 -ml-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 hover:text-amber-500 transition-colors cursor-grab active:cursor-grabbing">
+                                    <div
+                                        aria-hidden="true"
+                                        title="Arrastar para reordenar treino"
+                                        className="text-slate-300 p-2 -ml-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 hover:text-amber-500 transition-colors cursor-grab active:cursor-grabbing flex items-center justify-center min-w-[40px] min-h-[44px]"
+                                    >
                                         <span className="material-symbols-rounded">drag_indicator</span>
                                     </div>
 
-                                    <div className="flex-1 min-w-0 cursor-pointer select-none" onClick={() => navigate(`/coach/editor?workout_id=${workout.id}`)}>
+                                    <div
+                                        role="button"
+                                        tabIndex={0}
+                                        onClick={() => navigate(`/coach/editor?workout_id=${workout.id}`)}
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Enter' || e.key === ' ') {
+                                                e.preventDefault();
+                                                navigate(`/coach/editor?workout_id=${workout.id}`);
+                                            }
+                                        }}
+                                        aria-label={`Abrir editor do treino ${workout.name}`}
+                                        className="flex-1 min-w-0 cursor-pointer select-none focus:outline-none focus:ring-2 focus:ring-primary/40 rounded-xl p-1 transition-all"
+                                    >
                                         <h3 className="font-bold text-slate-900 dark:text-white truncate text-base">{workout.name}</h3>
                                         <p className="text-xs text-slate-500 truncate mb-1">
                                             {workout.description || 'Sem descrição'}
@@ -442,16 +466,20 @@ const RoutineDetails: React.FC = () => {
 
                                     <div className="flex items-center gap-1">
                                         <button
+                                            type="button"
                                             onClick={(e) => handleEditWorkout(workout, e)}
-                                            className="p-2 text-slate-400 hover:text-primary transition-colors hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg cursor-pointer active:scale-90"
+                                            aria-label={`Editar treino ${workout.name}`}
+                                            className="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center text-slate-400 hover:text-primary transition-colors hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl cursor-pointer active:scale-95"
                                         >
-                                            <span className="material-symbols-rounded">edit</span>
+                                            <span className="material-symbols-rounded" aria-hidden="true">edit</span>
                                         </button>
                                         <button
+                                            type="button"
                                             onClick={(e) => handleDeleteWorkout(workout.id, e)}
-                                            className="p-2 text-slate-400 hover:text-red-500 transition-colors hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg cursor-pointer active:scale-90"
+                                            aria-label={`Excluir treino ${workout.name}`}
+                                            className="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center text-slate-400 hover:text-red-500 transition-colors hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl cursor-pointer active:scale-95"
                                         >
-                                            <span className="material-symbols-rounded">delete</span>
+                                            <span className="material-symbols-rounded" aria-hidden="true">delete</span>
                                         </button>
                                     </div>
                                 </div>
@@ -465,32 +493,50 @@ const RoutineDetails: React.FC = () => {
                     <div className="py-6">
                         {/* Relative bottom button */}
                         <button
+                            type="button"
                             onClick={() => {
                                 setEditingWorkout(null);
                                 setFormData({ name: '', description: '', duration_minutes: '' });
                                 setIsWorkoutModalOpen(true);
                             }}
-                            className="w-full bg-primary text-white py-4 rounded-xl shadow-lg shadow-primary/30 flex items-center justify-center gap-2 font-bold text-lg hover:bg-primary-dark transition-all transform active:scale-[0.98]"
+                            aria-label="Adicionar novo treino à rotina"
+                            className="w-full min-h-[52px] bg-primary text-white py-4 rounded-xl shadow-lg shadow-primary/30 flex items-center justify-center gap-2 font-bold text-lg hover:bg-primary-dark transition-all transform active:scale-[0.98] cursor-pointer"
                         >
-                            <span className="material-symbols-rounded">add_circle</span>
+                            <span className="material-symbols-rounded" aria-hidden="true">add_circle</span>
                             Adicionar Novo Treino
                         </button>
                     </div>
                 )}
-            </main>
+            </div>
 
             {isWorkoutModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-5 bg-black/60 backdrop-blur-sm animate-fade-in">
+                <div
+                    role="dialog"
+                    aria-modal="true"
+                    aria-label={editingWorkout ? 'Editar Treino' : 'Novo Treino'}
+                    className="fixed inset-0 z-50 flex items-center justify-center p-5 bg-black/60 backdrop-blur-sm animate-fade-in"
+                >
                     <div className="bg-white dark:bg-slate-800 w-full max-w-md rounded-2xl p-6 shadow-2xl animate-scale-up">
-                        <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-4">
-                            {editingWorkout ? 'Editar Treino' : 'Novo Treino'}
-                        </h2>
+                        <div className="flex justify-between items-center mb-4">
+                            <h2 className="text-xl font-bold text-slate-900 dark:text-white">
+                                {editingWorkout ? 'Editar Treino' : 'Novo Treino'}
+                            </h2>
+                            <button
+                                type="button"
+                                onClick={() => setIsWorkoutModalOpen(false)}
+                                aria-label="Fechar janela de treino"
+                                className="min-w-[44px] min-h-[44px] p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors flex items-center justify-center"
+                            >
+                                <span className="material-symbols-rounded" aria-hidden="true">close</span>
+                            </button>
+                        </div>
                         <form onSubmit={handleSaveWorkout} className="space-y-4">
                             <div>
-                                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Nome do Treino</label>
+                                <label htmlFor="routine-workout-name" className="block text-xs font-bold text-slate-600 dark:text-slate-300 uppercase mb-1">Nome do Treino</label>
                                 <input
+                                    id="routine-workout-name"
                                     required
-                                    className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-primary/50"
+                                    className="w-full min-h-[44px] bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-primary/50 text-slate-900 dark:text-white"
                                     value={formData.name}
                                     onChange={e => setFormData({ ...formData, name: e.target.value })}
                                     placeholder="Ex: Treino A - Peito e Tríceps"
@@ -498,10 +544,11 @@ const RoutineDetails: React.FC = () => {
                             </div>
 
                             <div>
-                                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Duração Estimada (min)</label>
+                                <label htmlFor="routine-workout-duration" className="block text-xs font-bold text-slate-600 dark:text-slate-300 uppercase mb-1">Duração Estimada (min)</label>
                                 <input
+                                    id="routine-workout-duration"
                                     type="number"
-                                    className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-primary/50"
+                                    className="w-full min-h-[44px] bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-primary/50 text-slate-900 dark:text-white"
                                     value={formData.duration_minutes}
                                     onChange={e => setFormData({ ...formData, duration_minutes: e.target.value })}
                                     placeholder="Ex: 60"
@@ -509,9 +556,10 @@ const RoutineDetails: React.FC = () => {
                             </div>
 
                             <div>
-                                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Descrição / Observações</label>
+                                <label htmlFor="routine-workout-desc" className="block text-xs font-bold text-slate-600 dark:text-slate-300 uppercase mb-1">Descrição / Observações</label>
                                 <textarea
-                                    className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-primary/50 h-24 resize-none"
+                                    id="routine-workout-desc"
+                                    className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-primary/50 h-24 resize-none text-slate-900 dark:text-white"
                                     value={formData.description}
                                     onChange={e => setFormData({ ...formData, description: e.target.value })}
                                     placeholder="Instruções para o aluno..."
@@ -519,10 +567,17 @@ const RoutineDetails: React.FC = () => {
                             </div>
 
                             <div className="flex gap-3 pt-2">
-                                <button type="button" onClick={() => setIsWorkoutModalOpen(false)} className="flex-1 py-3 text-slate-500 font-bold hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl transition-colors">Cancelar</button>
-                                <button type="submit" disabled={saveLoading} className="flex-1 bg-primary text-white font-bold rounded-xl py-3 shadow-lg hover:bg-primary-dark transition-colors flex items-center justify-center gap-2">
-                                    {saveLoading && <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>}
-                                    Salvar
+                                <button type="button" onClick={() => setIsWorkoutModalOpen(false)} aria-label="Cancelar edição do treino" className="flex-1 min-h-[44px] py-3 text-slate-600 dark:text-slate-300 font-bold hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl transition-colors flex items-center justify-center">Cancelar</button>
+                                <button type="submit" disabled={saveLoading} aria-label="Salvar informações do treino" className="flex-1 min-h-[44px] bg-primary text-white font-bold rounded-xl py-3 shadow-lg hover:bg-primary-dark transition-colors flex items-center justify-center gap-2">
+                                    {saveLoading ? (
+                                        <>
+                                            <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" role="status"></div>
+                                            <span className="sr-only">Salvando treino...</span>
+                                            <span>Salvando...</span>
+                                        </>
+                                    ) : (
+                                        <span>Salvar</span>
+                                    )}
                                 </button>
                             </div>
                         </form>

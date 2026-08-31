@@ -151,8 +151,9 @@ const CoachProfile: React.FC = () => {
     };
     if (loading) {
         return (
-            <div className="bg-slate-50 dark:bg-slate-900 min-h-screen flex items-center justify-center">
-                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+            <div className="bg-slate-50 dark:bg-slate-900 min-h-screen flex items-center justify-center" role="status" aria-live="polite">
+                <div className="w-10 h-10 rounded-full border-2 border-primary border-t-transparent animate-spin"></div>
+                <span className="sr-only">Carregando perfil...</span>
             </div>
         );
     }
@@ -174,9 +175,13 @@ const CoachProfile: React.FC = () => {
                     <h1 className="font-display text-2xl font-black text-slate-900 dark:text-white tracking-tight text-glow">Meu Perfil</h1>
                     <div className="flex items-center gap-3">
                         <ThemeToggle />
-                        <button className="p-3 bg-slate-100 dark:bg-slate-700/50 rounded-2xl hover:bg-slate-200 dark:hover:bg-slate-600 transition-all active:scale-95">
-                            <span className="material-symbols-rounded text-slate-600 dark:text-slate-300">settings</span>
-                        </button>
+                        <Link
+                            to="/coach/settings/notifications"
+                            aria-label="Configurações de Notificações"
+                            className="min-w-[44px] min-h-[44px] w-11 h-11 flex items-center justify-center bg-slate-100 dark:bg-slate-700/50 rounded-2xl hover:bg-slate-200 dark:hover:bg-slate-600 transition-all active:scale-95"
+                        >
+                            <span className="material-symbols-rounded text-slate-600 dark:text-slate-300" aria-hidden="true">settings</span>
+                        </Link>
                     </div>
                 </div>
 
@@ -192,25 +197,37 @@ const CoachProfile: React.FC = () => {
                     />
                     <div className="relative mb-4">
                         <div
-                            className="w-28 h-28 rounded-[2rem] border-4 border-white dark:border-slate-800 overflow-hidden shadow-2xl ring-4 ring-primary/10 cursor-pointer flex items-center justify-center bg-slate-100 dark:bg-slate-700"
+                            role="button"
+                            tabIndex={0}
+                            aria-label="Alterar foto de perfil"
+                            className="w-28 h-28 rounded-[2rem] border-4 border-white dark:border-slate-800 overflow-hidden shadow-2xl ring-4 ring-primary/10 cursor-pointer flex items-center justify-center bg-slate-100 dark:bg-slate-700 focus:outline-none focus:ring-4 focus:ring-primary"
                             onClick={() => fileInputRef.current?.click()}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter' || e.key === ' ') {
+                                    e.preventDefault();
+                                    fileInputRef.current?.click();
+                                }
+                            }}
                         >
                             {uploading ? (
                                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
                             ) : (
                                 <img
-                                    alt="Profile"
+                                    alt={`Foto de perfil de ${profileData.full_name}`}
+                                    loading="lazy"
                                     className="w-full h-full object-cover"
                                     src={getOptimizedImageUrl(profileData.avatar_url, 200, 200) || `https://ui-avatars.com/api/?name=${profileData.full_name}&background=random&size=128`}
                                 />
                             )}
                         </div>
                         <button
+                            type="button"
                             onClick={() => fileInputRef.current?.click()}
                             disabled={uploading}
-                            className="absolute bottom-1 -right-1 bg-primary text-white p-2.5 rounded-2xl shadow-xl hover:bg-primary-dark transition-all transform hover:rotate-12 active:scale-90 border-2 border-white dark:border-slate-800 disabled:opacity-50"
+                            aria-label="Alterar foto de perfil"
+                            className="absolute bottom-1 -right-1 bg-primary text-white w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-2xl shadow-xl hover:bg-primary-dark transition-all transform hover:rotate-12 active:scale-90 border-2 border-white dark:border-slate-800 disabled:opacity-50"
                         >
-                            <span className="material-symbols-rounded text-lg font-bold">photo_camera</span>
+                            <span className="material-symbols-rounded text-lg font-bold" aria-hidden="true">photo_camera</span>
                         </button>
                     </div>
                     <div className="text-center">
@@ -227,7 +244,7 @@ const CoachProfile: React.FC = () => {
                 </div>
             </header>
 
-            <main className="px-5 -mt-8 relative z-10 space-y-6">
+            <div className="px-5 -mt-8 relative z-10 space-y-6">
                 {/* Personal Info Section */}
                 <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl rounded-[2.5rem] shadow-2xl shadow-slate-200/50 dark:shadow-none border border-white dark:border-slate-700/50 p-8 animate-slide-up">
                     <div className="flex items-center justify-between mb-8">
@@ -238,14 +255,16 @@ const CoachProfile: React.FC = () => {
                             <h3 className="font-display text-lg font-bold text-slate-900 dark:text-white">Informações</h3>
                         </div>
                         <button
+                            type="button"
                             onClick={handleSave}
                             disabled={saving}
-                            className="bg-sky-500 text-white px-5 py-2 rounded-xl text-sm font-black shadow-lg shadow-sky-500/20 hover:bg-sky-600 transition-all active:scale-95 disabled:opacity-50 flex items-center gap-2"
+                            aria-label="Salvar alterações do perfil"
+                            className="min-h-[44px] bg-sky-500 text-white px-6 py-2.5 rounded-xl text-sm font-black shadow-lg shadow-sky-500/20 hover:bg-sky-600 transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer"
                         >
                             {saving ? (
-                                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" aria-hidden="true"></div>
                             ) : (
-                                <span className="material-symbols-rounded text-lg">check_circle</span>
+                                <span className="material-symbols-rounded text-lg" aria-hidden="true">check_circle</span>
                             )}
                             Salvar
                         </button>
@@ -253,12 +272,13 @@ const CoachProfile: React.FC = () => {
 
                     <div className="space-y-6">
                         <div className="group">
-                            <label className="block text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] mb-2 ml-1">Nome Completo</label>
+                            <label htmlFor="coach-full-name" className="block text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-[0.2em] mb-2 ml-1">Nome Completo</label>
                             <div className="relative">
-                                <span className="absolute inset-y-0 left-0 flex items-center pl-5 text-slate-400 group-focus-within:text-primary transition-colors">
+                                <span className="absolute inset-y-0 left-0 flex items-center pl-5 text-slate-400 group-focus-within:text-primary transition-colors" aria-hidden="true">
                                     <span className="material-symbols-rounded text-xl">account_circle</span>
                                 </span>
                                 <input
+                                    id="coach-full-name"
                                     className="w-full pl-14 pr-5 py-4 bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-700 rounded-2xl text-slate-900 dark:text-white text-sm font-bold focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all"
                                     type="text"
                                     value={profileData.full_name}
@@ -269,12 +289,13 @@ const CoachProfile: React.FC = () => {
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div className="group">
-                                <label className="block text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] mb-2 ml-1">CREF</label>
+                                <label htmlFor="coach-cref" className="block text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-[0.2em] mb-2 ml-1">CREF</label>
                                 <div className="relative">
-                                    <span className="absolute inset-y-0 left-0 flex items-center pl-5 text-slate-400 group-focus-within:text-primary transition-colors">
+                                    <span className="absolute inset-y-0 left-0 flex items-center pl-5 text-slate-400 group-focus-within:text-primary transition-colors" aria-hidden="true">
                                         <span className="material-symbols-rounded text-xl">badge</span>
                                     </span>
                                     <input
+                                        id="coach-cref"
                                         className="w-full pl-14 pr-5 py-4 bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-700 rounded-2xl text-slate-900 dark:text-white text-sm font-bold focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all"
                                         type="text"
                                         placeholder="G00000-G/XX"
@@ -284,12 +305,13 @@ const CoachProfile: React.FC = () => {
                                 </div>
                             </div>
                             <div className="group">
-                                <label className="block text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] mb-2 ml-1">Telefone</label>
+                                <label htmlFor="coach-phone" className="block text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-[0.2em] mb-2 ml-1">Telefone</label>
                                 <div className="relative">
-                                    <span className="absolute inset-y-0 left-0 flex items-center pl-5 text-slate-400 group-focus-within:text-primary transition-colors">
+                                    <span className="absolute inset-y-0 left-0 flex items-center pl-5 text-slate-400 group-focus-within:text-primary transition-colors" aria-hidden="true">
                                         <span className="material-symbols-rounded text-xl">phone_iphone</span>
                                     </span>
                                     <input
+                                        id="coach-phone"
                                         className="w-full pl-14 pr-5 py-4 bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-700 rounded-2xl text-slate-900 dark:text-white text-sm font-bold focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all"
                                         type="tel"
                                         value={profileData.phone}
@@ -300,8 +322,9 @@ const CoachProfile: React.FC = () => {
                         </div>
 
                         <div className="group">
-                            <label className="block text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] mb-2 ml-1">Biografia</label>
+                            <label htmlFor="coach-bio" className="block text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-[0.2em] mb-2 ml-1">Biografia</label>
                             <textarea
+                                id="coach-bio"
                                 rows={4}
                                 className="w-full px-5 py-4 bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-700 rounded-2xl text-slate-900 dark:text-white text-sm font-bold focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all resize-none"
                                 placeholder="Conte um pouco sobre sua formação e experiência..."
@@ -317,36 +340,38 @@ const CoachProfile: React.FC = () => {
                     <Link to="/coach/settings/notifications" className="w-full flex items-center justify-between p-4 hover:bg-slate-50 dark:hover:bg-slate-700/50 rounded-2xl transition-all group">
                         <div className="flex items-center gap-4">
                             <div className="p-2.5 bg-blue-500/10 text-blue-500 rounded-xl">
-                                <span className="material-symbols-rounded">notifications</span>
+                                <span className="material-symbols-rounded" aria-hidden="true">notifications</span>
                             </div>
                             <span className="font-bold text-slate-700 dark:text-slate-200">Notificações</span>
                         </div>
-                        <span className="material-symbols-rounded text-slate-300 group-hover:translate-x-1 transition-transform">chevron_right</span>
+                        <span className="material-symbols-rounded text-slate-300 group-hover:translate-x-1 transition-transform" aria-hidden="true">chevron_right</span>
                     </Link>
                     <Link to="/coach/settings/privacy" className="w-full flex items-center justify-between p-4 hover:bg-slate-50 dark:hover:bg-slate-700/50 rounded-2xl transition-all group">
                         <div className="flex items-center gap-4">
                             <div className="p-2.5 bg-amber-500/10 text-amber-500 rounded-xl">
-                                <span className="material-symbols-rounded">shield</span>
+                                <span className="material-symbols-rounded" aria-hidden="true">shield</span>
                             </div>
                             <span className="font-bold text-slate-700 dark:text-slate-200">Privacidade</span>
                         </div>
-                        <span className="material-symbols-rounded text-slate-300 group-hover:translate-x-1 transition-transform">chevron_right</span>
+                        <span className="material-symbols-rounded text-slate-300 group-hover:translate-x-1 transition-transform" aria-hidden="true">chevron_right</span>
                     </Link>
                 </div>
 
                 {/* Logout Button */}
                 <button
+                    type="button"
                     onClick={handleSignOut}
-                    className="w-full p-5 rounded-[2rem] border-2 border-danger/10 bg-danger/5 text-danger font-black flex items-center justify-center gap-3 hover:bg-danger/10 transition-all active:scale-[0.98] mt-4"
+                    aria-label="Sair da conta e encerrar sessão"
+                    className="w-full p-5 rounded-[2rem] border-2 border-danger/10 bg-danger/5 text-danger font-black flex items-center justify-center gap-3 hover:bg-danger/10 transition-all active:scale-[0.98] mt-4 min-h-[52px] cursor-pointer"
                 >
-                    <span className="material-symbols-rounded">logout</span>
+                    <span className="material-symbols-rounded" aria-hidden="true">logout</span>
                     Sair da Conta
                 </button>
 
                 <p className="text-center text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.3em] py-4">
                     Fitcoach v1.0.4
                 </p>
-            </main>
+            </div>
 
             <BottomNav />
         </div>

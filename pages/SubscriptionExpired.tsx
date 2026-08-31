@@ -24,17 +24,19 @@ const SubscriptionExpired: React.FC = () => {
                         .from('students_data')
                         .select('coach_id')
                         .eq('id', user.id)
-                        .single();
+                        .maybeSingle();
 
-                    if (studentData?.coach_id) {
+                    const sData = studentData as { coach_id?: string } | null;
+                    if (sData?.coach_id) {
                         // Buscar o telefone do coach
                         const { data: coachData } = await supabase
                             .from('coaches_data')
                             .select('phone')
-                            .eq('id', studentData.coach_id)
-                            .single();
+                            .eq('id', sData.coach_id)
+                            .maybeSingle();
 
-                        setCoachPhone(coachData?.phone ? coachData.phone.replace(/\D/g, '') : null);
+                        const cData = coachData as { phone?: string } | null;
+                        setCoachPhone(cData?.phone ? cData.phone.replace(/\D/g, '') : null);
                     }
                 } catch (error) {
                     console.error('Erro ao buscar telefone do coach:', error);
@@ -98,9 +100,10 @@ const SubscriptionExpired: React.FC = () => {
                             href="https://www.gqfit.com.br/planos"
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="w-full bg-primary hover:bg-primary/90 text-white py-4 rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg shadow-primary/20 transition-all active:scale-[0.98] mb-3 text-xs"
+                            aria-label="Renovar assinatura pelo site com liberação imediata"
+                            className="w-full min-h-[44px] bg-primary hover:bg-primary/90 text-white py-4 rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg shadow-primary/20 transition-all active:scale-[0.98] mb-3 text-xs"
                         >
-                            <span className="material-symbols-rounded text-base">shopping_cart</span>
+                            <span className="material-symbols-rounded text-base" aria-hidden="true">shopping_cart</span>
                             Renovar pelo Site (Liberação Imediata)
                         </a>
                     )}
@@ -110,9 +113,10 @@ const SubscriptionExpired: React.FC = () => {
                             href={whatsappLink}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="w-full bg-emerald-500 hover:bg-emerald-600 text-white py-4 rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20 transition-all active:scale-[0.98] text-xs"
+                            aria-label="Renovar assinatura via atendimento no WhatsApp"
+                            className="w-full min-h-[44px] bg-emerald-500 hover:bg-emerald-600 text-white py-4 rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20 transition-all active:scale-[0.98] text-xs"
                         >
-                            <span className="material-symbols-rounded text-base">chat</span>
+                            <span className="material-symbols-rounded text-base" aria-hidden="true">chat</span>
                             Renovar via WhatsApp
                         </a>
                     ) : (
@@ -124,20 +128,22 @@ const SubscriptionExpired: React.FC = () => {
 
                 <div className="flex flex-col gap-2">
                     <button
+                        type="button"
                         onClick={handleSignOut}
-                        className="py-4 text-xs font-bold text-slate-400 hover:text-red-500 uppercase tracking-widest transition-colors"
+                        aria-label="Sair da conta e voltar ao login"
+                        className="py-4 text-xs font-bold text-slate-600 dark:text-slate-400 hover:text-red-500 uppercase tracking-widest transition-colors"
                     >
                         Sair da Conta
                     </button>
 
-                    <p className="text-[10px] text-slate-300 dark:text-slate-600 uppercase font-bold tracking-tighter">
+                    <p className="text-[10px] text-slate-500 dark:text-slate-500 uppercase font-bold tracking-tighter">
                         ID: {user?.id}
                     </p>
                 </div>
             </div>
 
             <p className="mt-8 text-xs text-slate-400 dark:text-slate-600 font-bold uppercase tracking-widest">
-                Fitcoach Pro © 2025
+                Fitcoach Pro © {new Date().getFullYear()}
             </p>
         </div>
     );

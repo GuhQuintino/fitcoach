@@ -189,18 +189,33 @@ const WorkoutImportModal: React.FC<WorkoutImportModalProps> = ({ isOpen, onClose
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-5 bg-black/70 animate-fade-in">
+        <div
+            role="dialog"
+            aria-modal="true"
+            aria-label="Importar Treino"
+            className="fixed inset-0 z-50 flex items-center justify-center p-5 bg-black/70 animate-fade-in"
+        >
             <div className="bg-white dark:bg-slate-800 w-full max-w-lg rounded-2xl flex flex-col max-h-[85vh] shadow-xl overflow-hidden">
                 {/* Header */}
                 <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-700 flex items-center gap-3">
                     {step !== 'source' && (
-                        <button onClick={() => setStep(step === 'exercises' && selectedRoutine?.workouts?.length > 1 ? 'workout' : 'source')} className="p-1 -ml-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-500">
-                            <span className="material-symbols-rounded">arrow_back</span>
+                        <button
+                            type="button"
+                            onClick={() => setStep(step === 'exercises' && selectedRoutine?.workouts?.length > 1 ? 'workout' : 'source')}
+                            aria-label="Voltar para a etapa anterior"
+                            className="min-w-[44px] min-h-[44px] p-2 -ml-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-500 flex items-center justify-center"
+                        >
+                            <span className="material-symbols-rounded" aria-hidden="true">arrow_back</span>
                         </button>
                     )}
                     <h2 className="font-bold text-lg text-slate-900 dark:text-white flex-1">Importar Treino</h2>
-                    <button onClick={onClose} className="p-1 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-500">
-                        <span className="material-symbols-rounded">close</span>
+                    <button
+                        type="button"
+                        onClick={onClose}
+                        aria-label="Fechar janela de importação"
+                        className="min-w-[44px] min-h-[44px] p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-500 flex items-center justify-center"
+                    >
+                        <span className="material-symbols-rounded" aria-hidden="true">close</span>
                     </button>
                 </div>
 
@@ -211,15 +226,21 @@ const WorkoutImportModal: React.FC<WorkoutImportModalProps> = ({ isOpen, onClose
                     {step === 'source' && (
                         <div className="space-y-4">
                             {/* Tabs */}
-                            <div className="flex p-1 bg-slate-100 dark:bg-slate-900 rounded-xl mb-4">
+                            <div className="flex p-1 bg-slate-100 dark:bg-slate-900 rounded-xl mb-4" role="tablist">
                                 <button
-                                    className={`flex-1 py-2 rounded-lg text-sm font-bold transition-all ${sourceType === 'template' ? 'bg-white dark:bg-slate-800 shadow-sm text-slate-900 dark:text-white' : 'text-slate-500'}`}
+                                    type="button"
+                                    role="tab"
+                                    aria-selected={sourceType === 'template'}
+                                    className={`flex-1 min-h-[44px] py-2 rounded-xl text-sm font-bold transition-all ${sourceType === 'template' ? 'bg-white dark:bg-slate-800 shadow-sm text-slate-900 dark:text-white' : 'text-slate-500 dark:text-slate-400'}`}
                                     onClick={() => setSourceType('template')}
                                 >
                                     Templates
                                 </button>
                                 <button
-                                    className={`flex-1 py-2 rounded-lg text-sm font-bold transition-all ${sourceType === 'student' ? 'bg-white dark:bg-slate-800 shadow-sm text-slate-900 dark:text-white' : 'text-slate-500'}`}
+                                    type="button"
+                                    role="tab"
+                                    aria-selected={sourceType === 'student'}
+                                    className={`flex-1 min-h-[44px] py-2 rounded-xl text-sm font-bold transition-all ${sourceType === 'student' ? 'bg-white dark:bg-slate-800 shadow-sm text-slate-900 dark:text-white' : 'text-slate-500 dark:text-slate-400'}`}
                                     onClick={() => setSourceType('student')}
                                 >
                                     Alunos
@@ -228,10 +249,11 @@ const WorkoutImportModal: React.FC<WorkoutImportModalProps> = ({ isOpen, onClose
 
                             {/* Search */}
                             <div className="relative">
-                                <span className="absolute left-3 top-3 material-symbols-rounded text-slate-400 text-xl">search</span>
+                                <span className="absolute left-3 top-3.5 material-symbols-rounded text-slate-400 text-xl" aria-hidden="true">search</span>
                                 <input
-                                    className="w-full bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-xl pl-10 pr-4 py-2.5 outline-none focus:ring-2 focus:ring-primary/50"
+                                    className="w-full bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-xl pl-10 pr-4 py-2.5 outline-none focus:ring-2 focus:ring-primary/50 text-slate-900 dark:text-white min-h-[44px]"
                                     placeholder={sourceType === 'template' ? "Buscar rotina..." : "Buscar aluno..."}
+                                    aria-label={sourceType === 'template' ? "Buscar rotina por nome" : "Buscar aluno por nome"}
                                     value={searchTerm}
                                     onChange={e => setSearchTerm(e.target.value)}
                                     autoFocus
@@ -240,25 +262,29 @@ const WorkoutImportModal: React.FC<WorkoutImportModalProps> = ({ isOpen, onClose
 
                             {/* List */}
                             {loading ? (
-                                <div className="py-10 text-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div></div>
+                                <div className="py-10 text-center flex flex-col items-center justify-center gap-2" role="status" aria-live="polite">
+                                    <div className="w-8 h-8 rounded-full border-2 border-primary border-t-transparent animate-spin"></div>
+                                    <span className="sr-only">Carregando rotinas e alunos disponíveis...</span>
+                                </div>
                             ) : (
                                 <div className="space-y-2">
                                     {sourceType === 'template' ? (
                                         routines.length === 0 ? (
-                                            <p className="text-center text-slate-500 py-8">Nenhuma rotina encontrada.</p>
+                                            <p className="text-center text-slate-500 dark:text-slate-400 py-8">Nenhuma rotina encontrada.</p>
                                         ) : (
                                             routines.map(routine => (
                                                 <button
                                                     key={routine.id}
+                                                    type="button"
                                                     onClick={() => handleSelectRoutine(routine)}
-                                                    className="w-full text-left p-4 bg-slate-50 dark:bg-slate-900/30 hover:bg-slate-100 dark:hover:bg-slate-900 rounded-xl border border-slate-100 dark:border-slate-800 transition-colors group"
+                                                    className="w-full min-h-[44px] text-left p-4 bg-slate-50 dark:bg-slate-900/30 hover:bg-slate-100 dark:hover:bg-slate-900 rounded-xl border border-slate-100 dark:border-slate-800 transition-colors group"
                                                 >
                                                     <h3 className="font-bold text-slate-900 dark:text-white">{routine.name}</h3>
-                                                    <div className="text-xs text-slate-500 mt-1 flex items-center gap-2">
+                                                    <div className="text-xs text-slate-500 dark:text-slate-400 mt-1 flex items-center gap-2">
                                                         <span>{routine.duration_weeks} semanas</span>
-                                                        <span className="w-1 h-1 rounded-full bg-slate-300"></span>
+                                                        <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-600"></span>
                                                         <span className="group-hover:text-primary transition-colors flex items-center gap-1">
-                                                            Selecionar <span className="material-symbols-rounded text-[14px]">arrow_forward</span>
+                                                            Selecionar <span className="material-symbols-rounded text-[14px]" aria-hidden="true">arrow_forward</span>
                                                         </span>
                                                     </div>
                                                 </button>
@@ -266,23 +292,28 @@ const WorkoutImportModal: React.FC<WorkoutImportModalProps> = ({ isOpen, onClose
                                         )
                                     ) : (
                                         students.length === 0 ? (
-                                            <p className="text-center text-slate-500 py-8">Nenhum aluno com treino ativo.</p>
+                                            <p className="text-center text-slate-500 dark:text-slate-400 py-8">Nenhum aluno com treino ativo.</p>
                                         ) : (
                                             students.map(student => (
                                                 <button
                                                     key={student.id}
+                                                    type="button"
                                                     onClick={() => handleSelectRoutine(student.active_routine)}
-                                                    className="w-full flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-900/30 hover:bg-slate-100 dark:hover:bg-slate-900 rounded-xl border border-slate-100 dark:border-slate-800 transition-colors text-left"
+                                                    className="w-full min-h-[44px] flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-900/30 hover:bg-slate-100 dark:hover:bg-slate-900 rounded-xl border border-slate-100 dark:border-slate-800 transition-colors text-left"
                                                 >
                                                     <img
-                                                        src={student.profiles.avatar_url || `https://ui-avatars.com/api/?name=${student.profiles.full_name}&background=random`}
-                                                        className="w-10 h-10 rounded-full bg-slate-200"
+                                                        src={student.profiles.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(student.profiles.full_name || 'Aluno')}&background=random`}
+                                                        alt={student.profiles.full_name || 'Aluno'}
+                                                        loading="lazy"
+                                                        width="40"
+                                                        height="40"
+                                                        className="w-10 h-10 rounded-full bg-slate-200 object-cover"
                                                     />
                                                     <div className="flex-1">
                                                         <h3 className="font-bold text-slate-900 dark:text-white text-sm">{student.profiles.full_name}</h3>
                                                         <p className="text-xs text-primary truncate max-w-[200px]">{student.active_routine.name}</p>
                                                     </div>
-                                                    <span className="material-symbols-rounded text-slate-400">arrow_forward_ios</span>
+                                                    <span className="material-symbols-rounded text-slate-400" aria-hidden="true">arrow_forward_ios</span>
                                                 </button>
                                             ))
                                         )
@@ -295,14 +326,15 @@ const WorkoutImportModal: React.FC<WorkoutImportModalProps> = ({ isOpen, onClose
                     {/* STEP 2: WORKOUT SELECTION (If Routine has multiple workouts) */}
                     {step === 'workout' && selectedRoutine && (
                         <div className="space-y-4">
-                            <p className="text-sm text-slate-500">Selecione qual treino de <strong>{selectedRoutine.name}</strong> você deseja importar.</p>
+                            <p className="text-sm text-slate-600 dark:text-slate-400">Selecione qual treino de <strong>{selectedRoutine.name}</strong> você deseja importar.</p>
 
                             <div className="space-y-2">
                                 {(selectedRoutine.workouts || []).map((w: any) => (
                                     <button
                                         key={w.id}
+                                        type="button"
                                         onClick={() => handleSelectWorkout(w)}
-                                        className="w-full flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-900/30 hover:bg-slate-100 dark:hover:bg-slate-900 rounded-xl border border-slate-100 dark:border-slate-800 transition-colors"
+                                        className="w-full min-h-[44px] flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-900/30 hover:bg-slate-100 dark:hover:bg-slate-900 rounded-xl border border-slate-100 dark:border-slate-800 transition-colors"
                                     >
                                         <div className="flex items-center gap-3">
                                             <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-sm">
@@ -310,7 +342,7 @@ const WorkoutImportModal: React.FC<WorkoutImportModalProps> = ({ isOpen, onClose
                                             </div>
                                             <span className="font-bold text-slate-900 dark:text-white">{w.name}</span>
                                         </div>
-                                        <span className="material-symbols-rounded text-slate-400">arrow_forward</span>
+                                        <span className="material-symbols-rounded text-slate-400" aria-hidden="true">arrow_forward</span>
                                     </button>
                                 ))}
                             </div>
@@ -321,40 +353,47 @@ const WorkoutImportModal: React.FC<WorkoutImportModalProps> = ({ isOpen, onClose
                     {step === 'exercises' && (
                         <div className="space-y-4">
                             <div className="flex items-center justify-between mb-2">
-                                <p className="text-sm text-slate-500">Selecione os exercícios para importar.</p>
+                                <p className="text-sm text-slate-600 dark:text-slate-400">Selecione os exercícios para importar.</p>
                                 <button
+                                    type="button"
                                     onClick={() => {
                                         if (selectedExerciseIds.size === availableExercises.length) setSelectedExerciseIds(new Set());
                                         else setSelectedExerciseIds(new Set(availableExercises.map(e => e.id)));
                                     }}
-                                    className="text-primary text-xs font-bold hover:underline"
+                                    className="text-primary text-xs font-bold hover:underline min-h-[40px] px-2 flex items-center"
                                 >
                                     {selectedExerciseIds.size === availableExercises.length ? 'Desmarcar todos' : 'Marcar todos'}
                                 </button>
                             </div>
 
                             {loading ? (
-                                <div className="py-10 text-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div></div>
+                                <div className="py-10 text-center flex flex-col items-center justify-center gap-2" role="status" aria-live="polite">
+                                    <div className="w-8 h-8 rounded-full border-2 border-primary border-t-transparent animate-spin"></div>
+                                    <span className="sr-only">Carregando exercícios para importação...</span>
+                                </div>
                             ) : availableExercises.length === 0 ? (
-                                <p className="text-center text-slate-500 py-10">Este treino não possui exercícios.</p>
+                                <p className="text-center text-slate-500 dark:text-slate-400 py-10">Este treino não possui exercícios.</p>
                             ) : (
                                 <div className="space-y-2">
                                     {availableExercises.map(item => {
                                         const isSelected = selectedExerciseIds.has(item.id);
                                         return (
-                                            <div
+                                            <button
                                                 key={item.id}
+                                                type="button"
+                                                role="checkbox"
+                                                aria-checked={isSelected}
                                                 onClick={() => toggleExerciseSelection(item.id)}
-                                                className={`flex items-center gap-3 p-3 rounded-xl border transition-all cursor-pointer ${isSelected ? 'bg-primary/5 border-primary/50' : 'bg-slate-50 dark:bg-slate-900/30 border-slate-100 dark:border-slate-800'}`}
+                                                className={`w-full min-h-[44px] text-left flex items-center gap-3 p-3 rounded-xl border transition-all cursor-pointer ${isSelected ? 'bg-primary/5 border-primary/50' : 'bg-slate-50 dark:bg-slate-900/30 border-slate-100 dark:border-slate-800'}`}
                                             >
-                                                <div className={`w-5 h-5 rounded border flex items-center justify-center transition-colors ${isSelected ? 'bg-primary border-primary' : 'bg-white border-slate-300'}`}>
-                                                    {isSelected && <span className="material-symbols-rounded text-white text-sm">check</span>}
+                                                <div className={`w-5 h-5 rounded border flex items-center justify-center transition-colors ${isSelected ? 'bg-primary border-primary' : 'bg-white dark:bg-slate-700 border-slate-300 dark:border-slate-600'}`}>
+                                                    {isSelected && <span className="material-symbols-rounded text-white text-sm" aria-hidden="true">check</span>}
                                                 </div>
                                                 <div className="flex-1">
                                                     <h4 className="font-bold text-slate-900 dark:text-white text-sm">{item.exercise?.name}</h4>
-                                                    <p className="text-xs text-slate-500">{item.sets?.length} séries</p>
+                                                    <p className="text-xs text-slate-500 dark:text-slate-400">{item.sets?.length} séries</p>
                                                 </div>
-                                            </div>
+                                            </button>
                                         );
                                     })}
                                 </div>
@@ -368,9 +407,11 @@ const WorkoutImportModal: React.FC<WorkoutImportModalProps> = ({ isOpen, onClose
                 {step === 'exercises' && (
                     <div className="p-5 border-t border-slate-100 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900/50">
                         <button
+                            type="button"
                             onClick={handleConfirmImport}
                             disabled={selectedExerciseIds.size === 0}
-                            className="w-full py-3 bg-primary disabled:bg-slate-300 disabled:cursor-not-allowed text-white rounded-xl font-bold shadow-lg shadow-primary/20 hover:bg-primary-600 transition-all active:scale-[0.98] flex items-center justify-center gap-2"
+                            aria-label={`Importar ${selectedExerciseIds.size} exercícios selecionados`}
+                            className="w-full min-h-[44px] py-3 bg-primary disabled:bg-slate-300 dark:disabled:bg-slate-700 disabled:cursor-not-allowed text-white rounded-xl font-bold shadow-lg shadow-primary/20 hover:bg-primary-600 transition-all active:scale-[0.98] flex items-center justify-center gap-2"
                         >
                             Importar {selectedExerciseIds.size} Exercícios
                         </button>

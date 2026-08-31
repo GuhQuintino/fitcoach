@@ -183,7 +183,7 @@ const CoachStudents: React.FC = () => {
                 <p className="text-slate-500 dark:text-slate-400 text-sm">Gerencie quem treina com você</p>
             </header>
 
-            <main className="relative px-5 space-y-6 pb-32">
+            <div className="relative px-5 space-y-6 pb-32">
                 {/* Stats */}
                 <div className="grid grid-cols-3 gap-3">
                     <div className="bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-soft">
@@ -212,15 +212,16 @@ const CoachStudents: React.FC = () => {
                 {/* Actions & Search */}
                 <div className="space-y-4">
                     <Link to="/coach/invite" className="w-full bg-sky-500 text-white py-3.5 px-4 rounded-xl font-bold text-sm shadow-lg shadow-sky-500/25 active:scale-[0.98] transition-transform flex items-center justify-center gap-2">
-                        <span className="material-symbols-rounded">person_add</span>
+                        <span className="material-symbols-rounded" aria-hidden="true">person_add</span>
                         Convidar Aluno
                     </Link>
 
                     <div className="relative">
-                        <span className="absolute left-4 top-1/2 -translate-y-1/2 material-symbols-rounded text-slate-400">search</span>
+                        <span className="absolute left-4 top-1/2 -translate-y-1/2 material-symbols-rounded text-slate-400" aria-hidden="true">search</span>
                         <input
                             type="text"
                             placeholder="Buscar aluno pelo nome..."
+                            aria-label="Buscar aluno por nome ou email"
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                             className="w-full bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl py-3.5 pl-12 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all shadow-soft placeholder:text-slate-400 dark:text-white"
@@ -229,7 +230,7 @@ const CoachStudents: React.FC = () => {
                 </div>
 
                 {/* Tabs */}
-                <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">
+                <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1" role="tablist" aria-label="Filtro de alunos">
                     {[
                         { id: 'all', label: 'Todos' },
                         { id: 'active', label: 'Ativos' },
@@ -238,8 +239,11 @@ const CoachStudents: React.FC = () => {
                     ].map(tab => (
                         <button
                             key={tab.id}
+                            type="button"
+                            role="tab"
+                            aria-selected={selectedTab === tab.id}
                             onClick={() => setSelectedTab(tab.id as any)}
-                            className={`whitespace-nowrap px-4 py-2 rounded-full text-sm font-bold transition-colors ${selectedTab === tab.id
+                            className={`whitespace-nowrap px-4 py-2 min-h-[44px] flex items-center justify-center rounded-full text-sm font-bold transition-colors cursor-pointer ${selectedTab === tab.id
                                 ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900'
                                 : 'bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-100 dark:border-slate-700'
                                 }`}
@@ -252,9 +256,9 @@ const CoachStudents: React.FC = () => {
                 {/* List */}
                 <div className="space-y-4">
                     {loading ? (
-                        <div className="text-center py-10">
-                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
-                            <p className="text-slate-400 text-sm">Carregando...</p>
+                        <div className="text-center py-10" role="status" aria-live="polite">
+                            <div className="w-8 h-8 rounded-full border-2 border-primary border-t-transparent animate-spin mx-auto mb-2"></div>
+                            <p className="text-slate-500 dark:text-slate-400 text-sm font-medium">Carregando alunos...</p>
                         </div>
                     ) : students.length === 0 ? (
                         <div className="text-center py-12 bg-white dark:bg-slate-800 rounded-3xl border border-dashed border-slate-200 dark:border-slate-700">
@@ -270,9 +274,12 @@ const CoachStudents: React.FC = () => {
                             return (
                                 <div key={student.id} className="bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-soft border border-slate-100 dark:border-slate-700 flex items-center gap-4">
                                     <img
-                                        src={student.profiles?.avatar_url || `https://ui-avatars.com/api/?name=${student.profiles?.full_name || 'Aluno'}&background=random`}
-                                        alt={student.profiles?.full_name}
-                                        className="w-12 h-12 rounded-full object-cover bg-slate-100"
+                                        src={student.profiles?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(student.profiles?.full_name || 'Aluno')}&background=random`}
+                                        alt={student.profiles?.full_name || 'Aluno'}
+                                        loading="lazy"
+                                        width="48"
+                                        height="48"
+                                        className="w-12 h-12 rounded-full object-cover bg-slate-100 dark:bg-slate-700"
                                     />
 
                                     <div className="flex-1 min-w-0">
@@ -294,10 +301,12 @@ const CoachStudents: React.FC = () => {
                                                         {formatDaysRemaining(student.consultancy_expires_at)}
                                                     </span>
                                                     <button
+                                                        type="button"
                                                         onClick={() => handleOpenApproval(student)}
-                                                        className="mt-1 p-1 rounded-md hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 hover:text-primary transition-colors"
+                                                        aria-label={`Editar vencimento do plano de ${student.profiles?.full_name || 'aluno'}`}
+                                                        className="mt-1 w-11 h-11 min-w-[44px] min-h-[44px] p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 hover:text-primary transition-colors flex items-center justify-center"
                                                     >
-                                                        <span className="material-symbols-rounded text-xs">edit_calendar</span>
+                                                        <span className="material-symbols-rounded text-base" aria-hidden="true">edit_calendar</span>
                                                     </button>
                                                 </div>
                                             )}
@@ -308,24 +317,36 @@ const CoachStudents: React.FC = () => {
                                     {isPending && (
                                         <div className="flex items-center gap-2">
                                             {whatsappLink && (
-                                                <a href={whatsappLink} target="_blank" rel="noreferrer" className="w-10 h-10 rounded-xl bg-slate-50 dark:bg-slate-700 flex items-center justify-center text-emerald-600 dark:text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 transition-colors">
-                                                    <span className="material-symbols-rounded">chat</span>
+                                                <a
+                                                    href={whatsappLink}
+                                                    target="_blank"
+                                                    rel="noreferrer"
+                                                    aria-label={`Falar no WhatsApp com ${student.profiles?.full_name || 'aluno'}`}
+                                                    className="w-11 h-11 min-w-[44px] min-h-[44px] rounded-xl bg-slate-50 dark:bg-slate-700 flex items-center justify-center text-emerald-600 dark:text-emerald-500 hover:bg-slate-100 dark:hover:bg-slate-600 transition-colors"
+                                                >
+                                                    <span className="material-symbols-rounded" aria-hidden="true">chat</span>
                                                 </a>
                                             )}
                                             <button
+                                                type="button"
                                                 onClick={() => handleOpenApproval(student)}
-                                                className="w-10 h-10 rounded-xl bg-sky-500 flex items-center justify-center text-white shadow-lg shadow-sky-500/20 hover:scale-105 active:scale-95 transition-transform"
+                                                aria-label={`Aprovar cadastro de ${student.profiles?.full_name || 'aluno'}`}
+                                                className="w-11 h-11 min-w-[44px] min-h-[44px] rounded-xl bg-primary flex items-center justify-center text-white shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-transform"
                                                 title="Aprovar Aluno"
                                             >
-                                                <span className="material-symbols-rounded">check</span>
+                                                <span className="material-symbols-rounded" aria-hidden="true">check</span>
                                             </button>
                                         </div>
                                     )}
 
                                     {/* For Active/Inactive Students (Link to Profile) */}
                                     {!isPending && (
-                                        <Link to={`/coach/student/${student.id}`} className="w-10 h-10 rounded-xl border border-slate-200 dark:border-slate-600 flex items-center justify-center text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
-                                            <span className="material-symbols-rounded">arrow_forward</span>
+                                        <Link
+                                            to={`/coach/student/${student.id}`}
+                                            aria-label={`Ver perfil de ${student.profiles?.full_name || 'aluno'}`}
+                                            className="w-11 h-11 min-w-[44px] min-h-[44px] rounded-xl border border-slate-200 dark:border-slate-600 flex items-center justify-center text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+                                        >
+                                            <span className="material-symbols-rounded" aria-hidden="true">arrow_forward</span>
                                         </Link>
                                     )}
                                 </div>
@@ -333,22 +354,30 @@ const CoachStudents: React.FC = () => {
                         })
                     )}
                 </div>
-            </main>
+            </div>
 
             {/* Approval Modal */}
             {approvingStudent && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-5 bg-black/50 backdrop-blur-sm animate-fade-in">
+                <div
+                    role="dialog"
+                    aria-modal="true"
+                    aria-label={`Aprovar Aluno ${approvingStudent.profiles?.full_name || ''}`}
+                    className="fixed inset-0 z-50 flex items-center justify-center p-5 bg-black/50 backdrop-blur-sm animate-fade-in"
+                >
                     <div className="bg-white dark:bg-slate-800 w-full max-w-sm rounded-[2rem] p-6 shadow-2xl animate-scale-up">
                         <div className="text-center mb-6">
-                            <div className="w-16 h-16 rounded-full bg-slate-100 dark:bg-slate-700 mx-auto mb-4 flex items-center justify-center">
+                            <div className="w-16 h-16 rounded-full bg-slate-100 dark:bg-slate-700 mx-auto mb-4 flex items-center justify-center overflow-hidden">
                                 <img
-                                    src={approvingStudent.profiles?.avatar_url || `https://ui-avatars.com/api/?name=${approvingStudent.profiles?.full_name || 'Aluno'}`}
-                                    alt=""
+                                    src={approvingStudent.profiles?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(approvingStudent.profiles?.full_name || 'Aluno')}&background=random`}
+                                    alt={`Avatar de ${approvingStudent.profiles?.full_name || 'Aluno'}`}
+                                    loading="lazy"
+                                    width="64"
+                                    height="64"
                                     className="w-full h-full rounded-full object-cover"
                                 />
                             </div>
                             <h2 className="text-xl font-bold text-slate-900 dark:text-white">Aprovar Aluno</h2>
-                            <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">
+                            <p className="text-slate-600 dark:text-slate-400 text-sm mt-1">
                                 Defina a validade do plano para <br />
                                 <strong className="text-slate-800 dark:text-slate-200">{approvingStudent.profiles?.full_name || 'Aluno'}</strong>
                             </p>
@@ -356,14 +385,15 @@ const CoachStudents: React.FC = () => {
 
                         <div className="space-y-4 mb-6">
                             <div>
-                                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Vencimento do Plano</label>
+                                <label htmlFor="student-approval-expiration" className="block text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider mb-2">Vencimento do Plano</label>
                                 <input
+                                    id="student-approval-expiration"
                                     type="date"
                                     value={expirationDate}
                                     onChange={(e) => setExpirationDate(e.target.value)}
-                                    className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-slate-900 dark:text-white font-bold focus:outline-none focus:ring-2 focus:ring-primary/50"
+                                    className="w-full min-h-[44px] bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-slate-900 dark:text-white font-bold focus:outline-none focus:ring-2 focus:ring-primary/50"
                                 />
-                                <p className="text-xs text-slate-400 mt-2 text-center">
+                                <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 text-center">
                                     O acesso será bloqueado após esta data.
                                 </p>
                             </div>
@@ -371,21 +401,29 @@ const CoachStudents: React.FC = () => {
 
                         <div className="flex gap-3">
                             <button
+                                type="button"
                                 onClick={() => setApprovingStudent(null)}
-                                className="flex-1 py-3 rounded-xl font-bold text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+                                aria-label="Cancelar aprovação"
+                                className="flex-1 min-h-[44px] py-3 rounded-xl font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors flex items-center justify-center"
                             >
                                 Cancelar
                             </button>
                             <button
+                                type="button"
                                 onClick={handleConfirmApproval}
                                 disabled={approvalLoading}
-                                className="flex-1 bg-sky-500 text-white py-3 rounded-xl font-bold shadow-lg shadow-sky-500/25 active:scale-[0.98] transition-transform flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                                aria-label="Confirmar aprovação do aluno"
+                                className="flex-1 min-h-[44px] bg-primary text-white py-3 rounded-xl font-bold shadow-lg shadow-primary/25 active:scale-[0.98] transition-transform flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 {approvalLoading ? (
-                                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                                    <>
+                                        <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" role="status"></div>
+                                        <span className="sr-only">Aprovando aluno...</span>
+                                        <span>Aprovando...</span>
+                                    </>
                                 ) : (
                                     <>
-                                        <span className="material-symbols-rounded">check_circle</span>
+                                        <span className="material-symbols-rounded" aria-hidden="true">check_circle</span>
                                         Confirmar
                                     </>
                                 )}

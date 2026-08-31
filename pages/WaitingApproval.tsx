@@ -27,18 +27,20 @@ const WaitingApproval: React.FC = () => {
                         .from('students_data')
                         .select('coach_id')
                         .eq('id', user.id)
-                        .single();
+                        .maybeSingle();
 
-                    if (studentData?.coach_id) {
+                    const sData = studentData as { coach_id?: string } | null;
+                    if (sData?.coach_id) {
                         const { data: coachData } = await supabase
                             .from('profiles')
                             .select('full_name, phone')
-                            .eq('id', studentData.coach_id)
-                            .single();
+                            .eq('id', sData.coach_id)
+                            .maybeSingle();
 
-                        if (coachData) {
-                            setContactName(coachData.full_name);
-                            setContactPhone(coachData.phone?.replace(/\D/g, '') || null);
+                        const cData = coachData as { full_name?: string; phone?: string } | null;
+                        if (cData) {
+                            setContactName(cData.full_name || null);
+                            setContactPhone(cData.phone?.replace(/\D/g, '') || null);
                         }
                     }
                 } catch (error) {
@@ -123,16 +125,19 @@ const WaitingApproval: React.FC = () => {
                             href={whatsappLink}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="w-full bg-emerald-500 hover:bg-emerald-600 text-white py-4 rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20 transition-all active:scale-[0.98]"
+                            aria-label="Avisar treinador sobre o cadastro no WhatsApp"
+                            className="w-full min-h-[44px] bg-emerald-500 hover:bg-emerald-600 text-white py-4 rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20 transition-all active:scale-[0.98]"
                         >
-                            <span className="material-symbols-rounded">chat</span>
+                            <span className="material-symbols-rounded" aria-hidden="true">chat</span>
                             Avisar no WhatsApp
                         </a>
                     )}
 
                     <button
+                        type="button"
                         onClick={handleSignOut}
-                        className="w-full py-4 text-xs font-bold text-slate-400 hover:text-red-500 transition-colors uppercase tracking-widest"
+                        aria-label="Sair da conta e voltar ao login"
+                        className="w-full py-4 text-xs font-bold text-slate-600 dark:text-slate-400 hover:text-red-500 transition-colors uppercase tracking-widest"
                     >
                         Sair da Conta
                     </button>
@@ -140,7 +145,7 @@ const WaitingApproval: React.FC = () => {
             </div>
 
             <p className="mt-8 text-xs text-slate-400 dark:text-slate-600 font-bold uppercase tracking-widest">
-                Fitcoach Pro © 2025
+                Fitcoach Pro © {new Date().getFullYear()}
             </p>
         </div>
     );

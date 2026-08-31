@@ -241,7 +241,7 @@ const History: React.FC = () => {
                 </div>
             </header>
 
-            <main className="relative px-5 py-6 space-y-6 pb-24">
+            <div className="relative px-5 py-6 space-y-6 pb-24">
                 {/* Weekly Volume Chart */}
                 <section className="bg-white dark:bg-slate-800 p-6 rounded-[2.5rem] shadow-soft border border-slate-100 dark:border-slate-700 animate-slide-up">
                     <div className="flex items-center justify-between mb-6">
@@ -251,7 +251,7 @@ const History: React.FC = () => {
                         </div>
                         {diffPercent && (
                             <div className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-[10px] font-black ${parseFloat(diffPercent) >= 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>
-                                <span className="material-symbols-rounded text-sm">{parseFloat(diffPercent) >= 0 ? 'trending_up' : 'trending_down'}</span>
+                                <span className="material-symbols-rounded text-sm" aria-hidden="true">{parseFloat(diffPercent) >= 0 ? 'trending_up' : 'trending_down'}</span>
                                 {parseFloat(diffPercent) >= 0 ? '+' : ''}{diffPercent}%
                             </div>
                         )}
@@ -260,25 +260,37 @@ const History: React.FC = () => {
                     <div className="h-40 w-full">
                         <ResponsiveContainer width="100%" height="100%">
                             <BarChart data={weeklyData}>
-                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-slate-200, #f1f5f9)" />
                                 <XAxis
                                     dataKey="name"
                                     axisLine={false}
                                     tickLine={false}
-                                    tick={{ fontSize: 10, fill: '#94a3b8', fontWeight: 600 }}
+                                    tick={{ fontSize: 10, fill: 'var(--color-slate-400, #94a3b8)', fontWeight: 600 }}
                                     dy={10}
                                 />
                                 <YAxis hide domain={[0, 'auto']} />
                                 <Tooltip
-                                    cursor={{ fill: 'transparent' }}
-                                    contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', fontSize: '12px', fontWeight: 'bold' }}
-                                    formatter={(val: number) => [`${Math.round(val).toLocaleString()} kg`, 'Volume']}
+                                    cursor={{ fill: 'rgba(14, 165, 233, 0.08)' }}
+                                    content={({ active, payload, label }) => {
+                                        if (active && payload && payload.length) {
+                                            return (
+                                                <div className="bg-white dark:bg-slate-800 p-2.5 rounded-2xl shadow-elevated border border-slate-100 dark:border-slate-700 text-xs">
+                                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">{label}</p>
+                                                    <p className="font-black text-slate-900 dark:text-white flex items-center gap-1.5">
+                                                        <span className="w-2 h-2 rounded-full bg-primary inline-block"></span>
+                                                        {Math.round(Number(payload[0].value)).toLocaleString()} kg
+                                                    </p>
+                                                </div>
+                                            );
+                                        }
+                                        return null;
+                                    }}
                                 />
                                 <Bar dataKey="volume" radius={[6, 6, 6, 6]} barSize={40}>
                                     {weeklyData.map((entry, index) => (
                                         <Cell
                                             key={`cell-${index}`}
-                                            fill={index === weeklyData.length - 1 ? '#3b82f6' : '#bfdbfe'}
+                                            fill={index === weeklyData.length - 1 ? 'var(--color-primary, #0ea5e9)' : 'var(--color-primary-light, #bae6fd)'}
                                         />
                                     ))}
                                 </Bar>
@@ -333,16 +345,20 @@ const History: React.FC = () => {
                         </h2>
                         <div className="flex gap-2">
                             <button
+                                type="button"
                                 onClick={() => setSelectedDate(new Date(currentYear, currentMonth - 1, 1))}
-                                className="p-2 rounded-xl bg-slate-50 dark:bg-slate-700 text-slate-400 hover:text-sky-500 transition-colors"
+                                aria-label="Mês anterior"
+                                className="w-11 h-11 min-w-[44px] min-h-[44px] rounded-xl bg-slate-50 dark:bg-slate-700 text-slate-400 hover:text-primary transition-colors flex items-center justify-center"
                             >
-                                <span className="material-symbols-rounded">chevron_left</span>
+                                <span className="material-symbols-rounded" aria-hidden="true">chevron_left</span>
                             </button>
                             <button
+                                type="button"
                                 onClick={() => setSelectedDate(new Date(currentYear, currentMonth + 1, 1))}
-                                className="p-2 rounded-xl bg-slate-50 dark:bg-slate-700 text-slate-400 hover:text-sky-500 transition-colors"
+                                aria-label="Próximo mês"
+                                className="w-11 h-11 min-w-[44px] min-h-[44px] rounded-xl bg-slate-50 dark:bg-slate-700 text-slate-400 hover:text-primary transition-colors flex items-center justify-center"
                             >
-                                <span className="material-symbols-rounded">chevron_right</span>
+                                <span className="material-symbols-rounded" aria-hidden="true">chevron_right</span>
                             </button>
                         </div>
                     </div>
@@ -362,14 +378,16 @@ const History: React.FC = () => {
                             const active = hasWorkout(day);
                             const isToday = day === new Date().getDate() && currentMonth === new Date().getMonth() && currentYear === new Date().getFullYear();
 
+                            const dayThemeClass = isToday
+                                ? 'bg-primary text-white shadow-lg shadow-primary/30'
+                                : active
+                                    ? 'bg-sky-50 dark:bg-sky-900/20 text-sky-700 dark:text-sky-300'
+                                    : 'text-slate-700 dark:text-slate-300';
+
                             return (
                                 <div
                                     key={day}
-                                    className={`
-                                        h-9 flex items-center justify-center rounded-xl text-sm font-bold relative
-                                        ${isToday ? 'bg-sky-500 text-white shadow-lg shadow-sky-500/30' : 'text-slate-600 dark:text-slate-400'}
-                                        ${active && !isToday ? 'bg-sky-50 dark:bg-sky-900/20 text-sky-600 dark:text-sky-400' : ''}
-                                    `}
+                                    className={`h-9 flex items-center justify-center rounded-xl text-sm font-bold relative ${dayThemeClass}`}
                                 >
                                     {day}
                                     {active && (
@@ -382,13 +400,14 @@ const History: React.FC = () => {
                 </div>
 
                 {loading ? (
-                    <div className="text-center py-10">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+                    <div className="text-center py-10" role="status" aria-live="polite">
+                        <div className="w-8 h-8 rounded-full border-2 border-primary border-t-transparent animate-spin mx-auto"></div>
+                        <span className="sr-only">Carregando histórico de treinos...</span>
                     </div>
                 ) : logs.length === 0 ? (
                     <div className="text-center py-12 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-2xl">
-                        <span className="material-symbols-rounded text-4xl text-slate-300 mb-2">history</span>
-                        <p className="text-slate-500">Nenhum treino registrado.</p>
+                        <span className="material-symbols-rounded text-4xl text-slate-400 dark:text-slate-500 mb-2" aria-hidden="true">history</span>
+                        <p className="text-slate-600 dark:text-slate-400 font-medium">Nenhum treino registrado.</p>
                     </div>
                 ) : (
                     <div className="space-y-4">
@@ -396,37 +415,41 @@ const History: React.FC = () => {
                         {logs.map(log => (
                             <div key={log.id} className="bg-white dark:bg-slate-800 rounded-3xl overflow-hidden shadow-soft border border-slate-100 dark:border-slate-700 transition-all">
                                 <button
+                                    type="button"
+                                    aria-expanded={expandedLog === log.id}
+                                    aria-controls={`log-details-${log.id}`}
+                                    aria-label={`Ver detalhes do treino ${log.workout?.name || 'sem nome'}`}
                                     onClick={() => setExpandedLog(expandedLog === log.id ? null : log.id)}
-                                    className="w-full p-5 flex items-center gap-4 text-left"
+                                    className="w-full p-5 flex items-center gap-4 text-left cursor-pointer"
                                 >
-                                    <div className="w-12 h-12 rounded-2xl bg-slate-50 dark:bg-slate-900 flex flex-col items-center justify-center text-slate-400">
+                                    <div className="w-12 h-12 rounded-2xl bg-slate-50 dark:bg-slate-900 flex flex-col items-center justify-center text-slate-500 dark:text-slate-400">
                                         <span className="text-[10px] font-black uppercase leading-none">{new Date(log.started_at).toLocaleString('pt-BR', { month: 'short' }).replace('.', '')}</span>
-                                        <span className="text-lg font-black leading-tight">{new Date(log.started_at).getDate()}</span>
+                                        <span className="text-lg font-black leading-tight text-slate-900 dark:text-white">{new Date(log.started_at).getDate()}</span>
                                     </div>
 
                                     <div className="flex-1 min-w-0">
                                         <h3 className="font-bold text-slate-900 dark:text-white truncate">{log.workout?.name || 'Treino s/ nome'}</h3>
-                                        <div className="flex items-center gap-3 mt-1 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                                        <div className="flex items-center gap-3 mt-1 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">
                                             <span className="flex items-center gap-1">
-                                                <span className="material-symbols-rounded text-[14px]">schedule</span>
+                                                <span className="material-symbols-rounded text-[14px]" aria-hidden="true">schedule</span>
                                                 {log.finished_at && log.started_at
                                                     ? `${Math.floor((new Date(log.finished_at).getTime() - new Date(log.started_at).getTime()) / 60000)} min`
                                                     : '-'}
                                             </span>
                                             <span className="flex items-center gap-1">
-                                                <span className="material-symbols-rounded text-[14px]">fitness_center</span>
+                                                <span className="material-symbols-rounded text-[14px]" aria-hidden="true">fitness_center</span>
                                                 {log.effort_rating || 0}/10 Esforço
                                             </span>
                                         </div>
                                     </div>
 
-                                    <div className={`text-slate-300 transition-transform duration-300 ${expandedLog === log.id ? 'rotate-90' : ''}`}>
-                                        <span className="material-symbols-rounded">chevron_right</span>
+                                    <div className={`text-slate-400 transition-transform duration-300 ${expandedLog === log.id ? 'rotate-90' : ''}`}>
+                                        <span className="material-symbols-rounded" aria-hidden="true">chevron_right</span>
                                     </div>
                                 </button>
 
                                 {expandedLog === log.id && (
-                                    <div className="px-5 pb-6 pt-2 space-y-4 border-t border-slate-50 dark:border-slate-700/50 animate-fade-in">
+                                    <div id={`log-details-${log.id}`} className="px-5 pb-6 pt-2 space-y-4 border-t border-slate-50 dark:border-slate-700/50 animate-fade-in">
                                         {/* Feedback Note */}
                                         {log.feedback_notes && (
                                             <div className="bg-sky-50 dark:bg-sky-900/10 p-4 rounded-2xl border border-sky-100 dark:border-sky-900/20">
@@ -492,7 +515,7 @@ const History: React.FC = () => {
                                                             if (!feedback) return null;
                                                             return (
                                                                 <div className="mt-2 p-3 rounded-xl bg-amber-50/50 dark:bg-amber-500/10 border border-amber-100/50 dark:border-amber-500/20 text-xs flex items-start gap-2">
-                                                                    <span className="material-symbols-rounded text-sm text-amber-500 mt-0.5">comment</span>
+                                                                    <span className="material-symbols-rounded text-sm text-amber-500 mt-0.5" aria-hidden="true">comment</span>
                                                                     <div className="flex-1">
                                                                         <span className="font-bold text-amber-600 dark:text-amber-400 block mb-0.5">Feedback do Exercício:</span>
                                                                         <p className="text-slate-600 dark:text-slate-300 italic">"{feedback.feedback_text}"</p>
@@ -511,7 +534,7 @@ const History: React.FC = () => {
                     </div>
                 )
                 }
-            </main >
+            </div>
         </MainLayout >
     );
 };

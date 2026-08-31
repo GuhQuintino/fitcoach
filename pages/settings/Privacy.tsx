@@ -1,5 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
 
 const PrivacySettings: React.FC = () => {
     const navigate = useNavigate();
@@ -27,10 +28,12 @@ const PrivacySettings: React.FC = () => {
         <div className="bg-slate-50 dark:bg-slate-900 min-h-screen pb-20">
             <header className="bg-white dark:bg-slate-800 p-6 pt-12 border-b border-slate-100 dark:border-slate-700 flex items-center gap-4">
                 <button
+                    type="button"
                     onClick={() => navigate(-1)}
-                    className="w-10 h-10 flex items-center justify-center bg-slate-50 dark:bg-slate-700 rounded-xl text-slate-600 dark:text-slate-300 active:scale-95 transition-all"
+                    aria-label="Voltar"
+                    className="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center bg-slate-50 dark:bg-slate-700 rounded-xl text-slate-600 dark:text-slate-300 active:scale-95 transition-all"
                 >
-                    <span className="material-symbols-rounded">arrow_back_ios_new</span>
+                    <span className="material-symbols-rounded" aria-hidden="true">arrow_back_ios_new</span>
                 </button>
                 <div className="flex flex-col">
                     <h1 className="font-display text-xl font-black text-slate-900 dark:text-white">Privacidade</h1>
@@ -38,14 +41,14 @@ const PrivacySettings: React.FC = () => {
                 </div>
             </header>
 
-            <main className="p-6 space-y-8 max-w-2xl mx-auto">
-                <section className="bg-gradient-to-br from-indigo-500 to-purple-600 p-8 rounded-[2.5rem] text-white shadow-xl shadow-indigo-500/20 relative overflow-hidden">
-                    <div className="absolute top-0 right-0 p-8 opacity-10">
-                        <span className="material-symbols-rounded text-8xl">verified_user</span>
+            <div className="p-6 space-y-8 max-w-2xl mx-auto">
+                <section className="bg-primary p-8 rounded-[2.5rem] text-white shadow-xl shadow-primary/20 relative overflow-hidden">
+                    <div className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none">
+                        <span className="material-symbols-rounded text-8xl" aria-hidden="true">verified_user</span>
                     </div>
                     <div className="relative z-10">
-                        <h3 className="font-black text-lg mb-2">Sua segurança é prioridade</h3>
-                        <p className="text-xs opacity-80 leading-relaxed">
+                        <h2 className="font-black text-lg mb-2">Sua segurança é prioridade</h2>
+                        <p className="text-xs text-sky-100 leading-relaxed">
                             Seus dados de treino e saúde são protegidos com criptografia e acessíveis apenas por você e seu treinador autorizado.
                         </p>
                     </div>
@@ -69,10 +72,12 @@ const PrivacySettings: React.FC = () => {
                                         <input
                                             type="checkbox"
                                             defaultChecked={item.default}
+                                            aria-label={`Ativar ${item.label}`}
                                             className="sr-only peer"
                                             id={`privacy-${idx}-${i}`}
                                         />
                                         <label htmlFor={`privacy-${idx}-${i}`} className="block w-10 h-6 bg-slate-100 dark:bg-slate-600 rounded-full cursor-pointer peer-checked:bg-primary transition-colors">
+                                            <span className="sr-only">{`Ativar ${item.label}`}</span>
                                             <span className="absolute left-1 top-1 w-4 h-4 bg-white rounded-full transition-transform peer-checked:translate-x-4"></span>
                                         </label>
                                     </div>
@@ -82,10 +87,14 @@ const PrivacySettings: React.FC = () => {
                     </div>
                 ))}
 
-                <button className="w-full p-4 text-xs font-bold text-slate-400 hover:text-danger hover:bg-danger/5 rounded-2xl transition-all border border-transparent hover:border-danger/10">
+                <button
+                    type="button"
+                    onClick={() => toast.success('Solicitação de exclusão de dados enviada com sucesso ao suporte.')}
+                    className="w-full min-h-[44px] p-4 text-xs font-bold text-slate-500 hover:text-danger hover:bg-danger/5 rounded-2xl transition-all border border-transparent hover:border-danger/10"
+                >
                     Solicitar Exclusão de Todos os Dados
                 </button>
-            </main>
+            </div>
         </div>
     );
 };

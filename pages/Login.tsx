@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { useNavigate, Link } from 'react-router-dom';
+import toast from 'react-hot-toast';
 
 const Login: React.FC = () => {
     const [loading, setLoading] = useState(false);
@@ -95,71 +96,84 @@ const Login: React.FC = () => {
                 </div>
 
                 {error && (
-                    <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-xs font-semibold rounded-2xl text-center border border-red-100 dark:border-red-900/30 animate-shake">
+                    <div
+                        role="alert"
+                        aria-live="assertive"
+                        className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 text-xs font-semibold rounded-2xl text-center border border-red-200 dark:border-red-900/30 animate-shake"
+                    >
                         {error}
                     </div>
                 )}
 
                 <form onSubmit={handleLogin} className="space-y-5">
                     <div className="space-y-1.5">
-                        <label className="block text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest px-1">Email</label>
+                        <label htmlFor="login-email" className="block text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-widest px-1">Email</label>
                         <div className="relative group">
-                            <span className="material-symbols-rounded absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-primary transition-colors">mail</span>
+                            <span className="material-symbols-rounded absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-primary transition-colors" aria-hidden="true">mail</span>
                             <input
+                                id="login-email"
                                 type="email"
                                 required
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
-                                className="w-full bg-slate-100/50 dark:bg-slate-900/50 border border-transparent dark:border-slate-700/50 rounded-2xl pl-12 pr-4 py-3.5 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary/20 focus:border-primary focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-medium"
+                                className="w-full bg-slate-100/50 dark:bg-slate-900/50 border border-transparent dark:border-slate-700/50 rounded-2xl pl-12 pr-4 py-3.5 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary/20 focus:border-primary focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-medium min-h-[44px]"
                                 placeholder="exemplo@email.com"
                             />
                         </div>
                     </div>
                     <div className="space-y-1.5">
-                        <label className="block text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest px-1">Senha</label>
+                        <label htmlFor="login-password" className="block text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-widest px-1">Senha</label>
                         <div className="relative group">
-                            <span className="material-symbols-rounded absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-primary transition-colors">lock</span>
+                            <span className="material-symbols-rounded absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-primary transition-colors" aria-hidden="true">lock</span>
                             <input
+                                id="login-password"
                                 type={showPassword ? "text" : "password"}
                                 required
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
-                                className="w-full bg-slate-100/50 dark:bg-slate-900/50 border border-transparent dark:border-slate-700/50 rounded-2xl pl-12 pr-12 py-3.5 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary/20 focus:border-primary focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-medium"
+                                className="w-full bg-slate-100/50 dark:bg-slate-900/50 border border-transparent dark:border-slate-700/50 rounded-2xl pl-12 pr-12 py-3.5 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary/20 focus:border-primary focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-medium min-h-[44px]"
                                 placeholder="••••••••"
                             />
                             <button
                                 type="button"
                                 onClick={() => setShowPassword(!showPassword)}
-                                className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
+                                aria-label={showPassword ? "Ocultar senha" : "Exibir senha"}
+                                className="min-w-[44px] min-h-[44px] absolute right-1 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors flex items-center justify-center"
                             >
-                                <span className="material-symbols-rounded text-xl">{showPassword ? 'visibility_off' : 'visibility'}</span>
+                                <span className="material-symbols-rounded text-xl" aria-hidden="true">{showPassword ? 'visibility_off' : 'visibility'}</span>
                             </button>
                         </div>
                     </div>
 
                     <div className="flex justify-end pt-1">
-                        <button type="button" className="text-xs font-bold text-primary hover:text-primary-dark transition-colors uppercase tracking-wider">Esqueceu a senha?</button>
+                        <button
+                            type="button"
+                            onClick={() => toast('Para redefinir sua senha, entre em contato com o suporte ou seu treinador.', { icon: 'ℹ️' })}
+                            className="text-xs font-bold text-primary hover:text-primary-dark transition-colors uppercase tracking-wider min-h-[44px] px-2 flex items-center"
+                        >
+                            Esqueceu a senha?
+                        </button>
                     </div>
 
                     <button
                         type="submit"
                         disabled={loading}
-                        className="w-full bg-gradient-to-r from-primary to-emerald-500 hover:from-primary-dark hover:to-emerald-600 text-white font-bold py-4 rounded-2xl transition-all shadow-xl shadow-primary/20 active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed group relative overflow-hidden"
+                        aria-label="Entrar na conta"
+                        className="w-full min-h-[44px] bg-primary hover:bg-sky-600 text-white font-bold py-4 rounded-2xl transition-all shadow-xl shadow-primary/20 active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed group relative overflow-hidden flex items-center justify-center"
                     >
-                        <span className="relative z-10 flex items-center justify-center gap-2 text-lg">
+                        <span className="relative z-10 flex items-center justify-center gap-2 text-base font-bold">
                             {loading ? (
                                 <>
-                                    <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
+                                    <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin" role="status"></div>
                                     <span>Entrando...</span>
                                 </>
                             ) : (
                                 <>
                                     <span>Entrar na conta</span>
-                                    <span className="material-symbols-rounded group-hover:translate-x-1 transition-transform">arrow_forward</span>
+                                    <span className="material-symbols-rounded group-hover:translate-x-1 transition-transform" aria-hidden="true">arrow_forward</span>
                                 </>
                             )}
                         </span>
-                        <div className="absolute inset-0 bg-white/20 translate-y-[100%] group-hover:translate-y-0 transition-transform duration-300"></div>
                     </button>
                 </form>
 
@@ -174,7 +188,7 @@ const Login: React.FC = () => {
             </div>
 
             <p className="mt-8 text-xs text-slate-400 dark:text-slate-600 font-bold uppercase tracking-widest">
-                Fitcoach Pro © 2025
+                Fitcoach Pro © {new Date().getFullYear()}
             </p>
         </div>
     );

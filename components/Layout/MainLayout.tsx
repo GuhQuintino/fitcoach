@@ -3,20 +3,20 @@ import { useAuth } from '../../contexts/AuthContext';
 import BottomNav from '../BottomNav';
 import OfflineBanner from '../shared/OfflineBanner';
 
-import { Toaster } from 'react-hot-toast'; // Optional, but good for feedback
 
 interface MainLayoutProps {
     children: React.ReactNode;
+    className?: string;
 }
 
-const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
+const MainLayout: React.FC<MainLayoutProps> = ({ children, className = '' }) => {
     const { session, loading } = useAuth();
 
     // Determine if we should show navigation
     const showNav = !!session;
 
     return (
-        <div className="min-h-screen w-full bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-50 transition-colors duration-300 overflow-x-hidden">
+        <div className={`min-h-screen w-full bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-50 transition-colors duration-300 overflow-x-hidden ${className}`}>
             {/* Global Offline / Sync Banner */}
             <OfflineBanner />
 
@@ -34,15 +34,6 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                 {/* Navigation */}
                 {showNav && <BottomNav />}
             </div>
-
-            {/* Global Toaster for Notifications */}
-            <Toaster
-                position="top-center"
-                toastOptions={{
-                    className: 'glass text-sm font-medium text-slate-900 dark:text-white shadow-elevated',
-                    duration: 3000,
-                }}
-            />
         </div>
     );
 };

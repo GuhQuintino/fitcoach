@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import MainLayout from '../../layouts/MainLayout';
+import MainLayout from '../../components/Layout/MainLayout';
 import { supabase } from '../../lib/supabaseClient';
 import { useAuth } from '../../contexts/AuthContext';
 import { Link } from 'react-router-dom';
@@ -25,8 +25,6 @@ const Updates: React.FC = () => {
             fiveDaysFromNow.setDate(now.getDate() + 5);
 
             // 1. Fetch Students with Expiring Plans or Expired
-            // Expired: consultancy_expires_at < now (AND status = active)
-            // Expiring: consultancy_expires_at <= fiveDaysFromNow (AND status = active)
             const { data: studentsData, error: studentsError } = await supabase
                 .from('students_data')
                 .select(`
@@ -49,16 +47,12 @@ const Updates: React.FC = () => {
                 if (!s.consultancy_expires_at) return false;
 
                 const exp = new Date(s.consultancy_expires_at);
-                // Check if expired or expiring soon
                 return exp <= fiveDaysFromNow;
             }) || [];
 
             setExpiringStudents(expiringOrExpired);
 
             // 2. Fetch Active Students without Active Routine
-            // We need to check if they have any active assignment in 'student_assignments'
-
-            // First get all active student IDs
             const activeStudentIds = studentsData?.filter((s: any) => s.profiles?.status === 'active').map((s: any) => s.id) || [];
 
             if (activeStudentIds.length > 0) {
@@ -99,8 +93,12 @@ const Updates: React.FC = () => {
     return (
         <MainLayout className="pb-24">
             <header className="px-5 py-6 flex items-center gap-4">
-                <Link to="/coach/dashboard" className="w-10 h-10 rounded-xl bg-white dark:bg-slate-800 flex items-center justify-center text-slate-500 shadow-sm border border-slate-100 dark:border-slate-700">
-                    <span className="material-symbols-rounded">arrow_back</span>
+                <Link
+                    to="/coach/dashboard"
+                    aria-label="Voltar para a dashboard"
+                    className="w-11 h-11 min-w-[44px] min-h-[44px] rounded-xl bg-white dark:bg-slate-800 flex items-center justify-center text-slate-500 shadow-sm border border-slate-100 dark:border-slate-700 hover:text-sky-500 transition-colors"
+                >
+                    <span className="material-symbols-rounded" aria-hidden="true">arrow_back</span>
                 </Link>
                 <div>
                     <h1 className="text-2xl font-bold text-slate-900 dark:text-white font-display">Atualizações</h1>
@@ -108,12 +106,12 @@ const Updates: React.FC = () => {
                 </div>
             </header>
 
-            <main className="px-5 space-y-8">
+            <div className="px-5 space-y-8">
                 {/* Section: Pending Approvals */}
                 {pendingStudents.length > 0 && (
                     <section>
                         <div className="flex items-center gap-2 mb-4">
-                            <span className="material-symbols-rounded text-blue-500">person_add</span>
+                            <span className="material-symbols-rounded text-blue-500" aria-hidden="true">person_add</span>
                             <h2 className="text-lg font-bold text-slate-900 dark:text-white">Aprovações Pendentes</h2>
                         </div>
 
@@ -122,9 +120,12 @@ const Updates: React.FC = () => {
                                 <div key={student.id} className="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-soft border border-slate-100 dark:border-slate-700 flex items-center justify-between animate-pulse-slow">
                                     <div className="flex items-center gap-3">
                                         <img
-                                            src={student.profiles?.avatar_url || `https://ui-avatars.com/api/?name=${student.profiles?.full_name || 'Aluno'}&background=random`}
-                                            alt=""
-                                            className="w-10 h-10 rounded-full bg-slate-100"
+                                            src={student.profiles?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(student.profiles?.full_name || 'Aluno')}&background=random`}
+                                            alt={`Avatar de ${student.profiles?.full_name || 'Aluno'}`}
+                                            loading="lazy"
+                                            width="40"
+                                            height="40"
+                                            className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-700 object-cover"
                                         />
                                         <div>
                                             <h3 className="font-bold text-slate-900 dark:text-white text-sm">{student.profiles?.full_name || 'Usuário'}</h3>
@@ -132,8 +133,9 @@ const Updates: React.FC = () => {
                                         </div>
                                     </div>
                                     <Link
-                                        to={`/coach/students`}
-                                        className="px-3 py-1.5 bg-blue-500 text-white text-xs font-bold rounded-lg hover:bg-blue-600 shadow-md shadow-blue-500/20 transition-all active:scale-95"
+                                        to="/coach/students"
+                                        aria-label={`Ver detalhes do aluno ${student.profiles?.full_name || 'Aluno'}`}
+                                        className="px-3 py-1.5 min-h-[36px] bg-blue-500 text-white text-xs font-bold rounded-lg hover:bg-blue-600 shadow-md shadow-blue-500/20 transition-all active:scale-95 flex items-center"
                                     >
                                         Ver Aluno
                                     </Link>
@@ -142,10 +144,11 @@ const Updates: React.FC = () => {
                         </div>
                     </section>
                 )}
+
                 {/* Section: Expiring Plans */}
                 <section>
                     <div className="flex items-center gap-2 mb-4">
-                        <span className="material-symbols-rounded text-amber-500">warning</span>
+                        <span className="material-symbols-rounded text-amber-500" aria-hidden="true">warning</span>
                         <h2 className="text-lg font-bold text-slate-900 dark:text-white">Planos Vencendo</h2>
                     </div>
 
@@ -167,9 +170,12 @@ const Updates: React.FC = () => {
                                     <div key={student.id} className="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-soft border border-slate-100 dark:border-slate-700 flex items-center justify-between">
                                         <div className="flex items-center gap-3">
                                             <img
-                                                src={student.profiles?.avatar_url || `https://ui-avatars.com/api/?name=${student.profiles?.full_name || 'Aluno'}&background=random`}
-                                                alt=""
-                                                className="w-10 h-10 rounded-full bg-slate-100"
+                                                src={student.profiles?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(student.profiles?.full_name || 'Aluno')}&background=random`}
+                                                alt={`Avatar de ${student.profiles?.full_name || 'Aluno'}`}
+                                                loading="lazy"
+                                                width="40"
+                                                height="40"
+                                                className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-700 object-cover"
                                             />
                                             <div>
                                                 <h3 className="font-bold text-slate-900 dark:text-white text-sm">{student.profiles?.full_name || 'Usuário'}</h3>
@@ -180,7 +186,8 @@ const Updates: React.FC = () => {
                                         </div>
                                         <Link
                                             to="/coach/students"
-                                            className="px-3 py-1.5 bg-primary/10 text-primary text-xs font-bold rounded-lg hover:bg-primary/20 transition-colors"
+                                            aria-label={`Renovar plano de ${student.profiles?.full_name || 'Aluno'}`}
+                                            className="px-3 py-1.5 min-h-[36px] bg-primary/10 text-primary text-xs font-bold rounded-lg hover:bg-primary/20 transition-colors flex items-center"
                                         >
                                             Renovar
                                         </Link>
@@ -194,7 +201,7 @@ const Updates: React.FC = () => {
                 {/* Section: Missing Routines */}
                 <section>
                     <div className="flex items-center gap-2 mb-4">
-                        <span className="material-symbols-rounded text-red-500">assignment_late</span>
+                        <span className="material-symbols-rounded text-red-500" aria-hidden="true">assignment_late</span>
                         <h2 className="text-lg font-bold text-slate-900 dark:text-white">Sem Treino Ativo</h2>
                     </div>
 
@@ -212,18 +219,22 @@ const Updates: React.FC = () => {
                                 <div key={student.id} className="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-soft border border-slate-100 dark:border-slate-700 flex items-center justify-between">
                                     <div className="flex items-center gap-3">
                                         <img
-                                            src={student.profiles?.avatar_url || `https://ui-avatars.com/api/?name=${student.profiles?.full_name || 'Aluno'}&background=random`}
-                                            alt=""
-                                            className="w-10 h-10 rounded-full bg-slate-100"
+                                            src={student.profiles?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(student.profiles?.full_name || 'Aluno')}&background=random`}
+                                            alt={`Avatar de ${student.profiles?.full_name || 'Aluno'}`}
+                                            loading="lazy"
+                                            width="40"
+                                            height="40"
+                                            className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-700 object-cover"
                                         />
                                         <div>
                                             <h3 className="font-bold text-slate-900 dark:text-white text-sm">{student.profiles?.full_name || 'Usuário'}</h3>
-                                            <p className="text-xs text-red-400">Sem rotina atribuída</p>
+                                            <p className="text-xs text-red-400 font-medium">Sem rotina atribuída</p>
                                         </div>
                                     </div>
                                     <Link
-                                        to={`/coach/library`}
-                                        className="px-3 py-1.5 bg-primary/10 text-primary text-xs font-bold rounded-lg hover:bg-primary/20 transition-colors"
+                                        to="/coach/library"
+                                        aria-label={`Atribuir rotina para ${student.profiles?.full_name || 'Aluno'}`}
+                                        className="px-3 py-1.5 min-h-[36px] bg-primary/10 text-primary text-xs font-bold rounded-lg hover:bg-primary/20 transition-colors flex items-center"
                                     >
                                         Atribuir
                                     </Link>
@@ -232,7 +243,7 @@ const Updates: React.FC = () => {
                         )}
                     </div>
                 </section>
-            </main>
+            </div>
         </MainLayout>
     );
 };

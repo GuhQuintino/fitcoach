@@ -9,7 +9,7 @@ interface VideoThumbnailProps {
 // Global cache to prevent re-generating thumbnails during session
 const thumbnailCache: Record<string, string> = {};
 
-const VideoThumbnail: React.FC<VideoThumbnailProps> = ({ src, className }) => {
+const VideoThumbnail: React.FC<VideoThumbnailProps> = ({ src, alt = 'Thumbnail de vídeo', className }) => {
     const [thumbnail, setThumbnail] = useState<string | null>(thumbnailCache[src] || null);
     const [isVisible, setIsVisible] = useState(false);
     const containerRef = useRef<HTMLDivElement>(null);
@@ -75,10 +75,10 @@ const VideoThumbnail: React.FC<VideoThumbnailProps> = ({ src, className }) => {
             {thumbnail ? (
                 // Generated Thumbnail
                 <>
-                    <img src={thumbnail} className="w-full h-full object-cover" alt="Thumbnail" />
+                    <img src={thumbnail} className="w-full h-full object-cover" alt={alt} loading="lazy" />
                     {/* Play Icon Overlay */}
                     <div className="absolute inset-0 bg-black/10 flex items-center justify-center">
-                        <span className="material-symbols-rounded text-white text-xl drop-shadow-md">play_circle</span>
+                        <span className="material-symbols-rounded text-white text-xl drop-shadow-md" aria-hidden="true">play_circle</span>
                     </div>
                 </>
             ) : isVisible ? (

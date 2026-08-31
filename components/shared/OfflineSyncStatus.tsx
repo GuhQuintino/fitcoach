@@ -34,18 +34,20 @@ const OfflineSyncStatus: React.FC = () => {
             {/* O botão de envio só aparece quando houver internet real */}
             {isOnline && (
                 <button
+                    type="button"
                     onClick={() => syncNow()}
                     disabled={isSyncing}
-                    className="px-3 py-2 bg-emerald-500 hover:bg-emerald-600 active:scale-95 text-white text-xs font-bold rounded-xl shadow-sm transition-all flex items-center gap-1.5 flex-shrink-0 disabled:opacity-50"
+                    aria-label="Sincronizar dados pendentes agora"
+                    className="min-h-[44px] px-4 py-2.5 bg-emerald-500 hover:bg-emerald-600 active:scale-95 text-white text-xs font-bold rounded-xl shadow-sm transition-all flex items-center justify-center gap-1.5 flex-shrink-0 disabled:opacity-50"
                 >
                     {isSyncing ? (
                         <>
-                            <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                            <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" aria-hidden="true"></div>
                             <span>Enviando</span>
                         </>
                     ) : (
                         <>
-                            <span className="material-symbols-rounded text-sm">cloud_upload</span>
+                            <span className="material-symbols-rounded text-base" aria-hidden="true">cloud_upload</span>
                             <span>Enviar</span>
                         </>
                     )}

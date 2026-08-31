@@ -211,8 +211,9 @@ const StudentDashboard: React.FC = () => {
 
     if (loading) return (
         <MainLayout>
-            <div className="flex items-center justify-center h-[80vh]">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+            <div className="flex items-center justify-center h-[80vh]" role="status" aria-live="polite">
+                <div className="w-10 h-10 rounded-full border-2 border-primary border-t-transparent animate-spin"></div>
+                <span className="sr-only">Carregando painel do aluno...</span>
             </div>
         </MainLayout>
     );
@@ -237,9 +238,10 @@ const StudentDashboard: React.FC = () => {
                             href={formatToWhatsappUrl(coach.phone)!}
                             target="_blank"
                             rel="noreferrer"
-                            className="flex items-center gap-2 px-6 py-3 bg-[#25D366] text-white font-bold rounded-xl shadow-lg hover:shadow-xl hover:bg-[#20bd5a] transition-all transform active:scale-95"
+                            aria-label={`Falar com coach ${coach?.full_name || ''} no WhatsApp`}
+                            className="flex items-center gap-2 px-6 py-3 min-h-[44px] bg-whatsapp text-white font-bold rounded-xl shadow-lg shadow-whatsapp/20 hover:shadow-xl hover:bg-whatsapp-dark transition-all transform active:scale-95"
                         >
-                            <span className="material-symbols-rounded">chat</span>
+                            <span className="material-symbols-rounded" aria-hidden="true">chat</span>
                             Falar com Coach
                         </a>
                     )}
@@ -254,7 +256,7 @@ const StudentDashboard: React.FC = () => {
             <MainLayout>
                 <div className="flex flex-col items-center justify-center min-h-[80vh] px-6 text-center space-y-6">
                     <div className="w-24 h-24 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center">
-                        <span className="material-symbols-rounded text-5xl text-red-500">event_busy</span>
+                        <span className="material-symbols-rounded text-5xl text-red-500" aria-hidden="true">event_busy</span>
                     </div>
                     <div>
                         <h1 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Plano Vencido</h1>
@@ -269,9 +271,10 @@ const StudentDashboard: React.FC = () => {
                             href={formatToWhatsappUrl(coach.phone)!}
                             target="_blank"
                             rel="noreferrer"
-                            className="flex items-center gap-2 px-6 py-3 bg-[#25D366] text-white font-bold rounded-xl shadow-lg hover:shadow-xl hover:bg-[#20bd5a] transition-all transform active:scale-95"
+                            aria-label={`Renovar plano via WhatsApp com ${coach?.full_name || 'coach'}`}
+                            className="flex items-center gap-2 px-6 py-3 min-h-[44px] bg-whatsapp text-white font-bold rounded-xl shadow-lg shadow-whatsapp/20 hover:shadow-xl hover:bg-whatsapp-dark transition-all transform active:scale-95"
                         >
-                            <span className="material-symbols-rounded">chat</span>
+                            <span className="material-symbols-rounded" aria-hidden="true">chat</span>
                             Renovar Agora
                         </a>
                     )}
@@ -289,7 +292,12 @@ const StudentDashboard: React.FC = () => {
                     <div className="flex items-center gap-3">
                         <div className="relative">
                             {profile?.avatar_url ? (
-                                <img src={getOptimizedImageUrl(profile.avatar_url, 120, 120)} alt="Profile" className="w-14 h-14 rounded-2xl object-cover border-2 border-white dark:border-slate-700 shadow-sm" />
+                                <img
+                                    src={getOptimizedImageUrl(profile.avatar_url, 120, 120)}
+                                    alt={`Foto de perfil de ${profile?.full_name || 'Aluno'}`}
+                                    loading="lazy"
+                                    className="w-14 h-14 rounded-2xl object-cover border-2 border-white dark:border-slate-700 shadow-sm"
+                                />
                             ) : (
                                 <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-700 dark:to-slate-800 flex items-center justify-center text-slate-400 font-bold border-2 border-white dark:border-slate-700 shadow-sm">
                                     <span className="text-xl">{profile?.full_name?.charAt(0)}</span>
@@ -313,10 +321,14 @@ const StudentDashboard: React.FC = () => {
                             </div>
                         )}
                         <ThemeToggle />
-                        <button className="w-10 h-10 rounded-full bg-slate-50 dark:bg-slate-700/50 flex items-center justify-center text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors relative active:scale-95">
-                            <span className="material-symbols-rounded">notifications</span>
+                        <Link
+                            to="/student/settings/notifications"
+                            aria-label="Notificações"
+                            className="min-w-[44px] min-h-[44px] w-11 h-11 rounded-full bg-slate-50 dark:bg-slate-700/50 flex items-center justify-center text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors relative active:scale-95"
+                        >
+                            <span className="material-symbols-rounded" aria-hidden="true">notifications</span>
                             <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-red-500 rounded-full border border-white dark:border-slate-800"></span>
-                        </button>
+                        </Link>
                     </div>
                 </div>
 
@@ -325,7 +337,7 @@ const StudentDashboard: React.FC = () => {
                     <div className="flex items-center justify-between bg-slate-50 dark:bg-slate-700/30 rounded-2xl p-4 border border-slate-100 dark:border-slate-700/50">
                         <div className="flex items-center gap-3">
                             <div className="w-10 h-10 rounded-full border-[3px] border-primary/20 border-t-primary flex items-center justify-center rotate-45">
-                                <span className="material-symbols-rounded text-primary -rotate-45">fitness_center</span>
+                                <span className="material-symbols-rounded text-primary -rotate-45" aria-hidden="true">fitness_center</span>
                             </div>
                             <div>
                                 <p className="text-xs text-slate-600 dark:text-slate-300 font-medium">Plano Atual</p>
@@ -339,7 +351,7 @@ const StudentDashboard: React.FC = () => {
                                         style={{ width: `${(gamification.current_xp % 1000) / 10}%` }}
                                     ></div>
                                 </div>
-                                <p className="text-[10px] text-slate-400 mt-1 font-medium">Nível {gamification.level} ({gamification.current_xp} XP)</p>
+                                <p className="text-[10px] text-slate-600 dark:text-slate-300 mt-1 font-bold">Nível {gamification.level} ({gamification.current_xp} XP)</p>
                             </div>
                         </div>
                         <div className="text-right">
@@ -356,7 +368,7 @@ const StudentDashboard: React.FC = () => {
                 )}
             </header>
 
-            <main className="px-6 -mt-4 space-y-6 relative z-20">
+            <div className="px-6 -mt-4 space-y-6 relative z-20">
                 <PWAInstallPrompt />
                 <OfflineSyncStatus />
                 {/* Active Workout Banner */}
@@ -364,8 +376,8 @@ const StudentDashboard: React.FC = () => {
                     <div className="bg-slate-900 dark:bg-slate-800 rounded-3xl p-5 shadow-xl border border-white/5 animate-slide-up">
                         <div className="flex items-center gap-4">
                             <div className="w-12 h-12 rounded-2xl bg-sky-500/20 flex items-center justify-center text-sky-500 relative overflow-hidden">
-                                <div className="absolute inset-0 bg-sky-500/10 animate-pulse"></div>
-                                <span className="material-symbols-rounded text-2xl relative z-10">timer</span>
+                                <div className="absolute inset-0 bg-sky-500/10 animate-pulse pointer-events-none"></div>
+                                <span className="material-symbols-rounded text-2xl relative z-10" aria-hidden="true">timer</span>
                             </div>
                             <div className="flex-1">
                                 <h4 className="text-white font-bold">Treino em andamento!</h4>
@@ -374,14 +386,18 @@ const StudentDashboard: React.FC = () => {
                         </div>
                         <div className="grid grid-cols-2 gap-3 mt-4">
                             <button
+                                type="button"
                                 onClick={handleDiscardWorkout}
-                                className="py-2.5 rounded-xl text-slate-400 font-bold text-sm bg-slate-800 hover:bg-slate-700 transition-colors border border-white/5"
+                                aria-label="Descartar treino em andamento"
+                                className="min-h-[44px] py-2.5 rounded-xl text-slate-400 font-bold text-sm bg-slate-800 hover:bg-slate-700 transition-colors border border-white/5 flex items-center justify-center"
                             >
                                 Descartar
                             </button>
                             <button
+                                type="button"
                                 onClick={() => navigate(`/student/workout/${activeWorkout.workoutId}`)}
-                                className="py-2.5 rounded-xl bg-sky-500 text-white font-bold text-sm shadow-lg shadow-sky-500/20 active:scale-[0.98] transition-all"
+                                aria-label="Continuar treino em andamento"
+                                className="min-h-[44px] py-2.5 rounded-xl bg-primary text-white font-bold text-sm shadow-lg shadow-primary/20 active:scale-[0.98] transition-all flex items-center justify-center"
                             >
                                 Continuar
                             </button>
@@ -394,9 +410,10 @@ const StudentDashboard: React.FC = () => {
                     {/* Card 1: Active Workout */}
                     <div className="snap-center shrink-0 w-full relative">
                         {routine ? (
-                            <div
-                                onClick={() => navigate('/student/selection')}
-                                className="bg-gradient-to-br from-primary to-primary-dark rounded-[2rem] p-6 text-white shadow-xl shadow-primary/20 relative overflow-hidden h-48 flex flex-col justify-between group cursor-pointer transition-transform active:scale-[0.98]"
+                            <Link
+                                to="/student/selection"
+                                aria-label={`Ver treinos da rotina ${routine.routines.name}`}
+                                className="bg-gradient-to-br from-primary to-primary-dark rounded-[2rem] p-6 text-white shadow-xl shadow-primary/20 relative overflow-hidden h-48 flex flex-col justify-between group cursor-pointer transition-transform active:scale-[0.98] block"
                             >
                                 <div className="absolute top-0 right-0 w-40 h-40 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl group-hover:bg-white/20 transition-colors"></div>
                                 <div className="absolute bottom-0 left-0 w-32 h-32 bg-black/10 rounded-full translate-y-1/2 -translate-x-1/2 blur-2xl"></div>
@@ -405,18 +422,18 @@ const StudentDashboard: React.FC = () => {
                                     <div>
                                         <div className="flex items-center gap-2 mb-2">
                                             <span className="px-2 py-0.5 bg-white/20 backdrop-blur-md rounded-lg text-[10px] font-bold uppercase tracking-wide border border-white/10">Treino Atual</span>
-                                            <span className="px-2 py-0.5 bg-green-500/20 text-green-100 backdrop-blur-md rounded-lg text-[10px] font-bold uppercase tracking-wide border border-green-400/20">Ativo</span>
+                                            <span className="px-2 py-0.5 bg-emerald-500/20 text-emerald-100 backdrop-blur-md rounded-lg text-[10px] font-bold uppercase tracking-wide border border-emerald-400/20">Ativo</span>
                                         </div>
                                         <h2 className="text-2xl font-bold font-display leading-tight">{routine.routines.name}</h2>
                                     </div>
                                     <div className="w-10 h-10 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center border border-white/10">
-                                        <span className="material-symbols-rounded font-bold arrow-forward">arrow_forward</span>
+                                        <span className="material-symbols-rounded font-bold arrow-forward" aria-hidden="true">arrow_forward</span>
                                     </div>
                                 </div>
                                 <div className="relative z-10">
                                     <p className="text-blue-100 text-sm">Toque para ver seus treinos</p>
                                 </div>
-                            </div>
+                            </Link>
                         ) : (
                             <div className="bg-white dark:bg-slate-800 rounded-[2rem] p-6 text-center border-2 border-dashed border-slate-200 dark:border-slate-700 h-48 flex flex-col items-center justify-center gap-3">
                                 <div className="w-12 h-12 rounded-full bg-slate-50 dark:bg-slate-700 flex items-center justify-center text-slate-300">
@@ -438,19 +455,19 @@ const StudentDashboard: React.FC = () => {
                     </div>
 
                     <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-4">
-                        <Link to="/student/history" className="bg-gradient-to-br from-emerald-50/80 to-white dark:from-emerald-900/20 dark:to-slate-800 p-5 rounded-2xl shadow-sm border border-emerald-100/50 dark:border-emerald-700/30 active:scale-[0.98] transition-all hover:shadow-emerald-100/50 dark:hover:shadow-none group relative overflow-hidden">
-                            <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-100/20 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2"></div>
-                            <div className="w-12 h-12 bg-white dark:bg-emerald-900/40 rounded-2xl flex items-center justify-center text-emerald-500 dark:text-emerald-400 mb-4 group-hover:scale-110 transition-transform shadow-sm relative z-10">
-                                <span className="material-symbols-rounded text-2xl">history</span>
+                        <Link to="/student/history" className="bg-gradient-to-br from-emerald-50/80 to-white dark:from-emerald-900/20 dark:to-slate-800 p-5 rounded-2xl shadow-sm border border-emerald-100/50 dark:border-emerald-700/30 active:scale-[0.98] transition-all duration-200 ease-out hover:shadow-emerald-100/50 dark:hover:shadow-none group relative overflow-hidden">
+                            <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-100/20 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2" aria-hidden="true"></div>
+                            <div className="w-12 h-12 bg-white dark:bg-emerald-900/40 rounded-2xl flex items-center justify-center text-emerald-500 dark:text-emerald-400 mb-4 group-hover:scale-110 transition-transform duration-200 ease-out shadow-sm relative z-10">
+                                <span className="material-symbols-rounded text-2xl" aria-hidden="true">history</span>
                             </div>
                             <span className="font-bold text-lg text-slate-900 dark:text-white block mb-0.5 relative z-10">Histórico</span>
                             <span className="text-xs text-slate-500 dark:text-slate-400 font-medium relative z-10">{workoutCount} treinos feitos</span>
                         </Link>
 
-                        <Link to="/student/evolution" className="bg-gradient-to-br from-purple-50/80 to-white dark:from-purple-900/20 dark:to-slate-800 p-5 rounded-2xl shadow-sm border border-purple-100/50 dark:border-purple-700/30 active:scale-[0.98] transition-all hover:shadow-purple-100/50 dark:hover:shadow-none group relative overflow-hidden">
-                            <div className="absolute top-0 right-0 w-24 h-24 bg-purple-100/20 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2"></div>
-                            <div className="w-12 h-12 bg-white dark:bg-purple-900/40 rounded-2xl flex items-center justify-center text-purple-500 dark:text-purple-400 mb-4 group-hover:scale-110 transition-transform shadow-sm relative z-10">
-                                <span className="material-symbols-rounded text-2xl">analytics</span>
+                        <Link to="/student/evolution" className="bg-gradient-to-br from-purple-50/80 to-white dark:from-purple-900/20 dark:to-slate-800 p-5 rounded-2xl shadow-sm border border-purple-100/50 dark:border-purple-700/30 active:scale-[0.98] transition-all duration-200 ease-out hover:shadow-purple-100/50 dark:hover:shadow-none group relative overflow-hidden">
+                            <div className="absolute top-0 right-0 w-24 h-24 bg-purple-100/20 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2" aria-hidden="true"></div>
+                            <div className="w-12 h-12 bg-white dark:bg-purple-900/40 rounded-2xl flex items-center justify-center text-purple-500 dark:text-purple-400 mb-4 group-hover:scale-110 transition-transform duration-200 ease-out shadow-sm relative z-10">
+                                <span className="material-symbols-rounded text-2xl" aria-hidden="true">analytics</span>
                             </div>
                             <span className="font-bold text-lg text-slate-900 dark:text-white block mb-0.5 relative z-10">Evolução</span>
                             <span className="text-xs text-slate-500 dark:text-slate-400 font-medium relative z-10">Seus recordes</span>
@@ -462,11 +479,12 @@ const StudentDashboard: React.FC = () => {
                                 href={formatToWhatsappUrl(coach.phone, `Olá ${coach.full_name || 'Coach'}! Sou o(a) ${profile?.full_name?.split(' ')[0] || 'aluno(a)'}.`)!}
                                 target="_blank"
                                 rel="noreferrer"
-                                className="bg-gradient-to-br from-[#25D366]/10 to-white dark:from-[#25D366]/20 dark:to-slate-800 p-5 rounded-2xl shadow-sm border border-[#25D366]/20 dark:border-[#25D366]/30 active:scale-[0.98] transition-all hover:shadow-[#25D366]/10 dark:hover:shadow-none group relative overflow-hidden"
+                                aria-label={`Conversar com coach ${coach.full_name || ''} no WhatsApp`}
+                                className="bg-gradient-to-br from-whatsapp/10 to-white dark:from-whatsapp/20 dark:to-slate-800 p-5 rounded-2xl shadow-sm border border-whatsapp/20 dark:border-whatsapp/30 active:scale-[0.98] transition-all hover:shadow-whatsapp/10 dark:hover:shadow-none group relative overflow-hidden"
                             >
-                                <div className="absolute top-0 right-0 w-24 h-24 bg-[#25D366]/10 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2"></div>
-                                <div className="w-12 h-12 bg-white dark:bg-[#25D366]/20 rounded-2xl flex items-center justify-center text-[#25D366] mb-4 group-hover:scale-110 transition-transform shadow-sm relative z-10">
-                                    <svg className="w-6 h-6 fill-current" viewBox="0 0 24 24">
+                                <div className="absolute top-0 right-0 w-24 h-24 bg-whatsapp/10 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2" aria-hidden="true"></div>
+                                <div className="w-12 h-12 bg-white dark:bg-whatsapp/20 rounded-2xl flex items-center justify-center text-whatsapp mb-4 group-hover:scale-110 transition-transform shadow-sm relative z-10">
+                                    <svg className="w-6 h-6 fill-current" viewBox="0 0 24 24" aria-hidden="true">
                                         <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.414 0 .018 5.393 0 12.029c0 2.119.554 4.188 1.604 6.04L0 24l6.097-1.6c1.789.976 3.805 1.491 5.948 1.493h.005c6.634 0 12.032-5.396 12.036-12.033a11.83 11.83 0 00-3.479-8.502z" />
                                     </svg>
                                 </div>
@@ -479,8 +497,8 @@ const StudentDashboard: React.FC = () => {
 
                 {/* Daily Motivation / Extras */}
                 <div className="bg-indigo-900 rounded-3xl p-6 text-white relative overflow-hidden shadow-lg shadow-indigo-900/20">
-                    <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500/30 rounded-full blur-3xl"></div>
-                    <div className="absolute bottom-0 left-0 w-32 h-32 bg-blue-500/30 rounded-full blur-3xl"></div>
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500/30 rounded-full blur-3xl" aria-hidden="true"></div>
+                    <div className="absolute bottom-0 left-0 w-32 h-32 bg-blue-500/30 rounded-full blur-3xl" aria-hidden="true"></div>
 
                     <div className="relative z-10 flex items-start justify-between">
                         <div>
@@ -490,11 +508,11 @@ const StudentDashboard: React.FC = () => {
                             </p>
                         </div>
                         <div className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center backdrop-blur-md">
-                            <span className="material-symbols-rounded text-indigo-100">lightbulb</span>
+                            <span className="material-symbols-rounded text-indigo-100" aria-hidden="true">lightbulb</span>
                         </div>
                     </div>
                 </div>
-            </main>
+            </div>
         </MainLayout>
     );
 };

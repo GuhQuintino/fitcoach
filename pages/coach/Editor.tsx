@@ -3,11 +3,35 @@ import MainLayout from '../../components/Layout/MainLayout';
 import { supabase } from '../../lib/supabaseClient';
 import { useAuth } from '../../contexts/AuthContext';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
-import ExerciseCard from '../../components/coach/editor/ExerciseCard';
+import ExerciseCard, { ExerciseItemData } from '../../components/coach/editor/ExerciseCard';
 import Exercises from './Exercises'; // Correct component for exercises
 import WorkoutImportModal from '../../components/coach/editor/WorkoutImportModal';
 import toast from 'react-hot-toast';
 import ExerciseFormModal from '../../components/coach/exercises/ExerciseFormModal';
+
+export interface WorkoutData {
+    id: string;
+    name: string;
+    routine_id?: string;
+    student_id?: string;
+    order_index?: number;
+    description?: string;
+    banner_url?: string;
+    routines?: {
+        id: string;
+        name: string;
+    } | null;
+}
+
+export interface EditableExercise {
+    id: string;
+    name: string;
+    muscle_group?: string;
+    video_url?: string;
+    description?: string;
+    exercise_type?: 'reps' | 'time' | 'cardio';
+    muscle_weights?: Record<string, number>;
+}
 
 const Editor: React.FC = () => {
     const { user } = useAuth();
@@ -16,8 +40,8 @@ const Editor: React.FC = () => {
     const workoutId = searchParams.get('workout_id');
     const studentId = searchParams.get('student_id');
 
-    const [workout, setWorkout] = useState<any>(null);
-    const [items, setItems] = useState<any[]>([]);
+    const [workout, setWorkout] = useState<WorkoutData | null>(null);
+    const [items, setItems] = useState<ExerciseItemData[]>([]);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [lastSaved, setLastSaved] = useState<Date | null>(null);
@@ -25,7 +49,7 @@ const Editor: React.FC = () => {
     const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
     // Estados e função para edição inline de exercícios
-    const [editingExercise, setEditingExercise] = useState<any | null>(null);
+    const [editingExercise, setEditingExercise] = useState<EditableExercise | null>(null);
     const [saveLoading, setSaveLoading] = useState(false);
 
     const handleSaveExercise = async (data: any) => {
@@ -278,6 +302,18 @@ const Editor: React.FC = () => {
         setHasUnsavedChanges(true);
     };
 
+    const handleMoveItem = (fromIndex: number, toIndex: number) => {
+        if (toIndex < 0 || toIndex >= items.length) return;
+        setItems(prevItems => {
+            const newItems = [...prevItems];
+            const [moved] = newItems.splice(fromIndex, 1);
+            newItems.splice(toIndex, 0, moved);
+            return newItems.map((it, idx) => ({ ...it, order_index: idx }));
+        });
+        setHasUnsavedChanges(true);
+        toast.success(`Exercício movido para a posição ${toIndex + 1}`, { duration: 1500 });
+    };
+
 
     // Race condition lock
     const isSavingRef = useRef(false);
@@ -520,8 +556,13 @@ const Editor: React.FC = () => {
             {/* Header */}
             <header className="w-full px-5 py-4 flex items-center justify-between sticky top-0 bg-white dark:bg-slate-900 z-30 border-b border-slate-100 dark:border-slate-800">
                 <div className="flex items-center gap-3">
-                    <button onClick={handleBack} className="p-2 -ml-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-                        <span className="material-symbols-rounded text-slate-500">arrow_back</span>
+                    <button
+                        type="button"
+                        onClick={handleBack}
+                        aria-label="Voltar para a rotina"
+                        className="w-11 h-11 min-w-[44px] min-h-[44px] -ml-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors flex items-center justify-center text-slate-500 dark:text-slate-400 focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none"
+                    >
+                        <span className="material-symbols-rounded" aria-hidden="true">arrow_back</span>
                     </button>
                     <div>
                         <p className="text-xs text-slate-500 font-bold uppercase tracking-wider">{workout?.routines?.name}</p>
@@ -529,12 +570,12 @@ const Editor: React.FC = () => {
                             <h1 className="text-base font-bold text-slate-900 dark:text-white font-display leading-tight">{workout?.name || 'Editor'}</h1>
                             {isAutoSaving ? (
                                 <span className="bg-sky-50 dark:bg-sky-900/20 text-sky-500 text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 animate-pulse border border-sky-100 dark:border-sky-500/20">
-                                    <span className="material-symbols-rounded text-[12px]">sync</span>
+                                    <span className="material-symbols-rounded text-[12px]" aria-hidden="true">sync</span>
                                     Salvando
                                 </span>
                             ) : lastSaved ? (
                                 <span className="bg-emerald-50 dark:bg-emerald-900/20 text-emerald-500 text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 border border-emerald-100 dark:border-emerald-500/20">
-                                    <span className="material-symbols-rounded text-[12px]">done</span>
+                                    <span className="material-symbols-rounded text-[12px]" aria-hidden="true">done</span>
                                     Sincronizado {lastSaved.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                 </span>
                             ) : null}
@@ -542,16 +583,17 @@ const Editor: React.FC = () => {
                     </div>
                 </div>
                 <button
+                    type="button"
                     onClick={() => handleSave(true)}
                     disabled={saving}
-                    className="bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-bold px-6 py-2.5 rounded-2xl transition-all disabled:opacity-50 shadow-md hover:shadow-glow active:scale-95 text-sm"
+                    className="min-h-[44px] bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-bold px-6 py-2.5 rounded-2xl transition-all disabled:opacity-50 shadow-md hover:shadow-glow active:scale-95 text-sm"
                 >
                     {saving ? 'Salvando...' : 'Sair e Salvar'}
                 </button>
             </header>
 
             {/* List */}
-            <main className="w-full overflow-x-hidden px-2 sm:px-5 pt-6 max-w-2xl mx-auto pb-10">
+            <div className="w-full overflow-x-hidden px-2 sm:px-5 pt-6 max-w-2xl mx-auto pb-10">
                 <div className="flex justify-between items-center mb-4">
                     <p className="text-sm text-slate-500 font-medium">{items.length} exercícios</p>
                 </div>
@@ -575,9 +617,12 @@ const Editor: React.FC = () => {
                                 <ExerciseCard
                                     item={item}
                                     index={index}
+                                    totalItems={items.length}
                                     studentId={studentId}
                                     onUpdate={(updated) => handleUpdateItem(index, updated)}
                                     onDelete={() => handleDeleteItem(index)}
+                                    onMoveUp={() => handleMoveItem(index, index - 1)}
+                                    onMoveDown={() => handleMoveItem(index, index + 1)}
                                     onSwapExercise={() => handleSwapExercise(index)}
                                     onEditExercise={() => setEditingExercise(item.exercise)}
                                 />
@@ -587,36 +632,50 @@ const Editor: React.FC = () => {
                         {/* Relative Footer Button - Moves down as list grows */}
                         <div className="grid grid-cols-2 gap-3">
                             <button
+                                type="button"
                                 onClick={() => setShowImport(true)}
-                                className="w-full py-4 rounded-2xl border-2 border-dashed border-slate-300 dark:border-slate-700 text-slate-500 font-bold hover:bg-slate-50 dark:hover:bg-slate-800 transition-all flex flex-col items-center justify-center gap-1"
+                                aria-label="Importar exercícios de outro treino"
+                                className="w-full min-h-[56px] py-4 rounded-2xl border-2 border-dashed border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-400 font-bold hover:bg-slate-50 dark:hover:bg-slate-800 transition-all flex flex-col items-center justify-center gap-1"
                             >
-                                <span className="material-symbols-rounded">download</span>
+                                <span className="material-symbols-rounded" aria-hidden="true">download</span>
                                 <span className="text-sm">Importar</span>
                             </button>
 
                             <button
+                                type="button"
                                 onClick={() => setShowLibrary(true)}
-                                className="w-full py-4 rounded-2xl border-2 border-dashed border-primary/30 text-primary font-bold hover:bg-primary/5 transition-all flex flex-col items-center justify-center gap-1"
+                                aria-label="Adicionar novo exercício à rotina"
+                                className="w-full min-h-[56px] py-4 rounded-2xl border-2 border-dashed border-primary/30 text-primary font-bold hover:bg-primary/5 transition-all flex flex-col items-center justify-center gap-1"
                             >
-                                <span className="material-symbols-rounded">add_circle</span>
+                                <span className="material-symbols-rounded" aria-hidden="true">add_circle</span>
                                 <span className="text-sm">Adicionar</span>
                             </button>
                         </div>
                     </div>
                 )}
-            </main>
+            </div>
 
             {/* Library Modal Overlay */}
             {showLibrary && (
-                <div className="fixed inset-0 z-[60] bg-white dark:bg-slate-900 overflow-auto">
+                <div
+                    role="dialog"
+                    aria-modal="true"
+                    aria-label={swapIndex !== null ? 'Alterar Exercício' : 'Selecionar Exercício'}
+                    className="fixed inset-0 z-[60] bg-white dark:bg-slate-900 overflow-auto"
+                >
                     {/* Simplified Header for Modal Mode */}
                     <div className="sticky top-0 z-10 bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800 p-4 flex items-center gap-3">
-                        <button onClick={() => { setShowLibrary(false); setSwapIndex(null); }} className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800">
-                            <span className="material-symbols-rounded">close</span>
+                        <button
+                            type="button"
+                            onClick={() => { setShowLibrary(false); setSwapIndex(null); }}
+                            aria-label="Fechar seleção de exercícios"
+                            className="min-w-[44px] min-h-[44px] p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 transition-colors"
+                        >
+                            <span className="material-symbols-rounded" aria-hidden="true">close</span>
                         </button>
-                        <h2 className="font-bold text-lg">{swapIndex !== null ? 'Alterar Exercício' : 'Selecionar Exercício'}</h2>
+                        <h2 className="font-bold text-lg text-slate-900 dark:text-white">{swapIndex !== null ? 'Alterar Exercício' : 'Selecionar Exercício'}</h2>
                         {swapIndex !== null && (
-                            <span className="text-xs bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 px-2 py-0.5 rounded-full font-medium">
+                            <span className="text-xs bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300 px-2 py-0.5 rounded-full font-medium">
                                 Substituindo: {items[swapIndex]?.exercise?.name}
                             </span>
                         )}

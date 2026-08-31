@@ -129,7 +129,11 @@ const Register: React.FC = () => {
                 </div>
 
                 {error && (
-                    <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-xs font-semibold rounded-2xl text-center border border-red-100 dark:border-red-900/30 animate-shake">
+                    <div
+                        role="alert"
+                        aria-live="assertive"
+                        className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 text-xs font-semibold rounded-2xl text-center border border-red-200 dark:border-red-900/30 animate-shake"
+                    >
                         {error}
                     </div>
                 )}
@@ -142,7 +146,7 @@ const Register: React.FC = () => {
                                 setRole('coach');
                                 setError(null);
                             }}
-                            className="flex-1 py-3 text-xs font-bold rounded-xl transition-all uppercase tracking-widest bg-white dark:bg-slate-800 text-primary shadow-xl ring-1 ring-black/5"
+                            className="flex-1 min-h-[44px] py-3 text-xs font-bold rounded-xl transition-all uppercase tracking-widest bg-white dark:bg-slate-800 text-primary shadow-xl ring-1 ring-black/5 flex items-center justify-center"
                         >
                             Sou Coach
                         </button>
@@ -151,8 +155,8 @@ const Register: React.FC = () => {
 
                 {/* Blocker for orphan students */}
                 {!coachId && role === 'student' && (
-                    <div className="mb-8 p-4 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 text-[10px] font-bold rounded-2xl border border-amber-100 dark:border-amber-900/30">
-                        <p className="uppercase tracking-widest mb-1">Atenção</p>
+                    <div className="mb-8 p-4 bg-amber-50 dark:bg-amber-900/20 text-amber-800 dark:text-amber-300 text-[10px] font-bold rounded-2xl border border-amber-200 dark:border-amber-900/30">
+                        <p className="uppercase tracking-widest mb-1 font-black">Atenção</p>
                         Para se cadastrar como aluno, você deve utilizar o link enviado pelo seu treinador.
                     </div>
                 )}
@@ -160,36 +164,39 @@ const Register: React.FC = () => {
                 <form onSubmit={handleRegister} className="space-y-6">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div className="space-y-1.5 sm:col-span-2">
-                            <label className="block text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest px-1">Nome Completo</label>
+                            <label htmlFor="reg-fullname" className="block text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-widest px-1">Nome Completo</label>
                             <input
+                                id="reg-fullname"
                                 type="text"
                                 required
                                 value={fullName}
                                 onChange={(e) => setFullName(e.target.value)}
-                                className="w-full bg-slate-100/50 dark:bg-slate-900/50 border border-transparent dark:border-slate-700/50 rounded-2xl px-4 py-3.5 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary/20 focus:border-primary focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-medium"
+                                className="w-full min-h-[44px] bg-slate-100/50 dark:bg-slate-900/50 border border-transparent dark:border-slate-700/50 rounded-2xl px-4 py-3.5 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary/20 focus:border-primary focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-medium"
                                 placeholder="Seu nome"
                             />
                         </div>
                         <div className="space-y-1.5">
-                            <label className="block text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest px-1">WhatsApp</label>
+                            <label htmlFor="reg-phone" className="block text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-widest px-1">WhatsApp</label>
                             <input
+                                id="reg-phone"
                                 type="tel"
                                 required
                                 value={phone}
                                 onChange={handlePhoneChange}
-                                className="w-full bg-slate-100/50 dark:bg-slate-900/50 border border-transparent dark:border-slate-700/50 rounded-2xl px-4 py-3.5 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary/20 focus:border-primary focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-medium"
+                                className="w-full min-h-[44px] bg-slate-100/50 dark:bg-slate-900/50 border border-transparent dark:border-slate-700/50 rounded-2xl px-4 py-3.5 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary/20 focus:border-primary focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-medium"
                                 placeholder="(11) 99999-9999"
                                 maxLength={15}
                             />
                         </div>
                         <div className="space-y-1.5">
-                            <label className="block text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest px-1">Email</label>
+                            <label htmlFor="reg-email" className="block text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-widest px-1">Email</label>
                             <input
+                                id="reg-email"
                                 type="email"
                                 required
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
-                                className="w-full bg-slate-100/50 dark:bg-slate-900/50 border border-transparent dark:border-slate-700/50 rounded-2xl px-4 py-3.5 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary/20 focus:border-primary focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-medium"
+                                className="w-full min-h-[44px] bg-slate-100/50 dark:bg-slate-900/50 border border-transparent dark:border-slate-700/50 rounded-2xl px-4 py-3.5 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary/20 focus:border-primary focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-medium"
                                 placeholder="seu@email.com"
                             />
                         </div>
@@ -199,8 +206,9 @@ const Register: React.FC = () => {
                     {role === 'coach' && (
                         <div className="space-y-4 animate-in fade-in slide-in-from-top-4 duration-500">
                             <div className="space-y-1.5">
-                                <label className="block text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest px-1">Número do CREF</label>
+                                <label htmlFor="reg-cref" className="block text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-widest px-1">Número do CREF</label>
                                 <input
+                                    id="reg-cref"
                                     type="text"
                                     required
                                     value={cref}
@@ -218,14 +226,15 @@ const Register: React.FC = () => {
 
                                         setCref(value);
                                     }}
-                                    className="w-full bg-slate-100/50 dark:bg-slate-900/50 border border-transparent dark:border-slate-700/50 rounded-2xl px-4 py-3.5 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary/20 focus:border-primary focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-medium"
+                                    className="w-full min-h-[44px] bg-slate-100/50 dark:bg-slate-900/50 border border-transparent dark:border-slate-700/50 rounded-2xl px-4 py-3.5 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary/20 focus:border-primary focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-medium"
                                     placeholder="000000-G/UF"
                                     maxLength={11}
                                 />
                             </div>
                             <div className="space-y-1.5">
-                                <label className="block text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest px-1">Biografia Curta</label>
+                                <label htmlFor="reg-bio" className="block text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-widest px-1">Biografia Curta</label>
                                 <textarea
+                                    id="reg-bio"
                                     value={bio}
                                     onChange={(e) => setBio(e.target.value)}
                                     className="w-full bg-slate-100/50 dark:bg-slate-900/50 border border-transparent dark:border-slate-700/50 rounded-2xl px-4 py-3.5 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary/20 focus:border-primary focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-medium min-h-[100px] resize-none"
@@ -240,22 +249,24 @@ const Register: React.FC = () => {
                         <div className="space-y-4 animate-in fade-in slide-in-from-top-4 duration-500">
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div className="space-y-1.5">
-                                    <label className="block text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest px-1">Data de Nascimento</label>
+                                    <label htmlFor="reg-birthdate" className="block text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-widest px-1">Data de Nascimento</label>
                                     <input
+                                        id="reg-birthdate"
                                         type="date"
                                         required
                                         value={birthDate}
                                         onChange={(e) => setBirthDate(e.target.value)}
-                                        className="w-full bg-slate-100/50 dark:bg-slate-900/50 border border-transparent dark:border-slate-700/50 rounded-2xl px-4 py-3.5 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary/20 focus:border-primary focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-medium"
+                                        className="w-full min-h-[44px] bg-slate-100/50 dark:bg-slate-900/50 border border-transparent dark:border-slate-700/50 rounded-2xl px-4 py-3.5 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary/20 focus:border-primary focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-medium"
                                     />
                                 </div>
                                 <div className="space-y-1.5">
-                                    <label className="block text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest px-1">Seu Objetivo</label>
+                                    <label htmlFor="reg-goal" className="block text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-widest px-1">Seu Objetivo</label>
                                     <select
+                                        id="reg-goal"
                                         required
                                         value={goal}
                                         onChange={(e) => setGoal(e.target.value)}
-                                        className="w-full bg-slate-100/50 dark:bg-slate-900/50 border border-transparent dark:border-slate-700/50 rounded-2xl px-4 py-3.5 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary/20 focus:border-primary focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-medium appearance-none"
+                                        className="w-full min-h-[44px] bg-slate-100/50 dark:bg-slate-900/50 border border-transparent dark:border-slate-700/50 rounded-2xl px-4 py-3.5 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary/20 focus:border-primary focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-medium appearance-none"
                                     >
                                         <option value="">Selecione...</option>
                                         <option value="Emagrecimento">Emagrecimento</option>
@@ -265,12 +276,13 @@ const Register: React.FC = () => {
                                     </select>
                                 </div>
                                 <div className="space-y-1.5">
-                                    <label className="block text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest px-1">Gênero</label>
+                                    <label htmlFor="reg-gender" className="block text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-widest px-1">Gênero</label>
                                     <select
+                                        id="reg-gender"
                                         required
                                         value={gender}
                                         onChange={(e) => setGender(e.target.value)}
-                                        className="w-full bg-slate-100/50 dark:bg-slate-900/50 border border-transparent dark:border-slate-700/50 rounded-2xl px-4 py-3.5 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary/20 focus:border-primary focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-medium appearance-none"
+                                        className="w-full min-h-[44px] bg-slate-100/50 dark:bg-slate-900/50 border border-transparent dark:border-slate-700/50 rounded-2xl px-4 py-3.5 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary/20 focus:border-primary focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-medium appearance-none"
                                     >
                                         <option value="male">Masculino</option>
                                         <option value="female">Feminino</option>
@@ -278,25 +290,27 @@ const Register: React.FC = () => {
                                     </select>
                                 </div>
                                 <div className="space-y-1.5">
-                                    <label className="block text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest px-1">Altura (cm)</label>
+                                    <label htmlFor="reg-height" className="block text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-widest px-1">Altura (cm)</label>
                                     <input
+                                        id="reg-height"
                                         type="number"
                                         required
                                         value={height}
                                         onChange={(e) => setHeight(e.target.value)}
-                                        className="w-full bg-slate-100/50 dark:bg-slate-900/50 border border-transparent dark:border-slate-700/50 rounded-2xl px-4 py-3.5 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary/20 focus:border-primary focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-medium"
+                                        className="w-full min-h-[44px] bg-slate-100/50 dark:bg-slate-900/50 border border-transparent dark:border-slate-700/50 rounded-2xl px-4 py-3.5 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary/20 focus:border-primary focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-medium"
                                         placeholder="175"
                                     />
                                 </div>
                                 <div className="space-y-1.5">
-                                    <label className="block text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest px-1">Peso (kg)</label>
+                                    <label htmlFor="reg-weight" className="block text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-widest px-1">Peso (kg)</label>
                                     <input
+                                        id="reg-weight"
                                         type="number"
                                         step="0.1"
                                         required
                                         value={weight}
                                         onChange={(e) => setWeight(e.target.value)}
-                                        className="w-full bg-slate-100/50 dark:bg-slate-900/50 border border-transparent dark:border-slate-700/50 rounded-2xl px-4 py-3.5 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary/20 focus:border-primary focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-medium"
+                                        className="w-full min-h-[44px] bg-slate-100/50 dark:bg-slate-900/50 border border-transparent dark:border-slate-700/50 rounded-2xl px-4 py-3.5 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary/20 focus:border-primary focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-medium"
                                         placeholder="80.5"
                                     />
                                 </div>
@@ -305,13 +319,14 @@ const Register: React.FC = () => {
                     )}
 
                     <div className="space-y-1.5">
-                        <label className="block text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest px-1">Crie sua Senha</label>
+                        <label htmlFor="reg-password" className="block text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-widest px-1">Crie sua Senha</label>
                         <input
+                            id="reg-password"
                             type="password"
                             required
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
-                            className="w-full bg-slate-100/50 dark:bg-slate-900/50 border border-transparent dark:border-slate-700/50 rounded-2xl px-4 py-3.5 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary/20 focus:border-primary focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-medium"
+                            className="w-full min-h-[44px] bg-slate-100/50 dark:bg-slate-900/50 border border-transparent dark:border-slate-700/50 rounded-2xl px-4 py-3.5 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary/20 focus:border-primary focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-medium"
                             placeholder="Mínimo 6 caracteres"
                             minLength={6}
                         />
@@ -320,22 +335,22 @@ const Register: React.FC = () => {
                     <button
                         type="submit"
                         disabled={loading || (!coachId && role === 'student')}
-                        className="w-full h-14 bg-gradient-to-r from-primary to-emerald-500 hover:from-primary-dark hover:to-emerald-600 text-white font-bold rounded-2xl transition-all shadow-xl shadow-primary/20 active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed group relative overflow-hidden"
+                        aria-label={inviteCoachName ? 'Confirmar Cadastro' : 'Cadastrar Agora'}
+                        className="w-full min-h-[44px] h-14 bg-primary hover:bg-sky-600 text-white font-bold rounded-2xl transition-all shadow-xl shadow-primary/20 active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed group relative overflow-hidden flex items-center justify-center"
                     >
-                        <span className="relative z-10 flex items-center justify-center gap-2 text-lg">
+                        <span className="relative z-10 flex items-center justify-center gap-2 text-base font-bold">
                             {loading ? (
                                 <>
-                                    <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
+                                    <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin" role="status"></div>
                                     <span>Criando conta...</span>
                                 </>
                             ) : (
                                 <>
                                     <span>{inviteCoachName ? 'Confirmar Cadastro' : 'Cadastrar Agora'}</span>
-                                    <span className="material-symbols-rounded group-hover:translate-x-1 transition-transform">arrow_forward</span>
+                                    <span className="material-symbols-rounded group-hover:translate-x-1 transition-transform" aria-hidden="true">arrow_forward</span>
                                 </>
                             )}
                         </span>
-                        <div className="absolute inset-0 bg-white/20 translate-y-[100%] group-hover:translate-y-0 transition-transform duration-300"></div>
                     </button>
                 </form>
 
@@ -350,7 +365,7 @@ const Register: React.FC = () => {
             </div>
 
             <p className="my-8 text-xs text-slate-400 dark:text-slate-600 font-bold uppercase tracking-widest">
-                Fitcoach Pro © 2025
+                Fitcoach Pro © {new Date().getFullYear()}
             </p>
         </div>
     );

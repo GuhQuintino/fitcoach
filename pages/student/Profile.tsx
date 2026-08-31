@@ -233,8 +233,9 @@ const StudentProfile: React.FC = () => {
 
     if (loading) return (
         <MainLayout>
-            <div className="flex items-center justify-center h-[80vh]">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+            <div className="flex items-center justify-center h-[80vh]" role="status" aria-live="polite">
+                <div className="w-10 h-10 rounded-full border-2 border-primary border-t-transparent animate-spin"></div>
+                <span className="sr-only">Carregando perfil do aluno...</span>
             </div>
         </MainLayout>
     );
@@ -252,30 +253,36 @@ const StudentProfile: React.FC = () => {
                         {isEditing ? (
                             <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-700/50 p-1 rounded-2xl">
                                 <button
+                                    type="button"
                                     onClick={() => setIsEditing(false)}
-                                    className="px-4 py-2 text-slate-500 font-bold text-xs hover:bg-white dark:hover:bg-slate-600 rounded-xl transition-all"
+                                    aria-label="Cancelar edição do perfil"
+                                    className="min-h-[44px] px-4 py-2 text-slate-500 font-bold text-xs hover:bg-white dark:hover:bg-slate-600 rounded-xl transition-all flex items-center justify-center cursor-pointer"
                                 >
                                     Cancelar
                                 </button>
                                 <button
+                                    type="button"
                                     onClick={handleSave}
                                     disabled={saving}
-                                    className="px-6 py-2 bg-primary text-white font-bold text-xs hover:bg-primary-dark rounded-xl transition-all shadow-lg shadow-primary/20 active:scale-95 disabled:opacity-50 flex items-center gap-2"
+                                    aria-label="Salvar alterações do perfil"
+                                    className="min-h-[44px] px-6 py-2 bg-primary text-white font-bold text-xs hover:bg-primary-dark rounded-xl transition-all shadow-lg shadow-primary/20 active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer"
                                 >
                                     {saving ? (
-                                        <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                                        <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" aria-hidden="true"></div>
                                     ) : (
-                                        <span className="material-symbols-rounded text-base">check</span>
+                                        <span className="material-symbols-rounded text-base" aria-hidden="true">check</span>
                                     )}
                                     Salvar
                                 </button>
                             </div>
                         ) : (
                             <button
+                                type="button"
                                 onClick={() => setIsEditing(true)}
-                                className="w-12 h-12 flex items-center justify-center bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-2xl border border-slate-100 dark:border-slate-600 shadow-soft hover:border-primary hover:text-primary transition-all active:scale-95 group"
+                                aria-label="Editar informações do perfil"
+                                className="w-12 h-12 min-w-[44px] min-h-[44px] flex items-center justify-center bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-2xl border border-slate-100 dark:border-slate-600 shadow-soft hover:border-primary hover:text-primary transition-all active:scale-95 group cursor-pointer"
                             >
-                                <span className="material-symbols-rounded text-2xl group-hover:rotate-12 transition-transform">edit_note</span>
+                                <span className="material-symbols-rounded text-2xl group-hover:rotate-12 transition-transform" aria-hidden="true">edit_note</span>
                             </button>
                         )}
                     </div>
@@ -292,23 +299,39 @@ const StudentProfile: React.FC = () => {
                     />
                     <div className="relative group mb-4">
                         <div
-                            className="w-24 h-24 rounded-2xl bg-slate-100 dark:bg-slate-700 overflow-hidden border-2 border-slate-200 dark:border-slate-600 shadow-soft flex items-center justify-center cursor-pointer"
+                            role="button"
+                            tabIndex={0}
+                            aria-label="Alterar foto de perfil"
+                            className="w-24 h-24 rounded-2xl bg-slate-100 dark:bg-slate-700 overflow-hidden border-2 border-slate-200 dark:border-slate-600 shadow-soft flex items-center justify-center cursor-pointer focus:outline-none focus:ring-4 focus:ring-primary"
                             onClick={() => fileInputRef.current?.click()}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter' || e.key === ' ') {
+                                    e.preventDefault();
+                                    fileInputRef.current?.click();
+                                }
+                            }}
                         >
                             {uploading ? (
                                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
                             ) : profile?.avatar_url ? (
-                                <img src={getOptimizedImageUrl(profile.avatar_url, 200, 200)} alt="Avatar" className="w-full h-full object-cover" />
+                                <img
+                                    src={getOptimizedImageUrl(profile.avatar_url, 200, 200)}
+                                    alt={`Foto de perfil de ${profile?.full_name || 'Aluno'}`}
+                                    loading="lazy"
+                                    className="w-full h-full object-cover"
+                                />
                             ) : (
-                                <span className="material-symbols-rounded text-4xl text-slate-400">person</span>
+                                <span className="material-symbols-rounded text-4xl text-slate-400" aria-hidden="true">person</span>
                             )}
                         </div>
                         <button
+                            type="button"
                             onClick={() => fileInputRef.current?.click()}
                             disabled={uploading}
-                            className="absolute -bottom-1 -right-1 p-2 bg-primary text-white rounded-xl shadow-soft hover:bg-primary-dark transition-colors disabled:opacity-50"
+                            aria-label="Alterar foto de perfil"
+                            className="absolute -bottom-1 -right-1 w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center bg-primary text-white rounded-xl shadow-soft hover:bg-primary-dark transition-colors disabled:opacity-50"
                         >
-                            <span className="material-symbols-rounded text-lg">photo_camera</span>
+                            <span className="material-symbols-rounded text-lg" aria-hidden="true">photo_camera</span>
                         </button>
                     </div>
                     <h2 className="font-display text-2xl font-bold text-slate-900 dark:text-white">{profile?.full_name || 'Usuário'}</h2>
@@ -327,9 +350,10 @@ const StudentProfile: React.FC = () => {
                                         toast.error('Coach não tem WhatsApp cadastrado.');
                                     }
                                 }}
-                                className="w-full px-5 py-3 bg-[#25D366] text-white rounded-2xl font-bold text-sm flex items-center justify-center gap-3 hover:bg-[#20bd5a] transition-all active:scale-95 shadow-lg shadow-[#25D366]/20"
+                                aria-label={`Conversar com coach ${coachProfile.full_name || ''} no WhatsApp`}
+                                className="w-full min-h-[44px] px-5 py-3 bg-whatsapp text-white rounded-2xl font-bold text-sm flex items-center justify-center gap-3 hover:bg-whatsapp-dark transition-all active:scale-95 shadow-lg shadow-whatsapp/20"
                             >
-                                <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
+                                <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24" aria-hidden="true">
                                     <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.414 0 .018 5.393 0 12.029c0 2.119.554 4.188 1.604 6.04L0 24l6.097-1.6c1.789.976 3.805 1.491 5.948 1.493h.005c6.634 0 12.032-5.396 12.036-12.033a11.83 11.83 0 00-3.479-8.502z" />
                                 </svg>
                                 Falar com {coachProfile.full_name?.split(' ')[0] || 'Coach'}
@@ -339,7 +363,7 @@ const StudentProfile: React.FC = () => {
                 </div>
             </header>
 
-            <main className="px-5 pt-6 space-y-6">
+            <div className="px-5 pt-6 space-y-6">
                 {/* Personal Info Grid - Unified & Organized */}
                 <section className="animate-slide-up bg-white dark:bg-slate-800 p-6 rounded-[2.5rem] shadow-soft border border-slate-100 dark:border-slate-700">
                     <div className="flex items-center gap-2 mb-6">
@@ -349,9 +373,10 @@ const StudentProfile: React.FC = () => {
 
                     <div className="grid grid-cols-2 gap-4">
                         <div className="flex flex-col gap-1.5 p-4 rounded-3xl bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-700/50">
-                            <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Data de Nascimento</label>
+                            <label htmlFor="profile-birthdate" className="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest">Data de Nascimento</label>
                             <input
-                                className="p-0 border-none bg-transparent font-display font-bold text-lg text-slate-900 dark:text-white focus:ring-0 w-full"
+                                id="profile-birthdate"
+                                className="p-0 border-none bg-transparent font-display font-bold text-lg text-slate-900 dark:text-white focus:ring-0 w-full min-h-[44px]"
                                 type="date"
                                 value={birthDate}
                                 onChange={e => setBirthDate(e.target.value)}
@@ -360,37 +385,39 @@ const StudentProfile: React.FC = () => {
                         </div>
 
                         <div className="flex flex-col gap-1.5 p-4 rounded-3xl bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-700/50">
-                            <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Peso (kg)</label>
+                            <label htmlFor="profile-weight" className="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest">Peso (kg)</label>
                             <div className="flex items-baseline gap-1">
                                 <input
+                                    id="profile-weight"
                                     type="number"
                                     placeholder="0.0"
                                     value={weight}
                                     onChange={(e) => setWeight(e.target.value)}
                                     disabled={!isEditing}
-                                    className="bg-transparent border-none p-0 text-xl font-black text-slate-900 dark:text-white focus:ring-0 w-20 disabled:opacity-70"
+                                    className="bg-transparent border-none p-0 text-xl font-black text-slate-900 dark:text-white focus:ring-0 w-20 disabled:opacity-70 min-h-[44px]"
                                 />
                                 <span className="text-[10px] text-slate-400 font-bold uppercase">kg</span>
                             </div>
                         </div>
 
                         <div className="flex flex-col gap-1.5 p-4 rounded-3xl bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-700/50">
-                            <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Altura (cm)</label>
+                            <label htmlFor="profile-height" className="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest">Altura (cm)</label>
                             <div className="flex items-baseline gap-1">
                                 <input
+                                    id="profile-height"
                                     type="number"
                                     placeholder="0"
                                     value={height}
                                     onChange={(e) => setHeight(e.target.value)}
                                     disabled={!isEditing}
-                                    className="bg-transparent border-none p-0 text-xl font-black text-slate-900 dark:text-white focus:ring-0 w-20 disabled:opacity-70"
+                                    className="bg-transparent border-none p-0 text-xl font-black text-slate-900 dark:text-white focus:ring-0 w-20 disabled:opacity-70 min-h-[44px]"
                                 />
                                 <span className="text-[10px] text-slate-400 font-bold uppercase">cm</span>
                             </div>
                         </div>
 
                         <div className="flex flex-col gap-1.5 p-4 rounded-3xl bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-700/50">
-                            <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Idade</label>
+                            <span className="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest">Idade</span>
                             <div className="flex items-baseline gap-1">
                                 <span className="text-xl font-black text-slate-900 dark:text-white">{age || '--'}</span>
                                 <span className="text-[10px] text-slate-400 font-bold uppercase">anos</span>
@@ -400,8 +427,8 @@ const StudentProfile: React.FC = () => {
 
                     {/* Gender Selection */}
                     <div className="flex flex-col gap-3 mt-6">
-                        <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] ml-2">Gênero</label>
-                        <div className="grid grid-cols-3 gap-2 bg-slate-100/50 dark:bg-slate-900/80 p-1.5 rounded-3xl border border-slate-200 dark:border-slate-800">
+                        <span className="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-[0.2em] ml-2">Gênero</span>
+                        <div className="grid grid-cols-3 gap-2 bg-slate-100/50 dark:bg-slate-900/80 p-1.5 rounded-3xl border border-slate-200 dark:border-slate-800" role="radiogroup" aria-label="Seleção de gênero">
                             {[
                                 { id: 'male', label: 'Masc', icon: 'male' },
                                 { id: 'female', label: 'Fem', icon: 'female' },
@@ -409,11 +436,15 @@ const StudentProfile: React.FC = () => {
                             ].map((g) => (
                                 <button
                                     key={g.id}
+                                    type="button"
+                                    role="radio"
+                                    aria-checked={gender === g.id}
+                                    aria-label={`Gênero ${g.label}`}
                                     disabled={!isEditing}
                                     onClick={() => isEditing && setGender(g.id)}
-                                    className={`py-3 px-2 rounded-2xl flex flex-col items-center gap-1 transition-all ${gender === g.id ? 'bg-white dark:bg-slate-700 text-primary shadow-soft' : 'text-slate-500 opacity-50'}`}
+                                    className={`py-3 px-2 rounded-2xl flex flex-col items-center gap-1 transition-all min-h-[44px] justify-center ${gender === g.id ? 'bg-white dark:bg-slate-700 text-primary shadow-soft' : 'text-slate-500 opacity-50'}`}
                                 >
-                                    <span className="material-symbols-rounded text-xl">{g.icon}</span>
+                                    <span className="material-symbols-rounded text-xl" aria-hidden="true">{g.icon}</span>
                                     <span className="text-[9px] font-black uppercase tracking-wider">{g.label}</span>
                                 </button>
                             ))}
@@ -422,9 +453,9 @@ const StudentProfile: React.FC = () => {
 
                     {/* Goal Selection */}
                     <div className="flex flex-col gap-3 mt-6">
-                        <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] ml-2">Foco Atual</label>
+                        <span className="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-[0.2em] ml-2">Foco Atual</span>
                         {isEditing ? (
-                            <div className="grid grid-cols-2 gap-2">
+                            <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label="Foco e objetivo atual">
                                 {[
                                     { id: 'Emagrecimento', label: 'Emagrecimento', icon: 'fitness_center' },
                                     { id: 'Hipertrofia', label: 'Hipertrofia', icon: 'bolt' },
@@ -433,11 +464,15 @@ const StudentProfile: React.FC = () => {
                                 ].map((g) => (
                                     <button
                                         key={g.id}
+                                        type="button"
+                                        role="radio"
+                                        aria-checked={goal === g.id}
+                                        aria-label={`Objetivo ${g.label}`}
                                         onClick={() => setGoal(g.id)}
-                                        className={`p-3 rounded-2xl border-2 flex items-center gap-2 transition-all ${goal === g.id ? 'border-primary bg-primary/5 text-primary' : 'border-slate-100 dark:border-slate-800 text-slate-400'}`}
+                                        className={`p-3 rounded-2xl border-2 flex items-center gap-2 transition-all min-h-[44px] ${goal === g.id ? 'border-primary bg-primary/5 text-primary' : 'border-slate-100 dark:border-slate-800 text-slate-400'}`}
                                     >
                                         <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${goal === g.id ? 'bg-primary text-white' : 'bg-slate-100 dark:bg-slate-800'}`}>
-                                            <span className="material-symbols-rounded text-lg">{g.icon}</span>
+                                            <span className="material-symbols-rounded text-lg" aria-hidden="true">{g.icon}</span>
                                         </div>
                                         <span className="font-bold text-[10px] uppercase tracking-wider">{g.label}</span>
                                     </button>
@@ -558,36 +593,40 @@ const StudentProfile: React.FC = () => {
                                     weight: h.weight_kg,
                                     date: new Date(h.recorded_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })
                                 }))}>
-                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-slate-200, #E2E8F0)" />
                                     <XAxis
                                         dataKey="date"
                                         axisLine={false}
                                         tickLine={false}
-                                        tick={{ fontSize: 10, fill: '#64748B' }}
+                                        tick={{ fontSize: 10, fill: 'var(--color-slate-500, #64748B)' }}
                                     />
                                     <YAxis
                                         hide
                                         domain={['auto', 'auto']}
                                     />
                                     <Tooltip
-                                        contentStyle={{
-                                            borderRadius: '16px',
-                                            border: 'none',
-                                            boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
-                                            fontSize: '12px',
-                                            fontWeight: 'bold'
+                                        content={({ active, payload, label }) => {
+                                            if (active && payload && payload.length) {
+                                                return (
+                                                    <div className="bg-white dark:bg-slate-800 p-2.5 rounded-2xl shadow-elevated border border-slate-100 dark:border-slate-700 text-xs">
+                                                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">{label}</p>
+                                                        <p className="font-black text-slate-900 dark:text-white flex items-center gap-1.5">
+                                                            <span className="w-2 h-2 rounded-full bg-primary inline-block"></span>
+                                                            {payload[0].value} kg
+                                                        </p>
+                                                    </div>
+                                                );
+                                            }
+                                            return null;
                                         }}
-                                        labelStyle={{ color: '#64748B' }}
-                                        itemStyle={{ color: '#0ea5e9' }}
-                                        formatter={(value: any) => [`${value} kg`, 'Peso']}
                                     />
                                     <Line
                                         type="monotone"
                                         dataKey="weight"
-                                        stroke="#0ea5e9"
+                                        stroke="var(--color-primary, #0ea5e9)"
                                         strokeWidth={3}
-                                        dot={{ r: 4, fill: '#0ea5e9', strokeWidth: 2, stroke: '#fff' }}
-                                        activeDot={{ r: 6, fill: '#0ea5e9', strokeWidth: 0 }}
+                                        dot={{ r: 4, fill: 'var(--color-primary, #0ea5e9)', strokeWidth: 2, stroke: '#fff' }}
+                                        activeDot={{ r: 6, fill: 'var(--color-primary, #0ea5e9)', strokeWidth: 0 }}
                                     />
                                 </LineChart>
                             </ResponsiveContainer>
@@ -625,8 +664,12 @@ const StudentProfile: React.FC = () => {
                                 </div>
                             </div>
                             <button
+                                type="button"
+                                role="switch"
+                                aria-checked={preferences.focusMode}
+                                aria-label="Alternar Modo Foco"
                                 onClick={() => updatePreferences({ focusMode: !preferences.focusMode })}
-                                className={`w-14 h-8 rounded-full transition-all relative flex items-center px-1 ${preferences.focusMode ? 'bg-primary' : 'bg-slate-200 dark:bg-slate-700'}`}
+                                className={`w-14 h-8 rounded-full transition-all relative flex items-center px-1 cursor-pointer focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none ${preferences.focusMode ? 'bg-primary' : 'bg-slate-200 dark:bg-slate-700'}`}
                             >
                                 <div className={`w-6 h-6 bg-white rounded-full shadow-md transition-all ${preferences.focusMode ? 'translate-x-6' : 'translate-x-0'}`}></div>
                             </button>
@@ -643,20 +686,20 @@ const StudentProfile: React.FC = () => {
                             <Link to="/student/settings/notifications" className="flex items-center justify-between p-4 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors cursor-pointer group">
                                 <div className="flex items-center gap-3">
                                     <div className="p-2 rounded-xl bg-sky-50 dark:bg-sky-900/20 text-primary">
-                                        <span className="material-symbols-rounded">notifications</span>
+                                        <span className="material-symbols-rounded" aria-hidden="true">notifications</span>
                                     </div>
                                     <p className="text-sm font-medium text-slate-900 dark:text-white">Notificações</p>
                                 </div>
-                                <span className="material-symbols-rounded text-slate-300 group-hover:translate-x-1 transition-transform">chevron_right</span>
+                                <span className="material-symbols-rounded text-slate-300 group-hover:translate-x-1 transition-transform" aria-hidden="true">chevron_right</span>
                             </Link>
                             <Link to="/student/settings/privacy" className="flex items-center justify-between p-4 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors cursor-pointer group">
                                 <div className="flex items-center gap-3">
                                     <div className="p-2 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 text-success">
-                                        <span className="material-symbols-rounded">shield</span>
+                                        <span className="material-symbols-rounded" aria-hidden="true">shield</span>
                                     </div>
                                     <p className="text-sm font-medium text-slate-900 dark:text-white">Privacidade</p>
                                 </div>
-                                <span className="material-symbols-rounded text-slate-300 group-hover:translate-x-1 transition-transform">chevron_right</span>
+                                <span className="material-symbols-rounded text-slate-300 group-hover:translate-x-1 transition-transform" aria-hidden="true">chevron_right</span>
                             </Link>
                         </div>
                     </div>
@@ -665,14 +708,16 @@ const StudentProfile: React.FC = () => {
                 {/* Logout Button */}
                 <div className="pt-2 pb-6">
                     <button
+                        type="button"
                         onClick={handleSignOut}
-                        className="w-full p-4 rounded-2xl border-2 border-danger/20 bg-danger/5 text-danger font-bold flex items-center justify-center gap-2 hover:bg-danger/10 transition-all active:scale-[0.98]"
+                        aria-label="Sair da conta e encerrar sessão"
+                        className="w-full min-h-[52px] p-4 rounded-2xl border-2 border-danger/20 bg-danger/5 text-danger font-bold flex items-center justify-center gap-2 hover:bg-danger/10 transition-all active:scale-[0.98] cursor-pointer"
                     >
-                        <span className="material-symbols-rounded">logout</span>
+                        <span className="material-symbols-rounded" aria-hidden="true">logout</span>
                         Sair da Conta
                     </button>
                 </div>
-            </main >
+            </div>
         </MainLayout >
     );
 };

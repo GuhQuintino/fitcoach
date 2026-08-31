@@ -114,23 +114,26 @@ const Feedbacks: React.FC = () => {
     return (
         <MainLayout>
             <header className="px-5 py-6 flex items-center gap-4">
-                <Link to="/coach/dashboard" className="w-10 h-10 rounded-xl bg-white dark:bg-slate-800 flex items-center justify-center text-slate-500 shadow-sm border border-slate-100 dark:border-slate-700">
-                    <span className="material-symbols-rounded">arrow_back</span>
+                <Link
+                    to="/coach/dashboard"
+                    aria-label="Voltar para a dashboard"
+                    className="w-11 h-11 min-w-[44px] min-h-[44px] rounded-xl bg-white dark:bg-slate-800 flex items-center justify-center text-slate-500 shadow-sm border border-slate-100 dark:border-slate-700 hover:text-sky-500 transition-colors"
+                >
+                    <span className="material-symbols-rounded" aria-hidden="true">arrow_back</span>
                 </Link>
                 <div>
                     <h1 className="text-2xl font-bold text-slate-900 dark:text-white font-display">Feedbacks</h1>
                     <p className="text-slate-500 dark:text-slate-400 text-sm">Histórico de treinos dos seus alunos</p>
                 </div>
             </header>
-
-            <main className="px-5 space-y-4">
+            <div className="px-5 space-y-4">
                 {loading ? (
-                    <div className="flex justify-center py-12">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                    </div>
-                ) : feedbacks.length === 0 ? (
+                    <div className="flex justify-center py-12" role="status" aria-live="polite">
+                        <div className="w-8 h-8 rounded-full border-2 border-primary border-t-transparent animate-spin"></div>
+                        <span className="sr-only">Carregando feedbacks...</span>
+                    </div>                ) : feedbacks.length === 0 ? (
                     <div className="text-center py-12 bg-white dark:bg-slate-800 rounded-2xl border border-dashed border-slate-200 dark:border-slate-700">
-                        <span className="material-symbols-rounded text-4xl text-slate-300 mb-2">chat_bubble_outline</span>
+                        <span className="material-symbols-rounded text-4xl text-slate-300 mb-2" aria-hidden="true">chat_bubble_outline</span>
                         <p className="text-slate-500 dark:text-slate-400">Nenhum treino registrado recentemente.</p>
                     </div>
                 ) : (
@@ -140,9 +143,10 @@ const Feedbacks: React.FC = () => {
                                 <div className="p-5">
                                     <div className="flex items-center gap-3 mb-4">
                                         <img
-                                            src={log.profiles?.avatar_url || `https://ui-avatars.com/api/?name=${log.profiles?.full_name}&background=random`}
-                                            alt={log.profiles?.full_name}
+                                            src={log.profiles?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(log.profiles?.full_name || 'Aluno')}&background=random`}
+                                            alt={log.profiles?.full_name || 'Avatar do Aluno'}
                                             className="w-10 h-10 rounded-full object-cover"
+                                            loading="lazy"
                                         />
                                         <div>
                                             <h3 className="font-bold text-slate-900 dark:text-white text-sm">{log.profiles?.full_name || 'Aluno Excluído'}</h3>
@@ -163,11 +167,11 @@ const Feedbacks: React.FC = () => {
 
                                     <div className="flex gap-4 border-t border-slate-50 dark:border-slate-700/50 pt-3">
                                         <div>
-                                            <span className="text-[10px] text-slate-400 uppercase font-bold block">Esforço</span>
+                                            <span className="text-[10px] text-slate-600 dark:text-slate-400 uppercase font-bold block">Esforço</span>
                                             <span className="text-sm font-bold text-slate-900 dark:text-white">{log.effort_rating || 0}/10</span>
                                         </div>
                                         <div>
-                                            <span className="text-[10px] text-slate-400 uppercase font-bold block">Duração</span>
+                                            <span className="text-[10px] text-slate-600 dark:text-slate-400 uppercase font-bold block">Duração</span>
                                             <span className="text-sm font-bold text-slate-900 dark:text-white">
                                                 {log.finished_at && log.started_at
                                                     ? `${Math.floor((new Date(log.finished_at).getTime() - new Date(log.started_at).getTime()) / 60000)} min`
@@ -178,10 +182,13 @@ const Feedbacks: React.FC = () => {
 
                                     <div className="flex-1 flex items-center gap-2 mt-4">
                                         <button
+                                            type="button"
+                                            aria-expanded={expandedFeedback === log.id}
+                                            aria-label={expandedFeedback === log.id ? 'Ocultar detalhes do treino' : 'Ver detalhes do treino'}
                                             onClick={() => setExpandedFeedback(expandedFeedback === log.id ? null : log.id)}
-                                            className="flex-1 text-center py-2.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold text-xs rounded-xl hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors flex items-center justify-center gap-2"
+                                            className="flex-1 min-h-[44px] text-center py-2.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold text-xs rounded-xl hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors flex items-center justify-center gap-2"
                                         >
-                                            <span className="material-symbols-rounded text-base transition-transform duration-300" style={{ transform: expandedFeedback === log.id ? 'rotate(180deg)' : 'none' }}>
+                                            <span className="material-symbols-rounded text-base transition-transform duration-300" style={{ transform: expandedFeedback === log.id ? 'rotate(180deg)' : 'none' }} aria-hidden="true">
                                                 expand_more
                                             </span>
                                             {expandedFeedback === log.id ? 'Ocultar' : 'Ver Detalhes'}
@@ -189,17 +196,19 @@ const Feedbacks: React.FC = () => {
 
                                         {!log.read_by_coach && (
                                             <button
+                                                type="button"
+                                                aria-label="Marcar feedback como lido"
                                                 onClick={(e) => {
                                                     e.stopPropagation();
                                                     handleMarkAsRead(log.id);
                                                 }}
-                                                className="px-4 py-2.5 bg-primary/10 text-primary rounded-xl text-xs font-black hover:bg-primary hover:text-white transition-all flex items-center gap-1.5 shadow-sm active:scale-95"
+                                                className="min-h-[44px] px-4 py-2.5 bg-primary/10 text-primary rounded-xl text-xs font-black hover:bg-primary hover:text-white transition-all flex items-center gap-1.5 shadow-sm active:scale-95"
                                             >
-                                                <span className="material-symbols-rounded text-lg">check_circle</span>
+                                                <span className="material-symbols-rounded text-lg" aria-hidden="true">check_circle</span>
                                                 LIDO
                                             </button>
                                         )}
-                                        <Link to={`/coach/student/${log.profiles?.id}`} className="px-4 py-2.5 bg-sky-50 dark:bg-sky-900/20 text-sky-600 dark:text-sky-400 font-bold text-xs rounded-xl hover:bg-sky-100 dark:hover:bg-sky-800 transition-colors flex items-center">
+                                        <Link to={`/coach/student/${log.profiles?.id}`} aria-label={`Ver perfil de ${log.profiles?.full_name || 'Aluno'}`} className="min-h-[44px] px-4 py-2.5 bg-sky-50 dark:bg-sky-900/20 text-sky-600 dark:text-sky-400 font-bold text-xs rounded-xl hover:bg-sky-100 dark:hover:bg-sky-800 transition-colors flex items-center">
                                             Perfil
                                         </Link>
                                     </div>
@@ -210,7 +219,7 @@ const Feedbacks: React.FC = () => {
                                         <div className="pt-4 space-y-4">
                                             {(() => {
                                                 const grouped = log.set_logs.reduce((acc: any, set: any) => {
-                                                    const key = set.exercise.name;
+                                                    const key = set.exercise?.name || 'Exercício';
                                                     if (!acc[key]) acc[key] = [];
                                                     acc[key].push(set);
                                                     return acc;
@@ -218,20 +227,20 @@ const Feedbacks: React.FC = () => {
 
                                                 return Object.entries(grouped).map(([exerciseName, sets]: [string, any]) => (
                                                     <div key={exerciseName} className="border-b border-slate-100 dark:border-slate-850 pb-3 last:border-none">
-                                                        <h5 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">{exerciseName}</h5>
+                                                        <h5 className="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest mb-2">{exerciseName}</h5>
                                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-1">
                                                             {sets.map((set: any, idx: number) => (
                                                                 <div key={set.id} className="flex items-center justify-between p-2 rounded-lg bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 text-xs">
                                                                     <div className="flex items-center gap-2">
-                                                                        <span className="w-4 h-4 rounded bg-slate-100 dark:bg-slate-700 flex items-center justify-center text-[9px] font-bold text-slate-400">{idx + 1}</span>
+                                                                        <span className="w-4 h-4 rounded bg-slate-100 dark:bg-slate-700 flex items-center justify-center text-[9px] font-bold text-slate-600 dark:text-slate-400">{idx + 1}</span>
                                                                         {set.exercise?.exercise_type === 'cardio' ? (
                                                                             <span className="font-bold text-slate-700 dark:text-slate-200">
                                                                                 {set.hiit_cycles_completed ? (
-                                                                                    <span className="text-slate-400 font-normal">HIIT: {set.hiit_cycles_completed} ciclos em {formatTime(set.time_completed)}</span>
+                                                                                    <span className="text-slate-600 dark:text-slate-400 font-normal">HIIT: {set.hiit_cycles_completed} ciclos em {formatTime(set.time_completed)}</span>
                                                                                 ) : (
                                                                                     <>
                                                                                         {set.distance_completed !== null && set.distance_completed !== undefined ? `${set.distance_completed}km` : '-'} 
-                                                                                        <span className="text-slate-400 font-normal">
+                                                                                        <span className="text-slate-600 dark:text-slate-400 font-normal">
                                                                                             {set.speed_actual ? ` a ${set.speed_actual}km/h` : ''}
                                                                                             {set.time_completed ? ` em ${formatTime(set.time_completed)}` : ''}
                                                                                         </span>
@@ -241,21 +250,20 @@ const Feedbacks: React.FC = () => {
                                                                         ) : set.exercise?.exercise_type === 'time' ? (
                                                                             <span className="font-bold text-slate-700 dark:text-slate-200">
                                                                                 {formatTime(set.time_completed)} 
-                                                                                {set.weight_kg ? <span className="text-slate-400 font-normal"> com {set.weight_kg}kg</span> : ''}
+                                                                                {set.weight_kg ? <span className="text-slate-600 dark:text-slate-400 font-normal"> com {set.weight_kg}kg</span> : ''}
                                                                             </span>
                                                                         ) : (
                                                                             <span className="font-bold text-slate-700 dark:text-slate-200">
-                                                                                {set.weight_kg}kg <span className="text-slate-400 font-normal">x {set.reps_completed}</span>
+                                                                                {set.weight_kg}kg <span className="text-slate-600 dark:text-slate-400 font-normal">x {set.reps_completed}</span>
                                                                             </span>
                                                                         )}
                                                                     </div>
                                                                     {set.rpe_actual && (
-                                                                        <span className="text-[9px] font-black text-slate-400">@{set.rpe_actual}</span>
+                                                                        <span className="text-[9px] font-black text-slate-600 dark:text-slate-400">@{set.rpe_actual}</span>
                                                                     )}
                                                                 </div>
                                                             ))}
                                                         </div>
-                                                        {/* Feedback individual do exercício */}
                                                         {(() => {
                                                             const feedback = log.exercise_feedback_logs?.find(
                                                                 (f: any) => f.exercise_id === sets[0]?.exercise_id
@@ -263,7 +271,7 @@ const Feedbacks: React.FC = () => {
                                                             if (!feedback) return null;
                                                             return (
                                                                 <div className="mt-2 p-2.5 rounded-lg bg-amber-50/50 dark:bg-amber-500/10 border border-amber-100/50 dark:border-amber-500/20 text-[11px] flex items-start gap-1.5">
-                                                                    <span className="material-symbols-rounded text-sm text-amber-500 mt-0.5">comment</span>
+                                                                    <span className="material-symbols-rounded text-sm text-amber-500 mt-0.5" aria-hidden="true">comment</span>
                                                                     <div className="flex-1">
                                                                         <span className="font-bold text-amber-600 dark:text-amber-400 block mb-0.5">Feedback da Execução:</span>
                                                                         <p className="text-slate-600 dark:text-slate-300 italic">"{feedback.feedback_text}"</p>
@@ -283,18 +291,19 @@ const Feedbacks: React.FC = () => {
                         {hasMore && (
                             <div className="pt-4 pb-8 flex justify-center">
                                 <button
+                                    type="button"
                                     onClick={() => fetchFeedbacks(false)}
                                     disabled={loadingMore}
-                                    className="px-8 py-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 font-bold rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-700 transition-all flex items-center gap-2 shadow-sm disabled:opacity-50"
+                                    className="min-h-[44px] px-8 py-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 font-bold rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-700 transition-all flex items-center gap-2 shadow-sm disabled:opacity-50"
                                 >
                                     {loadingMore ? (
                                         <>
-                                            <div className="w-4 h-4 border-2 border-slate-300 border-t-primary rounded-full animate-spin"></div>
+                                            <div className="w-4 h-4 border-2 border-slate-300 border-t-primary rounded-full animate-spin" role="status" aria-label="Carregando mais"></div>
                                             Carregando...
                                         </>
                                     ) : (
                                         <>
-                                            <span className="material-symbols-rounded">expand_more</span>
+                                            <span className="material-symbols-rounded" aria-hidden="true">expand_more</span>
                                             Carregar Mais
                                         </>
                                     )}
@@ -303,8 +312,8 @@ const Feedbacks: React.FC = () => {
                         )}
                     </>
                 )}
-            </main>
-        </MainLayout >
+            </div>
+        </MainLayout>
     );
 };
 

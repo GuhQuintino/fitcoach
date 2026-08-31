@@ -35,7 +35,7 @@ const BottomNav: React.FC = () => {
     if (!role || links.length === 0) return null;
 
     return (
-        <nav className="fixed bottom-0 left-0 right-0 z-50 max-w-5xl mx-auto">
+        <nav aria-label="Navegação Principal" className="fixed bottom-0 left-0 right-0 z-50 max-w-5xl mx-auto">
             {/* Glass Background Container */}
             <div className="absolute inset-0 top-4 glass rounded-t-3xl shadow-elevated"></div>
 
@@ -47,17 +47,19 @@ const BottomNav: React.FC = () => {
                         <Link
                             key={link.path}
                             to={link.path}
-                            className={`flex flex-col items-center gap-1 flex-1 relative group`}
+                            aria-label={link.label}
+                            aria-current={isActive ? 'page' : undefined}
+                            className={`flex flex-col items-center justify-center gap-1 flex-1 relative group min-h-[44px] py-1`}
                         >
                             {/* Active Indicator Glow */}
                             {isActive && (
-                                <div className="absolute -top-10 w-12 h-12 bg-sky-500/20 rounded-full blur-xl animate-pulse"></div>
+                                <div className="absolute -top-10 w-12 h-12 bg-sky-500/20 rounded-full blur-xl animate-pulse pointer-events-none"></div>
                             )}
 
                             <span className={`material-symbols-rounded text-[28px] transition-all duration-300 ${isActive
                                 ? 'text-sky-500 scale-110 filled drop-shadow-sm'
                                 : 'text-slate-500 dark:text-slate-400 group-hover:text-sky-500 group-active:scale-95'
-                                }`}>
+                                }`} aria-hidden="true">
                                 {link.icon}
                             </span>
                             <span className={`text-[10px] font-medium transition-all duration-300 ${isActive

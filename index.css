@@ -33,6 +33,9 @@
   --color-danger-light: #fca5a5;
   --color-danger-dark: #dc2626;
 
+  --color-whatsapp: #25D366;
+  --color-whatsapp-dark: #20bd5a;
+
   --font-display: 'Outfit', system-ui, sans-serif;
   --font-body: 'DM Sans', system-ui, sans-serif;
 
@@ -122,12 +125,34 @@
 
 @layer base {
   :root {
+    --primary-rgb: 14, 165, 233;
     --color-background-light: #FFFFFF;
     --color-background-dark: #0F172A;
     --color-text-primary-light: #1E293B;
     --color-text-primary-dark: #F8FAFC;
     --color-text-secondary-light: #64748B;
     --color-text-secondary-dark: #94A3B8;
+  }
+
+  ::selection {
+    background-color: #bae6fd;
+    color: #082f49;
+  }
+
+  .dark ::selection {
+    background-color: #075985;
+    color: #f0f9ff;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    ::before,
+    ::after {
+      animation-duration: 150ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 150ms !important;
+      scroll-behavior: auto !important;
+    }
   }
 
   html {

@@ -157,6 +157,7 @@ const AppContent = () => {
                             <Route path="exercises" element={<Exercises />} />
                             <Route path="settings/notifications" element={<NotificationsSettings />} />
                             <Route path="settings/privacy" element={<PrivacySettings />} />
+                            <Route path="*" element={<Navigate to="/coach/dashboard" replace />} />
                         </Routes>
                     </RequireAuth>
                 } />
@@ -167,12 +168,14 @@ const AppContent = () => {
                         <Routes>
                             <Route path="dashboard" element={<StudentDashboard />} />
                             <Route path="selection" element={<Selection />} />
+                            <Route path="workout" element={<Navigate to="/student/selection" replace />} />
                             <Route path="workout/:id" element={<WorkoutExecution />} />
                             <Route path="history" element={<History />} />
                             <Route path="evolution" element={<Evolution />} />
                             <Route path="profile" element={<StudentProfile />} />
                             <Route path="settings/notifications" element={<NotificationsSettings />} />
                             <Route path="settings/privacy" element={<PrivacySettings />} />
+                            <Route path="*" element={<Navigate to="/student/dashboard" replace />} />
                         </Routes>
                     </RequireAuth>
                 } />
@@ -182,6 +185,7 @@ const AppContent = () => {
                     <RequireAuth allowedRole="admin">
                         <Routes>
                             <Route path="dashboard" element={<AdminDashboard />} />
+                            <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />
                         </Routes>
                     </RequireAuth>
                 } />

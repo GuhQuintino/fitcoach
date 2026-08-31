@@ -13,6 +13,17 @@ const InstallTutorial: React.FC = () => {
         }
     }, []);
 
+    useEffect(() => {
+        if (!isOpen) return;
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') {
+                setIsOpen(false);
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [isOpen]);
+
     const steps = {
         android: [
             {
@@ -49,23 +60,30 @@ const InstallTutorial: React.FC = () => {
     return (
         <>
             <button
+                type="button"
                 onClick={() => setIsOpen(true)}
-                className="w-full flex items-center justify-between p-4 hover:bg-slate-50 dark:hover:bg-slate-700/50 rounded-2xl transition-all group border border-slate-100 dark:border-slate-700/50"
+                aria-label="Abrir tutorial de instalação do aplicativo PWA"
+                className="w-full min-h-[44px] flex items-center justify-between p-4 hover:bg-slate-50 dark:hover:bg-slate-700/50 rounded-2xl transition-all group border border-slate-100 dark:border-slate-700/50"
             >
                 <div className="flex items-center gap-4">
-                    <div className="p-2.5 bg-emerald-500/10 text-emerald-500 rounded-xl">
-                        <span className="material-symbols-rounded">download_for_offline</span>
+                    <div className="p-2.5 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-xl flex items-center justify-center">
+                        <span className="material-symbols-rounded" aria-hidden="true">download_for_offline</span>
                     </div>
                     <div className="text-left">
                         <span className="font-bold text-slate-700 dark:text-slate-200 block">Baixar Aplicativo</span>
-                        <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Tutorial de Instalação</span>
+                        <span className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">Tutorial de Instalação</span>
                     </div>
                 </div>
-                <span className="material-symbols-rounded text-slate-300 group-hover:translate-x-1 transition-transform">chevron_right</span>
+                <span className="material-symbols-rounded text-slate-400 group-hover:translate-x-1 transition-transform" aria-hidden="true">chevron_right</span>
             </button>
 
             {isOpen && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 sm:p-0">
+                <div
+                    role="dialog"
+                    aria-modal="true"
+                    aria-label="Tutorial de instalação do aplicativo"
+                    className="fixed inset-0 z-[100] flex items-center justify-center p-6 sm:p-0"
+                >
                     <div
                         className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
                         onClick={() => setIsOpen(false)}
@@ -76,18 +94,20 @@ const InstallTutorial: React.FC = () => {
                             <div className="flex items-center justify-between mb-8">
                                 <div className="flex items-center gap-3">
                                     <div className="w-12 h-12 bg-emerald-500 rounded-2xl flex items-center justify-center shadow-lg shadow-emerald-500/20">
-                                        <span className="material-symbols-rounded text-white text-2xl">install_mobile</span>
+                                        <span className="material-symbols-rounded text-white text-2xl" aria-hidden="true">install_mobile</span>
                                     </div>
                                     <div>
                                         <h3 className="font-display text-xl font-black text-slate-900 dark:text-white leading-tight">Instalar App</h3>
-                                        <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">{platform === 'ios' ? 'Passos para iPhone' : 'Passos para Android'}</p>
+                                        <p className="text-xs text-slate-500 dark:text-slate-400 font-bold uppercase tracking-widest">{platform === 'ios' ? 'Passos para iPhone' : 'Passos para Android'}</p>
                                     </div>
                                 </div>
                                 <button
+                                    type="button"
                                     onClick={() => setIsOpen(false)}
-                                    className="p-2 bg-slate-100 dark:bg-slate-700 rounded-xl text-slate-400"
+                                    aria-label="Fechar tutorial de instalação"
+                                    className="min-w-[44px] min-h-[44px] p-2 bg-slate-100 dark:bg-slate-700 rounded-xl text-slate-500 dark:text-slate-400 flex items-center justify-center"
                                 >
-                                    <span className="material-symbols-rounded">close</span>
+                                    <span className="material-symbols-rounded" aria-hidden="true">close</span>
                                 </button>
                             </div>
 
@@ -104,10 +124,10 @@ const InstallTutorial: React.FC = () => {
                                         </div>
                                         <div className="flex-1 pt-1 pb-4">
                                             <div className="flex items-center gap-2 mb-2">
-                                                <span className="material-symbols-rounded text-slate-400 text-lg">{step.icon}</span>
-                                                <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Passo {index + 1}</span>
+                                                <span className="material-symbols-rounded text-slate-500 dark:text-slate-400 text-lg" aria-hidden="true">{step.icon}</span>
+                                                <span className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest">Passo {index + 1}</span>
                                             </div>
-                                            <p className="text-slate-700 dark:text-slate-200 font-bold text-sm leading-relaxed">
+                                            <p className="text-slate-800 dark:text-slate-200 font-bold text-sm leading-relaxed">
                                                 {step.text}
                                             </p>
                                         </div>
@@ -116,14 +136,16 @@ const InstallTutorial: React.FC = () => {
                             </div>
 
                             <div className="mt-8 bg-slate-50 dark:bg-slate-900/50 p-5 rounded-2xl border border-dashed border-slate-200 dark:border-slate-700">
-                                <p className="text-[11px] text-slate-500 dark:text-slate-400 text-center leading-relaxed">
-                                    Após adicionar, o ícone do **FitCoach Pro** aparecerá junto com seus outros aplicativos.
+                                <p className="text-[11px] text-slate-600 dark:text-slate-400 text-center leading-relaxed">
+                                    Após adicionar, o ícone do <strong className="text-slate-800 dark:text-slate-200">FitCoach Pro</strong> aparecerá junto com seus outros aplicativos.
                                 </p>
                             </div>
 
                             <button
+                                type="button"
                                 onClick={() => setIsOpen(false)}
-                                className="w-full mt-6 py-4 bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-black rounded-2xl shadow-xl active:scale-95 transition-all text-sm uppercase tracking-widest"
+                                aria-label="Entendi e fechar tutorial"
+                                className="w-full min-h-[44px] mt-6 py-4 bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-black rounded-2xl shadow-xl active:scale-95 transition-all text-sm uppercase tracking-widest flex items-center justify-center"
                             >
                                 Entendi
                             </button>
