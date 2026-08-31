@@ -353,7 +353,7 @@ const Exercises: React.FC<ExercisesProps> = ({ isModal, onSelect }) => {
                                                         alt={`Imagem de demonstração de ${ex.name}`}
                                                         loading="lazy"
                                                     />
-                                                ) : ex.video_url && ex.video_url.match(/\.mp4($|\?)/i) ? (
+                                                ) : ex.video_url ? (
                                                     <VideoThumbnail src={ex.video_url} alt={`Vídeo de ${ex.name}`} className="w-full h-full rounded-lg" />
                                                 ) : (
                                                     <div className="w-full h-full flex items-center justify-center text-slate-400">

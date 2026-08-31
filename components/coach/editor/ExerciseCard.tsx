@@ -256,6 +256,8 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({ item, index, totalItems, on
                                 <span className="material-symbols-rounded text-white drop-shadow-md text-lg" aria-hidden="true">play_circle</span>
                             </div>
                         </div>
+                    ) : videoUrl ? (
+                        <VideoThumbnail src={videoUrl} alt={item.exercise?.name || 'Exercício'} className="w-full h-full rounded-lg" />
                     ) : (
                         <div className="w-full h-full flex items-center justify-center text-slate-400">
                             <span className="material-symbols-rounded text-lg sm:text-xl" aria-hidden="true">fitness_center</span>
