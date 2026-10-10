@@ -7,8 +7,7 @@ import {
 describe('workoutHistoryGrouper utils', () => {
     it('deve retornar array vazio se os logs forem vazios ou indefinidos', () => {
         expect(groupExerciseSessions([], 'ex1')).toEqual([]);
-        // @ts-expect-error teste com valor nulo
-        expect(groupExerciseSessions(null, 'ex1')).toEqual([]);
+        expect(groupExerciseSessions(null as any, 'ex1')).toEqual([]);
     });
 
     it('deve agrupar por sessão única (workout_logs.id) e NÃO mesclar treinos do mesmo dia', () => {

@@ -10,8 +10,7 @@ describe('sessionComparison utils', () => {
     describe('calculateSessionVolume', () => {
         it('deve retornar 0 para lista vazia ou nula', () => {
             expect(calculateSessionVolume([])).toBe(0);
-            // @ts-expect-error teste com tipo nulo
-            expect(calculateSessionVolume(null)).toBe(0);
+            expect(calculateSessionVolume(null as any)).toBe(0);
         });
 
         it('deve somar o volume de séries normais (weight_kg * reps_completed)', () => {

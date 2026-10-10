@@ -149,7 +149,7 @@ const ExerciseHistoryModal: React.FC<ExerciseHistoryModalProps> = ({
                                 </span>
                             )}
                         </div>
-                        <p className="text-[10px] font-bold text-sky-500 uppercase tracking-widest mt-0.5 truncate max-w-[280px] sm:max-w-sm">
+                        <p className="text-[10px] font-bold text-sky-700 dark:text-sky-400 uppercase tracking-widest mt-0.5 truncate max-w-[280px] sm:max-w-sm">
                             {exerciseName}
                         </p>
                     </div>
@@ -289,7 +289,7 @@ const ExerciseHistoryModal: React.FC<ExerciseHistoryModalProps> = ({
                                                                     </>
                                                                 )}
                                                             </span>
-                                                            <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wide">
+                                                            <span className="text-[9px] font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wide">
                                                                 {(() => {
                                                                     switch (set.set_type) {
                                                                         case 'working':

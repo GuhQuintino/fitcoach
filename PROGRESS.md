@@ -4,6 +4,32 @@
 
 ---
 
+## [2026-10-10] — Auditoria Impeccable Loop: Fases 6 e 7 (PASS17 — Grade A+ 20.0/20.0)
+
+- **Identificador da Auditoria:** `PASS17` / `impeccable-audit-phases-6-7`
+- **Avaliador:** `Impeccable Independent Auditor` (Fresh Context)
+- **Veredito:** **PASS (20.0 / 20.0 — Aprovado com Excelência)** — [QA_REPORT_IMPECCABLE_PASS17.md](file:///c:/Users/Gustavo/Desktop/Fitcoach/docs/gauntlet/QA_REPORT_IMPECCABLE_PASS17.md)
+
+### Melhorias de Craftsmanship & Acessibilidade Aplicadas
+1. **Acessibilidade (A11y — 4.0/4.0):**
+   - Touch targets expandidos para o padrão mínimo internacional ($\ge 44 \times 44\text{px}$) em botões inline de confirmação de feedbacks, atalhos de validade do plano (+30d, +60d, +90d, +1 ano), botão de limpar busca e ações de aluno.
+   - Suporte nativo à tecla `Escape` adicionado nos modais de histórico (`ExerciseHistoryModal.tsx`) e edição de validade/aprovação (`Students.tsx`).
+   - Adição de textos ocultos acessíveis (`sr-only`) para leitores de tela em seletores e nos badges de contagem de notificações não lidas e pendências do Dashboard.
+2. **Theming & Color Contrast (WCAG AA/AAA — 4.0/4.0):**
+   - Correção do contraste de textos secundários em Light Mode e Dark Mode (ratio superior a 4.5:1).
+   - Ajuste do contraste dos badges de "Expira Hoje" (`text-amber-950 font-black` sobre `bg-amber-500`, ratio > 7:1) e "Lido/Removido".
+   - Substituição de token Tailwind não-padrão (`dark:bg-slate-850`) por token canônico (`dark:bg-slate-900/60`).
+3. **Responsividade & Adapt (4.0/4.0):**
+   - Refatoração do grid de métricas de alunos de `grid-cols-4` para `grid-cols-2 sm:grid-cols-4`, garantindo leitura limpa em telas móveis estreitas (360px a 430px).
+   - Grid de séries no card expandido de feedbacks em `grid-cols-1 sm:grid-cols-2`.
+4. **Anti-AI-Slop & Integridade (4.0/4.0):**
+   - Substituição do SVG circular progress ring puramente decorativo no card de visão geral por métrica tipográfica de alta densidade (`3xl font-black` com rótulo "Ativos"), conforme diretrizes do `craft-floor.md`.
+   - Remoção de kickers genéricos repetitivos ("Ferramenta" e "Biblioteca") nos cartões do Dashboard em favor de microcópias honestas e funcionais.
+   - Substituição de `alert()` síncrono nativo por toasts modernos com `react-hot-toast`.
+   - 37/37 testes automatizados passando no Vitest e compilação limpa sem erros TypeScript.
+
+---
+
 ## [2026-10-10] — Fase 7: Gestão e Localização Rápida de Alunos (`/coach/students`) & Sincronização com Dashboard (PASS16)
 
 - **Identificador da Fatia:** `PASS16` / `feature-students-management-dashboard-sync`

@@ -98,9 +98,17 @@ const Feedbacks: React.FC = () => {
 
             const comparisons: Record<string, SessionComparisonResult> = {};
 
+            const normalizeSetLogs = (sets: any[] | null | undefined) => {
+                if (!sets || !Array.isArray(sets)) return [];
+                return sets.map((s) => ({
+                    ...s,
+                    exercise: Array.isArray(s.exercise) ? s.exercise[0] : s.exercise,
+                }));
+            };
+
             for (const log of logs) {
                 if (!log.workout_id || !log.finished_at) {
-                    comparisons[log.id] = compareSessions(log.set_logs || [], null);
+                    comparisons[log.id] = compareSessions(normalizeSetLogs(log.set_logs), null);
                     continue;
                 }
 
@@ -115,8 +123,8 @@ const Feedbacks: React.FC = () => {
                 );
 
                 comparisons[log.id] = compareSessions(
-                    log.set_logs || [],
-                    prevLog ? prevLog.set_logs : null
+                    normalizeSetLogs(log.set_logs),
+                    prevLog ? normalizeSetLogs(prevLog.set_logs) : null
                 );
             }
 
@@ -388,7 +396,7 @@ const Feedbacks: React.FC = () => {
                                         type="button"
                                         onClick={handleMarkAllAsRead}
                                         disabled={markingAll}
-                                        className="bg-sky-500 text-white font-black px-3 py-1.5 rounded-xl hover:bg-sky-600 transition-colors shadow-sm disabled:opacity-50"
+                                        className="min-h-[44px] bg-sky-500 text-white font-black px-4 py-2 rounded-xl hover:bg-sky-600 transition-colors shadow-sm disabled:opacity-50 flex items-center justify-center cursor-pointer active:scale-95"
                                     >
                                         {markingAll ? 'Marcando...' : 'Confirmar'}
                                     </button>
@@ -396,7 +404,7 @@ const Feedbacks: React.FC = () => {
                                         type="button"
                                         onClick={() => setShowMarkAllConfirm(false)}
                                         disabled={markingAll}
-                                        className="text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 px-2 py-1.5 font-bold"
+                                        className="min-h-[44px] text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200 px-3 py-2 font-bold flex items-center justify-center cursor-pointer rounded-xl"
                                     >
                                         Cancelar
                                     </button>
@@ -486,7 +494,7 @@ const Feedbacks: React.FC = () => {
                                     key={log.id}
                                     className={`bg-white dark:bg-slate-800 rounded-3xl shadow-sm border transition-all overflow-hidden ${
                                         !isUnread && filter === 'unread'
-                                            ? 'opacity-60 bg-slate-50/50 dark:bg-slate-850/50 border-slate-200 dark:border-slate-700'
+                                            ? 'opacity-60 bg-slate-50/50 dark:bg-slate-900/60 border-slate-200 dark:border-slate-700'
                                             : hasWrittenFeedback
                                             ? 'border-amber-400/80 dark:border-amber-500/50 ring-1 ring-amber-400/20 shadow-amber-500/5'
                                             : 'border-slate-200/80 dark:border-slate-700/80'
@@ -515,7 +523,7 @@ const Feedbacks: React.FC = () => {
                                                         {isUnread ? (
                                                             <span className="w-2 h-2 rounded-full bg-sky-500"></span>
                                                         ) : (
-                                                            <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                                                            <span className="text-[10px] font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider bg-slate-100 dark:bg-slate-700/60 px-1.5 py-0.5 rounded">
                                                                 Lido
                                                             </span>
                                                         )}
@@ -581,7 +589,7 @@ const Feedbacks: React.FC = () => {
                                                     {log.workout?.name || 'Treino sem nome'}
                                                 </h4>
                                                 {!workoutAvailable && (
-                                                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider bg-slate-100 dark:bg-slate-700 px-2 py-0.5 rounded-md">
+                                                    <span className="text-[10px] font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wider bg-slate-200 dark:bg-slate-700 px-2 py-0.5 rounded-md">
                                                         Removido
                                                     </span>
                                                 )}

@@ -113,10 +113,6 @@ const CoachDashboard: React.FC = () => {
         fetchDashboardData();
     }, [user]);
 
-    const radius = 16;
-    const circumference = 2 * Math.PI * radius;
-    const strokeDashoffset = circumference - (stats.activePercentage / 100) * circumference;
-
     const [coachName, setCoachName] = useState('Treinador');
 
     useEffect(() => {
@@ -164,9 +160,9 @@ const CoachDashboard: React.FC = () => {
                     <div className="flex flex-col items-end gap-2">
                         <ThemeToggle />
                         {role === 'coach' && (
-                            <div className="flex items-center gap-2 px-3 py-1 bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800/30 rounded-full">
+                            <div className="flex items-center gap-2 px-3 py-1 bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-700/50 rounded-full">
                                 <span className={`w-2 h-2 rounded-full ${expiresAt && new Date(expiresAt) > new Date() ? 'bg-emerald-500' : 'bg-red-500'}`}></span>
-                                <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400 uppercase tracking-tight">
+                                <span className="text-[10px] font-bold text-amber-800 dark:text-amber-300 uppercase tracking-tight">
                                     {(() => {
                                         if (!expiresAt) return 'Sem validade';
                                         const now = new Date();
@@ -207,22 +203,10 @@ const CoachDashboard: React.FC = () => {
                                 </div>
                             </div>
                         </div>
-                        {/* Progress Ring */}
-                        <div className="relative w-20 h-20 flex items-center justify-center">
-                            <svg className="w-full h-full -rotate-90" viewBox="0 0 36 36">
-                                <circle cx="18" cy="18" r={radius} fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth="3" />
-                                <circle
-                                    cx="18" cy="18" r={radius} fill="none"
-                                    stroke="white" strokeWidth="3"
-                                    strokeDasharray={circumference}
-                                    strokeDashoffset={strokeDashoffset}
-                                    strokeLinecap="round"
-                                />
-                            </svg>
-                            <div className="absolute inset-0 flex flex-col items-center justify-center">
-                                <span className="text-lg font-bold">{stats.activePercentage}%</span>
-                                <span className="text-[10px] text-white/70 uppercase">Ativos</span>
-                            </div>
+                        {/* High-Density Typographic Metric */}
+                        <div className="flex flex-col items-end justify-center pr-1">
+                            <span className="text-3xl font-black tracking-tight">{stats.activePercentage}%</span>
+                            <span className="text-[11px] text-white/70 font-bold uppercase tracking-wider">Ativos</span>
                         </div>
                     </div>
                     {/* Decorative Element */}
@@ -239,9 +223,10 @@ const CoachDashboard: React.FC = () => {
                         <div className="relative p-3 bg-white dark:bg-sky-900/40 text-primary rounded-xl group-hover:scale-110 transition-transform shadow-sm">
                             <span className="material-symbols-rounded text-2xl" aria-hidden="true">chat_bubble</span>
                             {recentFeedbacksCount > 0 && (
-                                <span className="absolute -top-1 -right-1 bg-danger text-white text-[10px] font-bold h-5 w-5 flex items-center justify-center rounded-full border-2 border-white dark:border-slate-800">
-                                    {recentFeedbacksCount}
-                                </span>
+                                 <span className="absolute -top-1 -right-1 bg-danger text-white text-[10px] font-bold h-5 w-5 flex items-center justify-center rounded-full border-2 border-white dark:border-slate-800">
+                                     {recentFeedbacksCount}
+                                     <span className="sr-only">feedbacks não lidos</span>
+                                 </span>
                             )}
                         </div>
                         <span className="text-sm font-semibold text-slate-700 dark:text-slate-200 relative z-10">Feedbacks</span>
@@ -253,6 +238,7 @@ const CoachDashboard: React.FC = () => {
                             {updatesCount > 0 && (
                                 <span className="absolute -top-1 -right-1 bg-danger text-white text-[10px] font-bold h-5 w-5 flex items-center justify-center rounded-full border-2 border-white dark:border-slate-800">
                                     {updatesCount}
+                                    <span className="sr-only">atualizações pendentes</span>
                                 </span>
                             )}
                         </div>
@@ -260,12 +246,12 @@ const CoachDashboard: React.FC = () => {
                     </Link>
                 </div>
 
-                {/* Tool Banner (Invite) - Increased margin top to separate from quick actions */}
+                {/* Tool Banner (Invite) - Clean descriptive copy */}
                 <Link to="/coach/invite" className="block mt-4">
                     <div className="w-full bg-white dark:bg-slate-800 p-5 rounded-2xl flex items-center justify-between group cursor-pointer transition-colors hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 shadow-sm">
                         <div className="flex flex-col gap-1">
-                            <span className="text-xs font-bold text-primary uppercase tracking-wide">Ferramenta</span>
                             <span className="text-lg font-bold text-slate-900 dark:text-white font-display">Convidar Aluno</span>
+                            <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">Link de cadastro direto para novos alunos</span>
                         </div>
                         <div className="h-12 w-12 bg-white dark:bg-slate-800 rounded-full flex items-center justify-center shadow-soft text-primary group-hover:scale-110 transition-transform">
                             <span className="material-symbols-rounded" aria-hidden="true">person_add</span>
@@ -273,7 +259,7 @@ const CoachDashboard: React.FC = () => {
                     </div>
                 </Link>
 
-                {/* Library Cards - Added mt-8 for better spacing */}
+                {/* Library Cards - Informative subtext */}
                 <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4 pb-12 mt-8">
                     <Link to="/coach/library" className="bg-gradient-to-br from-amber-50/80 to-white dark:from-amber-900/20 dark:to-slate-800 p-5 rounded-2xl shadow-sm border border-amber-100/50 dark:border-amber-700/30 flex flex-col items-start gap-4 text-left group active:scale-95 transition-all card-hover overflow-hidden relative">
                         <div className="absolute top-0 right-0 w-24 h-24 bg-amber-100/20 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2" aria-hidden="true"></div>
@@ -282,7 +268,7 @@ const CoachDashboard: React.FC = () => {
                         </div>
                         <div className="relative z-10">
                             <span className="font-display text-xl font-bold block text-slate-900 dark:text-white">Treinos</span>
-                            <span className="text-xs text-slate-500 dark:text-slate-400 font-medium uppercase mt-1 block tracking-wide">Biblioteca</span>
+                            <span className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-1 block">Modelos e rotinas</span>
                         </div>
                     </Link>
                     <Link to="/coach/exercises" className="bg-gradient-to-br from-emerald-50/80 to-white dark:from-emerald-900/20 dark:to-slate-800 p-5 rounded-2xl shadow-sm border border-emerald-100/50 dark:border-emerald-700/30 flex flex-col items-start gap-4 text-left group active:scale-95 transition-all card-hover overflow-hidden relative">
@@ -292,7 +278,7 @@ const CoachDashboard: React.FC = () => {
                         </div>
                         <div className="relative z-10">
                             <span className="font-display text-xl font-bold block text-slate-900 dark:text-white">Exercícios</span>
-                            <span className="text-xs text-slate-500 dark:text-slate-400 font-medium uppercase mt-1 block tracking-wide">Biblioteca</span>
+                            <span className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-1 block">Banco com vídeos</span>
                         </div>
                     </Link>
                 </div>

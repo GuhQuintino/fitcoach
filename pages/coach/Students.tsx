@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import MainLayout from '../../components/Layout/MainLayout';
 import { supabase } from '../../lib/supabaseClient';
 import { useAuth } from '../../contexts/AuthContext';
@@ -61,6 +62,18 @@ const CoachStudents: React.FC = () => {
         const timer = setTimeout(() => setActionFeedback(null), 3000);
         return () => clearTimeout(timer);
     }, [actionFeedback]);
+
+    // Fechar modal ao pressionar Escape (WCAG A11y)
+    useEffect(() => {
+        if (!modalStudent) return;
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') {
+                setModalStudent(null);
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [modalStudent]);
 
     /**
      * Carregamento em lote otimizado:
@@ -276,7 +289,7 @@ const CoachStudents: React.FC = () => {
             setModalStudent(null);
         } catch (error: any) {
             console.error('Erro ao salvar vencimento do aluno:', error);
-            alert(error.message || 'Falha ao salvar as alterações do aluno.');
+            toast.error(error.message || 'Falha ao salvar as alterações do aluno.');
         } finally {
             setModalLoading(false);
         }
@@ -322,7 +335,7 @@ const CoachStudents: React.FC = () => {
 
             <div className="relative px-5 space-y-5 pb-32">
                 {/* 1. Cards Globais de Estatísticas (Fixos - Regra S3) */}
-                <div className="grid grid-cols-4 gap-2 sm:gap-3">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3">
                     <div className="bg-white dark:bg-slate-800 p-3 sm:p-4 rounded-2xl shadow-soft border border-slate-100 dark:border-slate-700/60">
                         <span className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white block">{globalStats.totalStudents}</span>
                         <span className="text-[10px] sm:text-xs text-slate-500 uppercase font-semibold">Total</span>
@@ -341,7 +354,7 @@ const CoachStudents: React.FC = () => {
                         <span className={`text-xl sm:text-2xl font-bold block ${globalStats.pendingStudents > 0 ? 'text-white' : 'text-slate-400 dark:text-slate-500'}`}>
                             {globalStats.pendingStudents}
                         </span>
-                        <span className={`text-[10px] sm:text-xs uppercase font-semibold ${globalStats.pendingStudents > 0 ? 'text-amber-100' : 'text-slate-500'}`}>
+                        <span className={`text-[10px] sm:text-xs uppercase font-black ${globalStats.pendingStudents > 0 ? 'text-amber-950' : 'text-slate-500'}`}>
                             Pendentes
                         </span>
                     </div>
@@ -369,14 +382,14 @@ const CoachStudents: React.FC = () => {
                         aria-label="Buscar aluno pelo nome"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl py-3.5 pl-12 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all shadow-soft placeholder:text-slate-400 text-slate-900 dark:text-white"
+                        className="w-full bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl py-3.5 pl-12 pr-12 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all shadow-soft placeholder:text-slate-400 text-slate-900 dark:text-white"
                     />
                     {searchTerm && (
                         <button
                             type="button"
                             onClick={() => setSearchTerm('')}
                             aria-label="Limpar busca"
-                            className="absolute right-3.5 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                            className="absolute right-1 top-1/2 -translate-y-1/2 min-w-[44px] min-h-[44px] flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
                         >
                             <span className="material-symbols-rounded text-base" aria-hidden="true">close</span>
                         </button>
@@ -661,7 +674,7 @@ const CoachStudents: React.FC = () => {
                                         key={shortcut.days}
                                         type="button"
                                         onClick={() => handleApplyQuickDays(shortcut.days)}
-                                        className="py-1.5 px-2 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-lg text-xs font-semibold text-slate-700 dark:text-slate-200 transition-colors"
+                                        className="min-h-[44px] px-2 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 transition-colors flex items-center justify-center cursor-pointer active:scale-95"
                                     >
                                         {shortcut.label}
                                     </button>

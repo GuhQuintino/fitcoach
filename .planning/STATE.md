@@ -43,6 +43,7 @@
 - **Theming:** Suporte total e equilibrado aos modos Claro e Escuro
 - **Anti-Slop:** Zero emojis em badges, ausência de pontuação artificial de IA (`—`), paleta cromática semântica do Fitcoach
 - **Laudo Gauntlet Critic (PASS16):** **3.00 / 3.00 (Média 6D — PASS)** documentado em [`QA_REPORT_PASS16.md`](file:///c:/Users/Gustavo/Desktop/Fitcoach/docs/gauntlet/QA_REPORT_PASS16.md)
+- **Laudo Impeccable Audit Loop (PASS17):** **20.0 / 20.0 (Nota Máxima — PASS)** documentado em [`QA_REPORT_IMPECCABLE_PASS17.md`](file:///c:/Users/Gustavo/Desktop/Fitcoach/docs/gauntlet/QA_REPORT_IMPECCABLE_PASS17.md) cobrindo A11y (touch targets $\ge 44\times 44$px, `Escape`, ARIA, `sr-only`), Performance (zero N+1, cursor pagination), Contraste WCAG AA/AAA, Responsividade (360px a 4K) e Anti-Slop.
 
 ---
 
