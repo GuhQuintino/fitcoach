@@ -29,6 +29,10 @@ export default defineConfig(({ mode }) => {
         }
       },
       chunkSizeWarningLimit: 1000
+    },
+    test: {
+      include: ['**/*.test.ts', '**/*.test.tsx'],
+      exclude: ['**/node_modules/**', '**/dist/**', '**/testsprite_tests/**'],
     }
   };
 });

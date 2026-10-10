@@ -37,3 +37,14 @@ Fitcoach Pro é uma plataforma progressiva (PWA Mobile-First com suporte a fallb
 - [x] Badges explicativos e legíveis para Carga (`100kg`), Faixa de Repetições (`3-7 reps`) e PSE (`PSE 9.5`).
 - [x] Cabeçalho semântico `Alvo / Anterior` e botões com modais explicativos (`kg ?`, `Reps ?`, `PSE ?`).
 - [x] Resolução dos 6 itens de acessibilidade e touch targets do editor e dashboards.
+
+### Fase 6: Histórico Completo do Exercício + Fila de Feedbacks do Coach (Concluída — PASS15)
+- [x] **R1 — Histórico Ilimitado:** Modal de histórico completo com paginação contínua em lotes de 1000 sem truncamento ou limite de 20 registros ([`ExerciseHistoryModal.tsx`](file:///c:/Users/Gustavo/Desktop/Fitcoach/components/shared/ExerciseHistoryModal.tsx)). [2026-10-10]
+- [x] **R2 — Agrupamento por Sessão:** Agrupamento estrito por `workout_logs.id` impedindo fusão de treinos realizados no mesmo dia ([`workoutHistoryGrouper.ts`](file:///c:/Users/Gustavo/Desktop/Fitcoach/utils/workoutHistoryGrouper.ts)). [2026-10-10]
+- [x] **R3 & R4 — Feedback Técnico Isolado:** Apresentação dedicada de `exercise_feedback_logs.feedback_text` compartilhada no modal para Aluno e Coach. [2026-10-10]
+- [x] **R5 — Ação "Abrir Treino":** Botão nos cards de feedback com navegação profunda para `/coach/editor?workout_id=...&student_id=...` e marcação otimista como lido ([`Feedbacks.tsx`](file:///c:/Users/Gustavo/Desktop/Fitcoach/pages/coach/Feedbacks.tsx)). [2026-10-10]
+- [x] **R6 & R7 — Gestão de Triagem de Feedbacks:** Filtro Não lidos / Todos com contador leve (`head: true`), paginação por cursor (`lt`) e botão "Marcar todos como lidos" com confirmação inline suave. [2026-10-10]
+- [x] **R8 — Sobrecarga Progressiva:** Comparação determinística com a sessão anterior do mesmo treino (resumo de volume e delta por série/exercício, descartando aquecimentos) ([`sessionComparison.ts`](file:///c:/Users/Gustavo/Desktop/Fitcoach/utils/sessionComparison.ts)). [2026-10-10]
+- [x] **R9 — Destaque Visual:** Borda âmbar, anel de foco e prévia para cards contendo feedbacks escritos prioritários para o coach. [2026-10-10]
+- [x] **Persistência & RLS:** Migração SQL com índice parcial `idx_workout_logs_coach_unread` e policy de UPDATE de `read_by_coach` para coaches ([`20261010000000_feedbacks_coach_update_rls.sql`](file:///c:/Users/Gustavo/Desktop/Fitcoach/supabase/migrations/20261010000000_feedbacks_coach_update_rls.sql)). [2026-10-10]
+- [x] **Garantia de Qualidade & Testes:** Suíte de 17 testes automatizados com Vitest (100% passed) e Laudo Técnico Gauntlet Critic aprovado com nota máxima 3.00/3.00 ([`QA_REPORT_PASS15.md`](file:///c:/Users/Gustavo/Desktop/Fitcoach/docs/gauntlet/QA_REPORT_PASS15.md)). [2026-10-10]
