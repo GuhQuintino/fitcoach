@@ -7,14 +7,9 @@ import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabaseClient';
 import PWAInstallPrompt from '../../components/shared/PWAInstallPrompt';
 import { getOptimizedImageUrl } from '../../utils/imageUtils';
+import { calculateDashboardStats, classifyStudent, DashboardStatsResult } from '../../utils/studentStatus';
 
-interface DashboardStats {
-    totalStudents: number;
-    activeStudents: number;
-    inactiveStudents: number;
-    pendingStudents: number;
-    activePercentage: number;
-}
+interface DashboardStats extends DashboardStatsResult {}
 
 const CoachDashboard: React.FC = () => {
     const { user, role, expiresAt, avatarUrl } = useAuth();
@@ -36,59 +31,39 @@ const CoachDashboard: React.FC = () => {
             if (!user) return;
 
             try {
-                // 1. Fetch Students linked to this coach from students_data
-                // Using 'students_data' instead of 'student_assignments' which was causing the bug
-                let query = supabase
+                // 1. Fetch Students linked to this coach with expiration and profile status
+                const { data: studentsData, error: studentsError } = await supabase
                     .from('students_data')
-                    .select('id')
+                    .select(`
+                        id,
+                        consultancy_expires_at,
+                        profiles!students_data_id_fkey!inner (
+                            id,
+                            status
+                        )
+                    `)
                     .eq('coach_id', user.id);
-
-                const { data: students, error: studentsError } = await query;
 
                 if (studentsError) {
                     console.error('Error fetching students:', studentsError);
                     return;
                 }
 
-                const studentIds = students?.map(s => s.id) || [];
-                const totalCount = studentIds.length;
+                const studentsList = studentsData || [];
+                const studentIds = studentsList.map(s => s.id);
 
-                // 2. Fetch Status from Profiles for these students
-                let activeCount = 0;
-                let pendingCount = 0;
-                let inactiveCount = 0;
+                // 2. Calculate Stats via canonical pure function
+                const canonicalStats = calculateDashboardStats(studentsList);
+                setStats(canonicalStats);
 
-                let profiles: any[] | null = [];
+                // 3. Calculate Updates Count (Pending approvals/renewals + missing routine + expiring soon)
+                let totalUpdates = canonicalStats.pendingStudents;
 
-                if (totalCount > 0) {
-                    const { data: p, error: profilesError } = await supabase
-                        .from('profiles')
-                        .select('status, id') // Added id here as it is used in line 86
-                        .in('id', studentIds);
+                // Check for active students without active routines
+                const activeStudentIds = studentsList
+                    .filter(s => classifyStudent(s) === 'active')
+                    .map(s => s.id);
 
-                    profiles = p;
-
-                    if (!profilesError && profiles) {
-                        activeCount = profiles.filter(p => p?.status === 'active').length;
-                        pendingCount = profiles.filter(p => p?.status === 'pending').length;
-                        inactiveCount = profiles.filter(p => p?.status === 'inactive' || p?.status === 'banned').length;
-                    }
-                }
-
-                // 3. Update Stats
-                setStats({
-                    totalStudents: totalCount,
-                    activeStudents: activeCount,
-                    inactiveStudents: inactiveCount,
-                    pendingStudents: pendingCount,
-                    activePercentage: totalCount > 0 ? Math.round((activeCount / totalCount) * 100) : 0
-                });
-
-                // 4. Calculate Updates Count
-                let totalUpdates = pendingCount;
-
-                // Check for students without active routines
-                const activeStudentIds = profiles?.filter(p => p.status === 'active').map(p => p.id) || [];
                 if (activeStudentIds.length > 0) {
                     const { data: assignments } = await supabase
                         .from('student_assignments')
@@ -101,26 +76,21 @@ const CoachDashboard: React.FC = () => {
                     totalUpdates += noRoutineCount;
                 }
 
-                // Check for expiring plans (next 7 days)
-                const { data: expiringData } = await supabase
-                    .from('students_data')
-                    .select('consultancy_expires_at')
-                    .eq('coach_id', user.id)
-                    .not('consultancy_expires_at', 'is', null);
-
+                // Check for expiring plans (next 7 days among active students)
                 const now = new Date();
                 const sevenDays = new Date();
                 sevenDays.setDate(now.getDate() + 7);
 
-                const expiringCount = expiringData?.filter(s => {
+                const expiringCount = studentsList.filter(s => {
+                    if (!s.consultancy_expires_at) return false;
                     const exp = new Date(s.consultancy_expires_at);
-                    return exp <= sevenDays;
-                }).length || 0;
+                    return exp >= now && exp <= sevenDays;
+                }).length;
 
                 totalUpdates += expiringCount;
                 setUpdatesCount(totalUpdates);
 
-                // Fetch Feedback Count
+                // 4. Fetch Feedback Count
                 if (studentIds.length > 0) {
                     const { count, error: countError } = await supabase
                         .from('workout_logs')

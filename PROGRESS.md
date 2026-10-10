@@ -4,6 +4,59 @@
 
 ---
 
+## [2026-10-10] — Fase 7: Gestão e Localização Rápida de Alunos (`/coach/students`) & Sincronização com Dashboard (PASS16)
+
+- **Identificador da Fatia:** `PASS16` / `feature-students-management-dashboard-sync`
+- **Perfil Gauntlet:** `full-stack` (Vite 6 + React 19 + TypeScript + Tailwind CSS 4 + Supabase + Vitest)
+- **Subagente Executor:** `gauntlet-builder`
+- **Veredito do Gauntlet Critic:** **PASS (3.00 / 3.00 na Rubrica 6D)** — [QA_REPORT_PASS16.md](file:///c:/Users/Gustavo/Desktop/Fitcoach/docs/gauntlet/QA_REPORT_PASS16.md)
+
+### Resumo do Valor Entregue (End-to-End)
+1. **Dados & Modelos:**
+   - Consumo unificado do modelo relacional `students_data` com FK `profiles` (`profiles!students_data_id_fkey!inner`).
+   - Query em lote anti-N+1 na tabela `workout_logs` trazendo o último treino finalizado de todos os alunos em O(1) requisições com agrupamento e mapeamento client-side em `Map` O(N).
+2. **Serviços & Contratos:**
+   - Regras de negócio S1 a S7 consolidadas no módulo puro [`utils/studentStatus.ts`](file:///c:/Users/Gustavo/Desktop/Fitcoach/utils/studentStatus.ts):
+     - `active`: cadastro ativo com plano vigente (`consultancy_expires_at >= agora`).
+     - `pending`: novos cadastros aguardando aprovação (`status = 'pending'`) ou planos vencidos há no máximo 7 dias (janela de tolerância para renovação).
+     - `inactive`: planos vencidos há mais de 7 dias, alunos sem plano ou contas rejeitadas/banidas.
+   - Sincronização matemática e lógica absoluta com [`pages/coach/Dashboard.tsx`](file:///c:/Users/Gustavo/Desktop/Fitcoach/pages/coach/Dashboard.tsx) via `calculateDashboardStats(allStudents)`, eliminando discrepâncias históricas onde o Dashboard ignorava a data de expiração da consultoria.
+   - Tratamento explícito de segurança e retorno de erro no RPC `approve_student` no Postgres.
+3. **Interface & Componentes (Superfície Operate):**
+   - Página [`pages/coach/Students.tsx`](file:///c:/Users/Gustavo/Desktop/Fitcoach/pages/coach/Students.tsx) com abertura direta na aba **Ativos** por padrão (S2).
+   - 4 cards de métricas no topo (*Total*, *Ativos*, *Pendentes*, *Inativos*) calculados sobre a base global do coach, imunes a filtros ou termos de pesquisa (S3).
+   - Abas com contadores dinâmicos e busca instantânea em memória sem travamentos.
+   - Seletor de ordenação ágil alternando entre "Último treino" (mais recentes primeiro com desempate alfabético) e "Nome (A-Z)" (S7).
+   - Cards dos alunos com badges táteis de status (Esmeralda/Âmbar/Rosa), exibição relativa do último treino com alerta âmbar para inatividade > 7 dias (S5), e indicador de urgência de vencimento (<= 7 dias ou em renovação).
+   - Ações rápidas com alvos táteis $\ge 44\text{px}$: link direto para WhatsApp de todos os alunos com telefone cadastrado, botão de atalho para perfil de treinos e modal duplo-uso para aprovação e extensão de consultoria com atalhos (+30d, +60d, +90d, +1 ano) (S6).
+4. **Testes Automatizados:**
+   - 20 novos testes unitários automatizados via Vitest em [`utils/studentStatus.test.ts`](file:///c:/Users/Gustavo/Desktop/Fitcoach/utils/studentStatus.test.ts) cobrindo 100% dos ramos de classificação, carência de 7 dias, cálculos agregados, formatação temporal e ordenação, totalizando 37/37 testes aprovados na suíte geral em 833ms.
+   - Build de produção do Vite 100% aprovado com código 0 em 7.79s.
+
+### Métricas da Rubrica 6D
+| Dimensão | Nota | Status |
+|---|:---:|:---:|
+| **D1. Funcionalidade & Requisitos** | 3.0 / 3.0 | Aprovado |
+| **D2. Robustez & Estabilidade** | 3.0 / 3.0 | Aprovado |
+| **D3. Qualidade de Implementação & Anti-Slop** | 3.0 / 3.0 | Aprovado |
+| **D4. Consistência Arquitetural & Stack Nativa** | 3.0 / 3.0 | Aprovado |
+| **D5. Performance & Eficiência** | 3.0 / 3.0 | Aprovado |
+| **D6. Testabilidade, Segurança & Conformidade** | 3.0 / 3.0 | Aprovado |
+| **Média Consolidada** | **3.00 / 3.00** | **PASS** |
+
+### Arquivos Criados e Modificados
+- `utils/studentStatus.ts`: módulo puro canônico para classificação de status, contadores e formatação de engajamento/vencimento.
+- `utils/studentStatus.test.ts`: suíte de 20 testes unitários automatizados cobrindo todas as regras de negócio S1 a S7.
+- `pages/coach/Students.tsx`: reformulação da tela de alunos com aba padrão Ativos, contadores fixos, busca, ordenação, badges de engajamento, WhatsApp e modal integrado.
+- `pages/coach/Dashboard.tsx`: sincronização canônica dos contadores de alunos via `calculateDashboardStats` e consumo de `consultancy_expires_at`.
+- `PRODUCT.md`: especificação formal validada das regras de negócio S1 a S7 da Fase 7.
+- `.planning/STATE.md`: atualização de governança, métricas e decisões travadas da Fase 7.
+- `.planning/ROADMAP.md` e `ROADMAP.md`: checklist da Fase 7 finalizada com sucesso.
+- `docs/gauntlet/QA_REPORT_PASS16.md`: laudo formal de aprovação do Gauntlet Critic (PASS 3.00/3.00).
+- `docs/gauntlet/SLICE_SUMMARY.md`: sumário técnico de engenharia da fatia vertical.
+
+---
+
 ## [2026-10-10] — Fase 6: Histórico Completo do Exercício + Fila de Feedbacks do Coach (PASS15)
 
 - **Identificador da Fatia:** `PASS15` / `feature-feedbacks-history`

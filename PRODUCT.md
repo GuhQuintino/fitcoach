@@ -35,3 +35,26 @@
 
 ### Plano técnico
 Ver `docs/gauntlet/PLAN_feedbacks_history.md`.
+
+---
+
+## Feature: Gestão e Localização Rápida de Alunos (`/coach/students`) & Sincronização com Dashboard (2026-10-10)
+
+### Problema
+1. `/coach/students` abre por padrão na aba "Todos" em vez de "Ativos", exigindo clique manual a cada acesso.
+2. Contadores no topo de `/coach/students` são calculados sobre a lista filtrada da aba atual, distorcendo os números totais.
+3. Desalinhamento com `/coach/dashboard`: o Dashboard considerava qualquer perfil com `status = 'active'` como ativo, ignorando a data de expiração da consultoria.
+4. Os cards dos alunos não mostram quando foi o último treino do aluno (impossível saber se o aluno está engajado ou abandonou os treinos).
+5. Falta botão de WhatsApp para alunos ativos (só existia para pendentes) e faltava ordenação por atividade recente.
+
+### Regras de Negócio Validadas com o Coach
+| # | Regra |
+|---|---|
+| S1 | **Classificação Canônica de Aluno:**<br>- **Ativo:** plano ativo no momento (`consultancy_expires_at >= agora` e cadastro ativo).<br>- **Pendente:** cadastro novo aguardando aprovação (`status = 'pending'`) **OU** plano vencido nos últimos 7 dias (período de tolerância/renovação).<br>- **Inativo:** sem plano ativo há mais de 7 dias (`agora - consultancy_expires_at > 7 dias`), ou sem plano, ou banido/rejeitado. |
+| S2 | `/coach/students` abre diretamente na aba **Ativos** por padrão. |
+| S3 | Os contadores do topo (Total, Ativos, Pendentes, Inativos) refletem os dados globais reais do coach, independentemente da aba ou busca selecionada. |
+| S4 | **Sincronização 100% com `/coach/dashboard`:** o Dashboard passa a utilizar exatamente a mesma função pura (`utils/studentStatus.ts`) para calcular totais de ativos, pendentes e inativos. |
+| S5 | **Informações reais no card do aluno:**<br>- Exibição do último treino concluído (ex: "Treinou hoje", "Treinou há 2 dias", ou alerta "Sem treinos há X dias" se > 7 dias, "Sem treinos registrados").<br>- Exibição do vencimento do plano com badge de urgência quando faltar <= 7 dias ou quando estiver vencido nos últimos 7 dias. |
+| S6 | **Ações rápidas:**<br>- Link direto para WhatsApp disponível em todos os cards de alunos que tiverem telefone cadastrado.<br>- Acesso direto ao perfil/treinos.<br>- Modal de aprovação e ajuste de validade para pendentes. |
+| S7 | **Ordenação Rápida:** permitir alternar entre "Último treino" (mais recentes primeiro) e "Nome (A-Z)". |
+
