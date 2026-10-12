@@ -4,6 +4,54 @@
 
 ---
 
+## [2026-10-12] — Resolução de Race Condition, Deduplicação Offline & Rollback Atômico de Workout Logs (duplicate_workout_bug — PASS)
+
+- **Identificador da Fatia:** `duplicate_workout_bug` / `fix-duplicate-workout-logs`
+- **Perfil Gauntlet:** `full-stack` (React 19 + TypeScript + Vite + Supabase / PostgreSQL + Vitest)
+- **Subagente Executor:** `gauntlet-builder`
+- **Veredito do Gauntlet Critic:** **PASS (3.00 / 3.00 na Rubrica 6D)** — [QA_REPORT_duplicate_workout_bug.md](file:///c:/Users/Gustavo/Desktop/Fitcoach/docs/gauntlet/QA_REPORT_duplicate_workout_bug.md)
+
+### Resumo do Valor Entregue (End-to-End)
+1. **Dados & Integridade do Banco (Supabase PostgreSQL):**
+   - Limpeza e saneamento no banco de dados via session pooler: 8 duplicatas órfãs (`0ae87bf9-9711-4b45-bcf9-ec05d0c98a40`, `4de3b8f1-0587-4e62-b92a-5d366f3f54b2`, `d911d1b2-c3ed-4f97-aff2-5a17da0fa84b`, `d9e30921-b0c3-4e69-8e92-da188d1860a6`, `b596f3ae-191f-4255-9774-f1af9c462011`, `5b33c98a-d23b-4bd3-b2dd-e66afced5613`, `8ba9a26b-21be-4e96-8492-5eed89c687b3`, `08d36a89-09cf-49a4-ac5b-6b7ca0bd3b0c`) do aluno Gabriel Pontes (`42dbdd07-abdb-4d9c-843e-72006ec5fb26`) referentes ao treino de 08/10 foram removidas com integridade relacional.
+   - Preservado com sucesso o registro canônico legítimo `0cbd5ee0-107e-438a-b718-8a0463de8241` (`effort_rating: 10`, `started_at: 2026-10-08T19:02:34.191Z`), assegurando exatamente 1 treino contabilizado em 08/10.
+2. **Serviços & Contratos:**
+   - **Trava Concorrente Síncrona:** Implementação de trava com `useRef` (`isSubmittingRef.current`) e estado reativo `isSubmitting` em `confirmFinishWorkout`, eliminando race conditions por cliques concorrentes ou em rajada no botão de finalizar.
+   - **Rollback Atômico de Cabeçalhos:** Inserção protegida de `workout_logs` com reversão cirúrgica via `delete().eq('id', createdLogId)` em caso de falha na persistência subsequente de séries ou feedbacks em [`WorkoutExecution.tsx`](file:///c:/Users/Gustavo/Desktop/Fitcoach/pages/student/WorkoutExecution.tsx), [`offlineSyncService.ts`](file:///c:/Users/Gustavo/Desktop/Fitcoach/utils/offlineSyncService.ts) e [`staleWorkoutService.ts`](file:///c:/Users/Gustavo/Desktop/Fitcoach/utils/staleWorkoutService.ts).
+   - **Idempotência no Sincronismo Offline:** O método `flushOfflineQueue` agora consulta o Supabase antes da inserção buscando registros pré-existentes por `student_id`, `started_at` e `workout_id`. Se já existente, reaproveita o cabeçalho em vez de duplicá-lo.
+   - **Proteção contra Séries Duplicadas:** Verificação de contagem de séries já persistidas em retentativas parciais de rede.
+   - **Teto de Retentativas da Fila:** Validação estrita de `MAX_SYNC_RETRIES = 3` para descarte seguro de payloads corrompidos após 3 falhas consecutivas, prevenindo loops de sincronização.
+3. **Interface & Componentes:**
+   - Modal `FinishWorkoutModal` desacoplado: a seleção da nota de esforço (1 a 10) altera o estado sem submeter imediatamente o treino, exigindo clique deliberado no botão "Concluir Treino".
+   - Desativação em lote com `disabled={isSubmitting}` de todos os botões, seletor de esforço e textarea com feedback visual imediato de carregamento (`animate-spin`).
+4. **Testes Automatizados & Build:**
+   - Suíte Vitest: 37 passing / 37 total (100% de sucesso).
+   - Suíte Offline (`scripts/test_offline_suite.ts`): 24 passing / 24 total (100% de sucesso).
+   - Compilação de produção Vite (`vite build`): aprovada com código 0 em 7.78s sem erros TypeScript.
+
+### Métricas da Rubrica 6D
+| Dimensão | Nota | Status |
+|---|:---:|:---:|
+| **D1. Funcionalidade & Requisitos** | 3.0 / 3.0 | Aprovado |
+| **D2. Robustez & Estabilidade** | 3.0 / 3.0 | Aprovado |
+| **D3. Qualidade de Implementação & Anti-Slop** | 3.0 / 3.0 | Aprovado |
+| **D4. Consistência Arquitetural & Stack Nativa** | 3.0 / 3.0 | Aprovado |
+| **D5. Performance & Eficiência** | 3.0 / 3.0 | Aprovado |
+| **D6. Testabilidade, Segurança & Conformidade** | 3.0 / 3.0 | Aprovado |
+| **Média Consolidada** | **3.00 / 3.00** | **PASS** |
+
+### Arquivos Criados e Modificados
+- `pages/student/WorkoutExecution.tsx`: trava síncrona `isSubmittingRef`, bloqueio de controles no modal, esforço desacoplado do submit e rollback no `catch`.
+- `utils/offlineSyncService.ts`: idempotência no `flushOfflineQueue`, contagem de séries pré-existentes, rollback de cabeçalho e `MAX_SYNC_RETRIES = 3`.
+- `utils/staleWorkoutService.ts`: rollback cirúrgico de `workout_log` órfão na auto-finalização de treinos obsoletos.
+- `scripts/test_offline_suite.ts`: testes de regressão para `MAX_SYNC_RETRIES = 3`, TTL de 8 dias, limite FIFO e descarte.
+- `docs/gauntlet/QA_REPORT_duplicate_workout_bug.md`: laudo formal de aprovação do Gauntlet Critic (PASS 3.00/3.00).
+- `docs/gauntlet/SLICE_SUMMARY.md`: sumário técnico de engenharia da fatia vertical.
+- `.planning/STATE.md`: sincronização de governança, decisões travadas e métricas da fatia.
+- `.planning/ROADMAP.md` e `ROADMAP.md`: checklist da Fase 8 finalizada com sucesso.
+
+---
+
 ## [2026-10-10] — Auditoria Impeccable Loop: Fases 6 e 7 (PASS17 — Grade A+ 20.0/20.0)
 
 - **Identificador da Auditoria:** `PASS17` / `impeccable-audit-phases-6-7`

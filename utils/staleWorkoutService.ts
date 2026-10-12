@@ -122,6 +122,8 @@ export async function autoFinalizeWorkout(
             realFinishedAt = new Date(saved.lastUpdate);
         }
 
+        let createdLogId: string | null = null;
+
         // 1. Inserir workout_log (effort_rating null = auto-finalizado)
         const { data: logData, error: logError } = await (supabase
             .from('workout_logs') as any)
@@ -137,6 +139,7 @@ export async function autoFinalizeWorkout(
             .single();
 
         if (logError || !logData) throw logError || new Error('Falha ao obter ID do log');
+        createdLogId = logData.id;
 
         // 2. Inserir set_logs para séries completadas
         const setsToInsert: any[] = [];
@@ -189,6 +192,16 @@ export async function autoFinalizeWorkout(
         return { success: true, completedSets, totalSets };
     } catch (error: any) {
         console.error('[AutoFinalize] Falha ao enviar para Supabase. Tentando salvar na fila offline:', error);
+
+        // Rollback: se inseriu workout_log mas falhou nas séries, deletar do Supabase para evitar órfão
+        if (createdLogId) {
+            try {
+                await (supabase.from('workout_logs') as any).delete().eq('id', createdLogId);
+                console.log(`[AutoFinalize] Rollback efetuado para workout_log órfão ${createdLogId}`);
+            } catch (cleanupErr) {
+                console.error('[AutoFinalize] Falha no rollback do workout_log órfão:', cleanupErr);
+            }
+        }
 
         // Fallback: Se for erro de rede ou dispositivo offline, salva na fila local
         try {

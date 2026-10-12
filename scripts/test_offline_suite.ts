@@ -32,6 +32,7 @@ import {
 
 import {
     MAX_OFFLINE_QUEUE_ITEMS,
+    MAX_SYNC_RETRIES,
     saveOfflineWorkout,
     getOfflineQueue,
     getPendingSyncCount,
@@ -153,6 +154,7 @@ async function runSuite() {
     assert(queueAfter12.length === MAX_OFFLINE_QUEUE_ITEMS, `Tamanho da fila é rigidamente limitado a ${MAX_OFFLINE_QUEUE_ITEMS} itens`);
     assert(queueAfter12[queueAfter12.length - 1].payload.workoutLog.feedback_notes === 'Treino #12', 'Último treino inserido está na ponta mais recente da fila');
     assert(queueAfter12[0].payload.workoutLog.feedback_notes === 'Treino #3', 'O treino mais antigo (#1 e #2) foi descartado pelo FIFO quando estourou 10 itens');
+    assert(MAX_SYNC_RETRIES === 3, 'Limite máximo de retentativas configurado em 3 (MAX_SYNC_RETRIES)');
 
     // ─────────────────────────────────────────────────────────────
     // TESTE 3: Regras de Stale Workout e Auto-Finalização

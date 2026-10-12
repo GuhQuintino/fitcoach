@@ -236,6 +236,8 @@ const WorkoutExecution: React.FC = () => {
 
     const [finishModalOpen, setFinishModalOpen] = useState(false);
     const [workoutComment, setWorkoutComment] = useState('');
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const isSubmittingRef = useRef(false);
 
     // Stats
     const [volume, setVolume] = useState(0);
@@ -855,9 +857,16 @@ const WorkoutExecution: React.FC = () => {
     };
 
     const confirmFinishWorkout = async (overallEffort: number) => {
+        if (isSubmittingRef.current) return;
+        isSubmittingRef.current = true;
+        setIsSubmitting(true);
+
+        let createdLogId: string | null = null;
+        let toastId: string | undefined;
+
         try {
             setFinishModalOpen(false);
-            const toastId = toast.loading('Salvando treino...');
+            toastId = toast.loading('Salvando treino...');
 
             // Filtrar todos os timestamps de conclusão das séries concluídas
             const completedTimestamps: number[] = [];
@@ -905,6 +914,7 @@ const WorkoutExecution: React.FC = () => {
                 .single();
 
             if (logError || !logData) throw logError || new Error('Falha ao registrar cabeçalho do treino');
+            createdLogId = logData.id;
 
             // 2. Create Log Sets
             const setsToInsert: any[] = [];
@@ -954,14 +964,24 @@ const WorkoutExecution: React.FC = () => {
                 if (feedbackError) throw feedbackError;
             }
 
-            toast.dismiss(toastId);
+            if (toastId) toast.dismiss(toastId);
             toast.success('Treino finalizado! Mandou bem!');
             notifyNetworkSuccess();
             localStorage.removeItem('active_workout');
             navigate('/student/dashboard');
         } catch (error: any) {
             notifyNetworkError();
-            console.error('Error saving workout to Supabase. Attempting offline queue fallback:', error);
+            console.error('Error saving workout to Supabase. Attempting rollback & offline queue fallback:', error);
+
+            // Rollback cirúrgico: se o cabeçalho foi inserido mas deu erro nas séries/feedbacks, deletar para não deixar órfão no Supabase
+            if (createdLogId) {
+                try {
+                    await (supabase.from('workout_logs') as any).delete().eq('id', createdLogId);
+                    console.log(`[WorkoutExecution] Rollback efetuado para workout_log órfão ${createdLogId}`);
+                } catch (cleanupErr) {
+                    console.error('[WorkoutExecution] Falha no rollback do workout_log órfão:', cleanupErr);
+                }
+            }
 
             // Fallback: Se falhou por rede ou dispositivo offline, salva na fila local
             try {
@@ -1035,7 +1055,8 @@ const WorkoutExecution: React.FC = () => {
 
                 const offlineRes = saveOfflineWorkout(offlinePayload);
                 if (offlineRes.success) {
-                    toast.dismiss();
+                    if (toastId) toast.dismiss(toastId);
+                    else toast.dismiss();
                     toast.success('Treino salvo no aparelho! Sincronizará ao reconectar 📶', { duration: 5000 });
                     localStorage.removeItem('active_workout');
                     navigate('/student/dashboard');
@@ -1045,8 +1066,11 @@ const WorkoutExecution: React.FC = () => {
                 console.error('Critical failure in offline save fallback:', offlineErr);
             }
 
-            toast.dismiss();
-            toast.error(`Erro ao salvar: ${error.message || 'Tente novamente.'}`);
+            if (toastId) toast.dismiss(toastId);
+            else toast.dismiss();
+            toast.error(`Erro ao salvar: ${error?.message || 'Tente novamente.'}`);
+            isSubmittingRef.current = false;
+            setIsSubmitting(false);
         }
     };
 
@@ -2063,10 +2087,13 @@ const WorkoutExecution: React.FC = () => {
 
                 <FinishWorkoutModal
                     isOpen={finishModalOpen}
-                    onClose={() => setFinishModalOpen(false)}
+                    onClose={() => {
+                        if (!isSubmitting) setFinishModalOpen(false);
+                    }}
                     onConfirm={confirmFinishWorkout}
                     comment={workoutComment}
                     onCommentChange={setWorkoutComment}
+                    isSubmitting={isSubmitting}
                 />
             </>
         </MainLayout >
@@ -2078,8 +2105,9 @@ const FinishWorkoutModal: React.FC<{
     onClose: () => void,
     onConfirm: (effort: number) => void,
     comment: string,
-    onCommentChange: (val: string) => void
-}> = React.memo(({ isOpen, onClose, onConfirm, comment, onCommentChange }) => {
+    onCommentChange: (val: string) => void,
+    isSubmitting?: boolean
+}> = React.memo(({ isOpen, onClose, onConfirm, comment, onCommentChange, isSubmitting = false }) => {
     const [effort, setEffort] = useState(7);
 
     if (!isOpen) return null;
@@ -2090,7 +2118,9 @@ const FinishWorkoutModal: React.FC<{
             aria-modal="true"
             aria-label="Finalizar e avaliar treino"
             className="fixed inset-0 z-[300] bg-black/80 flex items-end sm:items-center justify-center p-0 sm:p-4"
-            onClick={onClose}
+            onClick={() => {
+                if (!isSubmitting) onClose();
+            }}
         >
             <div className="bg-white dark:bg-slate-800 w-full max-w-md rounded-t-[32px] sm:rounded-3xl p-6 shadow-xl" onClick={e => e.stopPropagation()}>
                 <div className="w-12 h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full mx-auto mb-6 sm:hidden"></div>
@@ -2116,9 +2146,10 @@ const FinishWorkoutModal: React.FC<{
                         max="10"
                         step="1"
                         value={effort}
+                        disabled={isSubmitting}
                         aria-label="Escala de esforço de 1 a 10"
                         onChange={(e) => setEffort(parseInt(e.target.value))}
-                        className="w-full h-2 bg-slate-100 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-sky-500 min-h-[44px]"
+                        className="w-full h-2 bg-slate-100 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-sky-500 min-h-[44px] disabled:opacity-50 disabled:cursor-not-allowed"
                     />
 
                     <div className="grid grid-cols-5 gap-2 px-1 justify-items-center">
@@ -2126,13 +2157,15 @@ const FinishWorkoutModal: React.FC<{
                             <button
                                 key={n}
                                 type="button"
+                                disabled={isSubmitting}
                                 data-testid={`effort-rating-${n}`}
                                 aria-label={`Nota de esforço ${n} de 10`}
                                 onClick={() => {
                                     setEffort(n);
-                                    onConfirm(n);
                                 }}
-                                className={`w-full h-11 min-h-[44px] rounded-xl flex items-center justify-center font-bold text-sm transition-all active:scale-95 cursor-pointer ${n === effort
+                                className={`w-full h-11 min-h-[44px] rounded-xl flex items-center justify-center font-bold text-sm transition-all active:scale-95 ${
+                                    isSubmitting ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'
+                                } ${n === effort
                                     ? 'bg-sky-500 text-white shadow-md shadow-sky-500/20 scale-105 ring-2 ring-sky-500 ring-offset-2 dark:ring-offset-slate-800'
                                     : 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-600'
                                     }`}
@@ -2147,9 +2180,10 @@ const FinishWorkoutModal: React.FC<{
                         <textarea
                             id="workout-comment"
                             value={comment}
+                            disabled={isSubmitting}
                             onChange={(e) => onCommentChange(e.target.value)}
                             placeholder="Como você se sentiu hoje? Cargas fáceis? Alguma dor?"
-                            className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl p-4 text-sm text-slate-800 dark:text-slate-200 placeholder:text-slate-400 focus:border-sky-500 focus:ring-1 focus:ring-sky-500 min-h-[100px] transition-all resize-none"
+                            className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl p-4 text-sm text-slate-800 dark:text-slate-200 placeholder:text-slate-400 focus:border-sky-500 focus:ring-1 focus:ring-sky-500 min-h-[100px] transition-all resize-none disabled:opacity-50 disabled:cursor-not-allowed"
                         />
                     </div>
                 </div>
@@ -2157,18 +2191,29 @@ const FinishWorkoutModal: React.FC<{
                 <div className="flex flex-col gap-3">
                     <button
                         type="button"
+                        disabled={isSubmitting}
                         onClick={() => onConfirm(effort)}
                         aria-label="Salvar e finalizar treino"
-                        className="w-full min-h-[44px] bg-sky-500 hover:bg-sky-600 text-white font-bold py-4 rounded-2xl transition-all active:scale-[0.98] shadow-lg shadow-sky-500/20 flex items-center justify-center gap-2"
+                        className="w-full min-h-[44px] bg-sky-500 hover:bg-sky-600 disabled:bg-sky-400 disabled:cursor-not-allowed text-white font-bold py-4 rounded-2xl transition-all active:scale-[0.98] shadow-lg shadow-sky-500/20 flex items-center justify-center gap-2"
                     >
-                        <span className="material-symbols-rounded" aria-hidden="true">check_circle</span>
-                        Salvar e Finalizar
+                        {isSubmitting ? (
+                            <>
+                                <span className="material-symbols-rounded animate-spin" aria-hidden="true">progress_activity</span>
+                                Salvando Treino...
+                            </>
+                        ) : (
+                            <>
+                                <span className="material-symbols-rounded" aria-hidden="true">check_circle</span>
+                                Salvar e Finalizar
+                            </>
+                        )}
                     </button>
                     <button
                         type="button"
+                        disabled={isSubmitting}
                         onClick={onClose}
                         aria-label="Continuar treinando"
-                        className="w-full min-h-[44px] bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold py-4 rounded-2xl transition-all active:scale-[0.98] flex items-center justify-center"
+                        className="w-full min-h-[44px] bg-slate-100 dark:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed text-slate-700 dark:text-slate-300 font-bold py-4 rounded-2xl transition-all active:scale-[0.98] flex items-center justify-center"
                     >
                         Continuar Treinando
                     </button>
