@@ -4,10 +4,12 @@ import { supabase } from '../../lib/supabaseClient';
 import { useAuth } from '../../contexts/AuthContext';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import ExerciseCard, { ExerciseItemData } from '../../components/coach/editor/ExerciseCard';
-import Exercises from './Exercises'; // Correct component for exercises
+import ExerciseGroupCard, { ExerciseGroupData } from '../../components/coach/editor/ExerciseGroupCard';
+import Exercises from './Exercises';
 import WorkoutImportModal from '../../components/coach/editor/WorkoutImportModal';
 import toast from 'react-hot-toast';
 import ExerciseFormModal from '../../components/coach/exercises/ExerciseFormModal';
+import MethodGuideModal from '../../components/shared/MethodGuideModal';
 
 export interface WorkoutData {
     id: string;
@@ -33,6 +35,10 @@ export interface EditableExercise {
     muscle_weights?: Record<string, number>;
 }
 
+type DisplayBlock =
+    | { type: 'solo'; item: ExerciseItemData; originalIndex: number }
+    | { type: 'group'; group: ExerciseGroupData; items: Array<{ item: ExerciseItemData; originalIndex: number }> };
+
 const Editor: React.FC = () => {
     const { user } = useAuth();
     const navigate = useNavigate();
@@ -42,15 +48,85 @@ const Editor: React.FC = () => {
 
     const [workout, setWorkout] = useState<WorkoutData | null>(null);
     const [items, setItems] = useState<ExerciseItemData[]>([]);
+    const [groups, setGroups] = useState<ExerciseGroupData[]>([]);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [lastSaved, setLastSaved] = useState<Date | null>(null);
     const [isAutoSaving, setIsAutoSaving] = useState(false);
     const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
-    // Estados e função para edição inline de exercícios
+    // Seleção de agrupamento
+    const [isGroupingMode, setIsGroupingMode] = useState(false);
+    const [selectedItemIds, setSelectedItemIds] = useState<Set<string>>(new Set());
+
+    // Edição inline de exercícios
     const [editingExercise, setEditingExercise] = useState<EditableExercise | null>(null);
     const [saveLoading, setSaveLoading] = useState(false);
+
+    // Auto-save debounce timer
+    const saveTimerRef = useRef<NodeJS.Timeout | null>(null);
+    // Race condition lock
+    const isSavingRef = useRef(false);
+
+    // Initial Fetch
+    useEffect(() => {
+        if (workoutId) fetchWorkoutData();
+    }, [workoutId]);
+
+    const fetchWorkoutData = async () => {
+        try {
+            setLoading(true);
+            setItems([]);
+            setGroups([]);
+
+            // 1. Fetch workout details + routine name
+            const { data: wData, error: wError } = await supabase
+                .from('workouts')
+                .select(`*, routines (name)`)
+                .eq('id', workoutId)
+                .single();
+
+            if (wError) throw wError;
+            setWorkout(wData);
+
+            // 2. Fetch exercise groups
+            const { data: gData, error: gError } = await supabase
+                .from('exercise_groups')
+                .select('*')
+                .eq('workout_id', workoutId)
+                .order('group_order');
+
+            if (gError) throw gError;
+            setGroups(gData || []);
+
+            // 3. Fetch Items + Sets + Exercise Details
+            const { data: iData, error: iError } = await supabase
+                .from('workout_items')
+                .select(`
+                    *,
+                    exercise:exercises(*),
+                    sets:workout_sets(*)
+                `)
+                .eq('workout_id', workoutId)
+                .order('order_index');
+
+            if (iError) throw iError;
+
+            // Sort sets by set_order inside each item
+            const formattedItems = (iData || []).map((item: any) => ({
+                ...item,
+                sets: (item.sets || []).sort((a: any, b: any) => a.set_order - b.set_order)
+            }));
+
+            setItems(formattedItems);
+
+        } catch (error) {
+            console.error('Erro ao carregar dados do treino:', error);
+            toast.error('Erro ao carregar treino.');
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const handleSaveExercise = async (data: any) => {
         try {
@@ -67,13 +143,12 @@ const Editor: React.FC = () => {
             const { error } = await supabase
                 .from('exercises')
                 .update(payload)
-                .eq('id', editingExercise.id);
+                .eq('id', editingExercise?.id);
             if (error) throw error;
 
-            // Atualiza localmente no estado items do editor
             setItems(prevItems =>
                 prevItems.map(item => {
-                    if (item.exercise_id === editingExercise.id) {
+                    if (item.exercise_id === editingExercise?.id) {
                         return {
                             ...item,
                             exercise: {
@@ -100,57 +175,6 @@ const Editor: React.FC = () => {
         }
     };
 
-    // Auto-save debounce timer
-    const saveTimerRef = useRef<NodeJS.Timeout | null>(null);
-
-    // Initial Fetch
-    useEffect(() => {
-        if (workoutId) fetchWorkoutData();
-    }, [workoutId]);
-
-    const fetchWorkoutData = async () => {
-        try {
-            setLoading(true);
-            setItems([]); // Clear current items to avoid ghost data
-            // Fetch workout details + routine name
-            const { data: wData, error: wError } = await supabase
-                .from('workouts')
-                .select(`*, routines (name)`)
-                .eq('id', workoutId)
-                .single();
-
-            if (wError) throw wError;
-            setWorkout(wData);
-
-            // Fetch Items + Sets + Exercise Details
-            // Note: complex join.
-            const { data: iData, error: iError } = await supabase
-                .from('workout_items')
-                .select(`
-                    *,
-                    exercise:exercises(*),
-                    sets:workout_sets(*)
-                `)
-                .eq('workout_id', workoutId)
-                .order('order_index');
-
-            if (iError) throw iError;
-
-            // Sort sets by set_order inside each item
-            const formattedItems = iData.map(item => ({
-                ...item,
-                sets: item.sets.sort((a: any, b: any) => a.set_order - b.set_order)
-            }));
-
-            setItems(formattedItems);
-
-        } catch (error) {
-            console.error(error);
-        } finally {
-            setLoading(false);
-        }
-    };
-
     // --- State Management ---
     const handleUpdateItem = (index: number, updatedItem: any) => {
         const newItems = [...items];
@@ -161,8 +185,88 @@ const Editor: React.FC = () => {
 
     const handleDeleteItem = async (index: number) => {
         if (!confirm('Remover exercício?')) return;
+        const itemToDelete = items[index];
         const newItems = items.filter((_, i) => i !== index);
+
+        // Se o item pertencia a um grupo, verifica se sobrou apenas 1 exercício
+        if (itemToDelete?.group_id) {
+            const remainingInGroup = newItems.filter(it => it.group_id === itemToDelete.group_id);
+            if (remainingInGroup.length < 2) {
+                // Desagrupa os restantes
+                remainingInGroup.forEach(it => {
+                    it.group_id = null;
+                    it.group_position = null;
+                });
+                setGroups(prev => prev.filter(g => g.id !== itemToDelete.group_id));
+            }
+        }
+
         setItems(newItems);
+        setHasUnsavedChanges(true);
+    };
+
+    // --- Grouping Actions ---
+    const toggleSelectItem = (itemId: string) => {
+        const next = new Set(selectedItemIds);
+        if (next.has(itemId)) next.delete(itemId);
+        else next.add(itemId);
+        setSelectedItemIds(next);
+    };
+
+    const handleCreateGroup = (groupType: 'superset' | 'triset' | 'giant_set' | 'paired_antagonist') => {
+        if (selectedItemIds.size < 2) {
+            toast.error('Selecione pelo menos 2 exercícios para agrupar.');
+            return;
+        }
+
+        const newGroupId = `temp-group-${Date.now()}`;
+        const newGroup: ExerciseGroupData = {
+            id: newGroupId,
+            workout_id: workoutId || undefined,
+            group_type: groupType,
+            group_order: groups.length + 1,
+            rest_seconds: 90,
+            rounds: 3,
+            transition_seconds: groupType === 'paired_antagonist' ? 60 : 0,
+            coach_notes: null
+        };
+
+        let position = 1;
+        const newItems = items.map(it => {
+            if (selectedItemIds.has(it.id || '')) {
+                const updated = {
+                    ...it,
+                    group_id: newGroupId,
+                    group_position: position
+                };
+                position++;
+                return updated;
+            }
+            return it;
+        });
+
+        setGroups(prev => [...prev, newGroup]);
+        setItems(newItems);
+        setSelectedItemIds(new Set());
+        setIsGroupingMode(false);
+        setHasUnsavedChanges(true);
+        toast.success(`Grupo ${groupType.toUpperCase()} criado!`, { icon: '🔗' });
+    };
+
+    const handleUngroup = (groupId: string) => {
+        setItems(prev => prev.map(it => {
+            if (it.group_id === groupId) {
+                return { ...it, group_id: null, group_position: null };
+            }
+            return it;
+        }));
+        setGroups(prev => prev.filter(g => g.id !== groupId));
+        setHasUnsavedChanges(true);
+        toast.success('Exercícios desagrupados.');
+    };
+
+    const handleUpdateGroup = (updatedGroup: ExerciseGroupData) => {
+        setGroups(prev => prev.map(g => g.id === updatedGroup.id ? updatedGroup : g));
         setHasUnsavedChanges(true);
     };
 
@@ -188,13 +292,11 @@ const Editor: React.FC = () => {
         dragOverItem.current = null;
     };
 
-
-    // --- Adding Exercise (Library Modal) ---
+    // --- Adding / Swapping Exercise ---
     const [showLibrary, setShowLibrary] = useState(false);
     const [showImport, setShowImport] = useState(false);
     const [swapIndex, setSwapIndex] = useState<number | null>(null);
 
-    // --- Swap Exercise ---
     const handleSwapExercise = (index: number) => {
         setSwapIndex(index);
         setShowLibrary(true);
@@ -217,13 +319,7 @@ const Editor: React.FC = () => {
         setShowLibrary(false);
     };
 
-    // This function will be called by Library when user selects an exercise
-    // We need to modify Library to accept an 'onSelect' prop or handle it here via a specialized Library component
-    // For now assuming existing Library can work if modified or wrapped.
-    // Let's implement a simple handler that we'll pass to the Library (which we will refactor next)
-    // Let's implement a simple handler that we'll pass to the Library (which we will refactor next)
     const handleAddExercise = (exercisesData: any | any[]) => {
-        // Normalize to array
         const exercisesToAdd = Array.isArray(exercisesData) ? exercisesData : [exercisesData];
 
         const newItemsToAdd = exercisesToAdd.map((exercise: any) => {
@@ -233,7 +329,10 @@ const Editor: React.FC = () => {
                 set_order: 1,
                 type: 'working',
                 rest_seconds: '60',
-                rpe_target: '8'
+                rpe_target: '8',
+                set_method: 'standard',
+                execution_mode: 'standard',
+                timer_mode: 'standard'
             };
 
             if (exerciseType === 'cardio') {
@@ -247,22 +346,17 @@ const Editor: React.FC = () => {
             } else if (exerciseType === 'time') {
                 initialSet = {
                     ...initialSet,
-                    time_target: '60',
-                    weight_target: ''
-                };
-            } else {
-                initialSet = {
-                    ...initialSet,
-                    reps_target: '10',
-                    weight_target: ''
+                    time_target: '60'
                 };
             }
 
             return {
-                id: `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`, // unique temp ID
+                id: `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
                 exercise_id: exercise.id,
                 exercise: exercise,
                 coach_notes: '',
+                group_id: null,
+                group_position: null,
                 sets: [initialSet]
             };
         });
@@ -273,30 +367,74 @@ const Editor: React.FC = () => {
     };
 
     const handleImportExercises = (importedItems: any[]) => {
-        const newItemsToAdd = importedItems.map((item: any) => ({
-            id: `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-            exercise_id: item.exercise_id,
-            exercise: item.exercise, // Ensure exercise object is present
-            coach_notes: item.coach_notes || '',
-            sets: (item.sets || []).map((s: any) => ({
-                id: `temp-set-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-                set_order: s.set_order, // Keep original order
-                type: s.type || 'working',
-                reps_target: s.reps_target,
-                rest_seconds: s.rest_seconds,
-                rpe_target: s.rpe_target,
-                weight_target: s.weight_target,
-                // Copiar novas metas se existirem
-                time_target: s.time_target,
-                distance_target: s.distance_target,
-                speed_target: s.speed_target,
-                hiit_work_seconds: s.hiit_work_seconds,
-                hiit_rest_seconds: s.hiit_rest_seconds,
-                hiit_work_speed: s.hiit_work_speed,
-                hiit_rest_speed: s.hiit_rest_speed,
-                hiit_cycles: s.hiit_cycles
-            }))
-        }));
+        // Mapeia agrupamentos importados para novos IDs temporários
+        const importedGroupMap = new Map<string, string>();
+
+        const newItemsToAdd = importedItems.map((item: any) => {
+            let newGroupId: string | null = null;
+            if (item.group_id) {
+                if (!importedGroupMap.has(item.group_id)) {
+                    const freshGroupId = `temp-group-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`;
+                    importedGroupMap.set(item.group_id, freshGroupId);
+                    // Adiciona o novo grupo se não existir
+                    const importedGroup = item.exercise_groups || {
+                        group_type: 'superset',
+                        rest_seconds: 90,
+                        rounds: 3,
+                        transition_seconds: 0,
+                        coach_notes: null
+                    };
+                    setGroups(prev => [
+                        ...prev,
+                        {
+                            id: freshGroupId,
+                            workout_id: workoutId || undefined,
+                            group_type: importedGroup.group_type || 'superset',
+                            group_order: prev.length + 1,
+                            rest_seconds: importedGroup.rest_seconds || 90,
+                            rounds: importedGroup.rounds || 3,
+                            transition_seconds: importedGroup.transition_seconds || 0,
+                            coach_notes: importedGroup.coach_notes || null
+                        }
+                    ]);
+                }
+                newGroupId = importedGroupMap.get(item.group_id) || null;
+            }
+
+            return {
+                id: `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                exercise_id: item.exercise_id,
+                exercise: item.exercise,
+                coach_notes: item.coach_notes || '',
+                group_id: newGroupId,
+                group_position: item.group_position || null,
+                sets: (item.sets || []).map((s: any) => ({
+                    id: `temp-set-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                    set_order: s.set_order,
+                    type: s.type || 'working',
+                    reps_target: s.reps_target,
+                    rest_seconds: s.rest_seconds,
+                    rpe_target: s.rpe_target,
+                    weight_target: s.weight_target,
+                    time_target: s.time_target,
+                    distance_target: s.distance_target,
+                    speed_target: s.speed_target,
+                    hiit_work_seconds: s.hiit_work_seconds,
+                    hiit_rest_seconds: s.hiit_rest_seconds,
+                    hiit_work_speed: s.hiit_work_speed,
+                    hiit_rest_speed: s.hiit_rest_speed,
+                    hiit_cycles: s.hiit_cycles,
+                    set_method: s.set_method || 'standard',
+                    micro_rest_seconds: s.micro_rest_seconds,
+                    execution_mode: s.execution_mode || 'standard',
+                    tempo: s.tempo,
+                    timer_mode: s.timer_mode || 'standard',
+                    drop_count: s.drop_count,
+                    sub_sets: s.sub_sets,
+                    activation_reps: s.activation_reps
+                }))
+            };
+        });
 
         setItems(prev => [...prev, ...newItemsToAdd]);
         setHasUnsavedChanges(true);
@@ -314,16 +452,10 @@ const Editor: React.FC = () => {
         toast.success(`Exercício movido para a posição ${toIndex + 1}`, { duration: 1500 });
     };
 
-
-    // Race condition lock
-    const isSavingRef = useRef(false);
-
-    // --- Saving ---
+    // --- Persistência em 4 Fases (handleSave) ---
     const handleSave = async (isManual = true) => {
-        // Prevent overlapping saves
         if (isSavingRef.current) return;
 
-        // Immediately cancel any pending auto-save to prevent race
         if (saveTimerRef.current) {
             clearTimeout(saveTimerRef.current);
             saveTimerRef.current = null;
@@ -334,74 +466,150 @@ const Editor: React.FC = () => {
             if (isManual) setSaving(true);
             else setIsAutoSaving(true);
 
-            // 1. Clean up removed Items
-            const currentIds = items.filter(i => !i.id.toString().startsWith('temp') && !i.id.toString().startsWith('loaded')).map(i => i.id);
-            if (currentIds.length > 0) {
-                // Delete items that are NOT in the current list
-                await supabase.from('workout_items').delete().eq('workout_id', workoutId).not('id', 'in', `(${currentIds.join(',')})`);
+            // ═════════════════════════════════════════════════════════════════
+            // FASE 1: PERSISTÊNCIA DE EXERCISE_GROUPS
+            // ═════════════════════════════════════════════════════════════════
+            const currentGroupDbIds = groups.filter(g => !g.id.startsWith('temp')).map(g => g.id);
+            if (currentGroupDbIds.length > 0) {
+                await supabase.from('exercise_groups').delete().eq('workout_id', workoutId).not('id', 'in', `(${currentGroupDbIds.join(',')})`);
+            } else {
+                await supabase.from('exercise_groups').delete().eq('workout_id', workoutId);
+            }
+
+            const groupsToUpdate = groups
+                .filter(g => !g.id.startsWith('temp'))
+                .map((g, idx) => ({
+                    id: g.id,
+                    workout_id: workoutId,
+                    group_type: g.group_type,
+                    group_order: idx + 1,
+                    rest_seconds: g.rest_seconds,
+                    rounds: g.rounds,
+                    transition_seconds: g.transition_seconds,
+                    coach_notes: g.coach_notes
+                }));
+
+            const groupsToInsert = groups
+                .filter(g => g.id.startsWith('temp'))
+                .map((g, idx) => ({
+                    workout_id: workoutId,
+                    group_type: g.group_type,
+                    group_order: groups.indexOf(g) + 1,
+                    rest_seconds: g.rest_seconds,
+                    rounds: g.rounds,
+                    transition_seconds: g.transition_seconds,
+                    coach_notes: g.coach_notes
+                }));
+
+            const groupIdMap = new Map<string, string>();
+            const dbGroupsSaved: any[] = [];
+
+            if (groupsToUpdate.length > 0) {
+                const { data: dbGUpdates, error: gUpError } = await supabase
+                    .from('exercise_groups')
+                    .upsert(groupsToUpdate)
+                    .select();
+                if (gUpError) throw gUpError;
+                dbGroupsSaved.push(...(dbGUpdates || []));
+            }
+
+            if (groupsToInsert.length > 0) {
+                const { data: dbGInserts, error: gInError } = await supabase
+                    .from('exercise_groups')
+                    .insert(groupsToInsert)
+                    .select();
+                if (gInError) throw gInError;
+                dbGroupsSaved.push(...(dbGInserts || []));
+            }
+
+            // Mapeia IDs temporários de grupo para os UUIDs reais retornados
+            groups.forEach((lg, idx) => {
+                if (lg.id.startsWith('temp')) {
+                    const matchedDbGroup = dbGroupsSaved.find((dg: any) => dg.group_order === idx + 1);
+                    if (matchedDbGroup) {
+                        groupIdMap.set(lg.id, matchedDbGroup.id);
+                    }
+                }
+            });
+
+            // ═════════════════════════════════════════════════════════════════
+            // FASE 2: PERSISTÊNCIA DE WORKOUT_ITEMS (com group_id mapeado)
+            // ═════════════════════════════════════════════════════════════════
+            const currentItemDbIds = items.filter(i => !i.id?.toString().startsWith('temp') && !i.id?.toString().startsWith('loaded')).map(i => i.id);
+            if (currentItemDbIds.length > 0) {
+                await supabase.from('workout_items').delete().eq('workout_id', workoutId).not('id', 'in', `(${currentItemDbIds.join(',')})`);
             } else {
                 await supabase.from('workout_items').delete().eq('workout_id', workoutId);
             }
 
-            // 2. Separate Items into inserts and updates to avoid PostgREST null primary key issues
             const itemsToUpdate = items
-                .filter(item => !item.id.toString().startsWith('temp') && !item.id.toString().startsWith('loaded'))
-                .map((item, i) => ({
-                    id: item.id,
-                    workout_id: workoutId,
-                    exercise_id: item.exercise_id,
-                    order_index: i + 1,
-                    coach_notes: item.coach_notes
-                }));
+                .filter(item => !item.id?.toString().startsWith('temp') && !item.id?.toString().startsWith('loaded'))
+                .map((item, i) => {
+                    const realGroupId = item.group_id ? (groupIdMap.get(item.group_id) || item.group_id) : null;
+                    return {
+                        id: item.id,
+                        workout_id: workoutId,
+                        exercise_id: item.exercise_id,
+                        order_index: i + 1,
+                        coach_notes: item.coach_notes,
+                        group_id: realGroupId,
+                        group_position: item.group_position || null
+                    };
+                });
 
             const itemsToInsert = items
-                .filter(item => item.id.toString().startsWith('temp') || item.id.toString().startsWith('loaded'))
-                .map((item) => ({
-                    workout_id: workoutId,
-                    exercise_id: item.exercise_id,
-                    order_index: items.indexOf(item) + 1,
-                    coach_notes: item.coach_notes
-                }));
+                .filter(item => item.id?.toString().startsWith('temp') || item.id?.toString().startsWith('loaded'))
+                .map((item) => {
+                    const realGroupId = item.group_id ? (groupIdMap.get(item.group_id) || item.group_id) : null;
+                    return {
+                        workout_id: workoutId,
+                        exercise_id: item.exercise_id,
+                        order_index: items.indexOf(item) + 1,
+                        coach_notes: item.coach_notes,
+                        group_id: realGroupId,
+                        group_position: item.group_position || null
+                    };
+                });
 
             const itemIdMap = new Map<string, string>();
             const dbItemsSaved: any[] = [];
 
-            // A. Execute Updates for workout_items
             if (itemsToUpdate.length > 0) {
                 const { data: dbUpdates, error: itemsError } = await supabase
                     .from('workout_items')
                     .upsert(itemsToUpdate)
                     .select();
                 if (itemsError) throw itemsError;
-                dbItemsSaved.push(...dbUpdates);
+                dbItemsSaved.push(...(dbUpdates || []));
             }
 
-            // B. Execute Inserts for workout_items
             if (itemsToInsert.length > 0) {
                 const { data: dbInserts, error: itemsError } = await supabase
                     .from('workout_items')
                     .insert(itemsToInsert)
                     .select();
                 if (itemsError) throw itemsError;
-                dbItemsSaved.push(...dbInserts);
+                dbItemsSaved.push(...(dbInserts || []));
             }
 
-            // C. Map local IDs to database IDs
             dbItemsSaved.forEach((dbItem: any) => {
                 const localItem = items.find((li, idx) => li.exercise_id === dbItem.exercise_id && idx === dbItem.order_index - 1);
-                if (localItem) {
+                if (localItem && localItem.id) {
                     itemIdMap.set(localItem.id, dbItem.id);
                 }
             });
 
-            // 3. Prepare all sets (separate inserts and updates) and delete orphan sets
+            // ═════════════════════════════════════════════════════════════════
+            // FASE 3: PERSISTÊNCIA DE WORKOUT_SETS (com todos os novos campos)
+            // ═════════════════════════════════════════════════════════════════
             const setsToUpdate: any[] = [];
             const setsToInsert: any[] = [];
             const activeSetIds: string[] = [];
             const workoutItemIdsInUse: string[] = [];
 
             items.forEach((item) => {
-                const realItemId = itemIdMap.get(item.id) || item.id;
+                const realItemId = (item.id ? itemIdMap.get(item.id) : null) || item.id;
+                if (!realItemId) return;
                 workoutItemIdsInUse.push(realItemId);
 
                 item.sets.forEach((set: any, j: number) => {
@@ -409,7 +617,7 @@ const Editor: React.FC = () => {
                         workout_item_id: realItemId,
                         set_order: j + 1,
                         order_index: j + 1,
-                        type: set.type,
+                        type: set.type === 'dropset' ? 'drop' : set.type,
                         reps_target: set.reps_target || null,
                         rest_seconds: parseInt(set.rest_seconds) || 60,
                         rpe_target: set.rpe_target ? parseFloat(set.rpe_target) : 8,
@@ -421,7 +629,16 @@ const Editor: React.FC = () => {
                         hiit_rest_seconds: set.hiit_rest_seconds ? parseInt(set.hiit_rest_seconds) : null,
                         hiit_work_speed: set.hiit_work_speed ? parseFloat(set.hiit_work_speed) : null,
                         hiit_rest_speed: set.hiit_rest_speed ? parseFloat(set.hiit_rest_speed) : null,
-                        hiit_cycles: set.hiit_cycles ? parseInt(set.hiit_cycles) : null
+                        hiit_cycles: set.hiit_cycles ? parseInt(set.hiit_cycles) : null,
+                        // Novas colunas ortogonais:
+                        set_method: set.set_method || 'standard',
+                        micro_rest_seconds: set.micro_rest_seconds ? parseInt(set.micro_rest_seconds) : null,
+                        execution_mode: set.execution_mode || 'standard',
+                        tempo: set.tempo || null,
+                        timer_mode: set.timer_mode || 'standard',
+                        drop_count: set.drop_count ? parseInt(set.drop_count) : null,
+                        sub_sets: set.sub_sets ? parseInt(set.sub_sets) : null,
+                        activation_reps: set.activation_reps ? parseInt(set.activation_reps) : null
                     };
 
                     if (!set.id.toString().startsWith('new') && !set.id.toString().startsWith('temp') && !set.id.toString().startsWith('loaded')) {
@@ -434,7 +651,7 @@ const Editor: React.FC = () => {
                 });
             });
 
-            // Delete orphan sets
+            // Exclui séries órfãs
             if (workoutItemIdsInUse.length > 0) {
                 let deleteQuery = supabase.from('workout_sets').delete().in('workout_item_id', workoutItemIdsInUse);
                 if (activeSetIds.length > 0) {
@@ -446,29 +663,27 @@ const Editor: React.FC = () => {
 
             const dbSetsSaved: any[] = [];
 
-            // A. Execute Updates for workout_sets
             if (setsToUpdate.length > 0) {
                 const { data: dbUpdates, error: setsError } = await supabase
                     .from('workout_sets')
                     .upsert(setsToUpdate)
                     .select();
                 if (setsError) throw setsError;
-                dbSetsSaved.push(...dbUpdates);
+                dbSetsSaved.push(...(dbUpdates || []));
             }
 
-            // B. Execute Inserts for workout_sets
             if (setsToInsert.length > 0) {
                 const { data: dbInserts, error: setsError } = await supabase
                     .from('workout_sets')
                     .insert(setsToInsert)
                     .select();
                 if (setsError) throw setsError;
-                dbSetsSaved.push(...dbInserts);
+                dbSetsSaved.push(...(dbInserts || []));
             }
 
             const setIdMap = new Map<string, string>();
             dbSetsSaved.forEach((dbSet: any) => {
-                const localItem = items.find(li => (itemIdMap.get(li.id) || li.id) === dbSet.workout_item_id);
+                const localItem = items.find(li => ((li.id ? itemIdMap.get(li.id) : null) || li.id) === dbSet.workout_item_id);
                 if (localItem) {
                     const localSet = localItem.sets.find((ls: any) => ls.set_order === dbSet.set_order);
                     if (localSet && (localSet.id.toString().startsWith('new') || localSet.id.toString().startsWith('temp') || localSet.id.toString().startsWith('loaded'))) {
@@ -477,10 +692,20 @@ const Editor: React.FC = () => {
                 }
             });
 
-            // Sync state with new IDs functionally
+            // ═════════════════════════════════════════════════════════════════
+            // FASE 4: SINCRONIZAÇÃO DE ESTADO LOCAL COM NOVOS UUIDS
+            // ═════════════════════════════════════════════════════════════════
+            setGroups(currentGroups => {
+                return currentGroups.map(g => {
+                    const newGId = groupIdMap.get(g.id) || g.id;
+                    return { ...g, id: newGId };
+                });
+            });
+
             setItems(currentItems => {
                 return currentItems.map(item => {
-                    const newItemId = itemIdMap.get(item.id) || item.id;
+                    const newItemId = (item.id ? itemIdMap.get(item.id) : null) || item.id;
+                    const newGroupId = item.group_id ? (groupIdMap.get(item.group_id) || item.group_id) : null;
                     const newSets = item.sets.map((set: any) => ({
                         ...set,
                         id: setIdMap.get(set.id) || set.id,
@@ -490,12 +715,12 @@ const Editor: React.FC = () => {
                     return {
                         ...item,
                         id: newItemId,
+                        group_id: newGroupId,
                         sets: newSets
                     };
                 });
             });
 
-            // Success
             setHasUnsavedChanges(false);
             setLastSaved(new Date());
 
@@ -515,21 +740,20 @@ const Editor: React.FC = () => {
 
     // Auto-save effect
     useEffect(() => {
-        // Don't start timer if already saving
         if (!loading && hasUnsavedChanges && !isSavingRef.current) {
             if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
 
             saveTimerRef.current = setTimeout(() => {
                 handleSave(false);
-            }, 3000); // Save after 3 seconds of inactivity
+            }, 3000);
         }
 
         return () => {
             if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
         };
-    }, [items, hasUnsavedChanges, loading]);
+    }, [items, groups, hasUnsavedChanges, loading]);
 
-    // Prevent accidental navigation with unsaved changes
+    // Prevenção de fechamento acidental
     useEffect(() => {
         const handleBeforeUnload = (e: BeforeUnloadEvent) => {
             if (hasUnsavedChanges) {
@@ -551,10 +775,51 @@ const Editor: React.FC = () => {
         }
     };
 
+    // ═════════════════════════════════════════════════════════════════
+    // ESTRUTURAÇÃO DE BLOCOS DE EXIBIÇÃO (Grupos vs. Itens Solo)
+    // ═════════════════════════════════════════════════════════════════
+    const displayBlocks: DisplayBlock[] = [];
+    const processedGroupIds = new Set<string>();
+
+    items.forEach((item, index) => {
+        if (item.group_id) {
+            if (!processedGroupIds.has(item.group_id)) {
+                processedGroupIds.add(item.group_id);
+                const matchedGroup = groups.find(g => g.id === item.group_id) || {
+                    id: item.group_id,
+                    workout_id: workoutId || undefined,
+                    group_type: 'superset',
+                    group_order: displayBlocks.length + 1,
+                    rest_seconds: 90,
+                    rounds: 3,
+                    transition_seconds: 0,
+                    coach_notes: null
+                };
+
+                const groupItems = items
+                    .map((it, idx) => ({ item: it, originalIndex: idx }))
+                    .filter(entry => entry.item.group_id === item.group_id)
+                    .sort((a, b) => (a.item.group_position || 0) - (b.item.group_position || 0));
+
+                displayBlocks.push({
+                    type: 'group',
+                    group: matchedGroup,
+                    items: groupItems
+                });
+            }
+        } else {
+            displayBlocks.push({
+                type: 'solo',
+                item,
+                originalIndex: index
+            });
+        }
+    });
+
     return (
         <MainLayout>
             {/* Header */}
-            <header className="w-full px-5 py-4 flex items-center justify-between sticky top-0 bg-white dark:bg-slate-900 z-30 border-b border-slate-100 dark:border-slate-800">
+            <header className="w-full px-4 sm:px-6 py-4 flex items-center justify-between sticky top-0 bg-white dark:bg-slate-900 z-30 border-b border-slate-100 dark:border-slate-800 shadow-xs">
                 <div className="flex items-center gap-3">
                     <button
                         type="button"
@@ -582,20 +847,112 @@ const Editor: React.FC = () => {
                         </div>
                     </div>
                 </div>
-                <button
-                    type="button"
-                    onClick={() => handleSave(true)}
-                    disabled={saving}
-                    className="min-h-[44px] bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-bold px-6 py-2.5 rounded-2xl transition-all disabled:opacity-50 shadow-md hover:shadow-glow active:scale-95 text-sm"
-                >
-                    {saving ? 'Salvando...' : 'Sair e Salvar'}
-                </button>
+
+                <div className="flex items-center gap-2">
+                    {/* Botão de Toggle do Modo de Agrupamento */}
+                    <button
+                        type="button"
+                        onClick={() => {
+                            setIsGroupingMode(!isGroupingMode);
+                            setSelectedItemIds(new Set());
+                        }}
+                        className={`min-h-[40px] px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 border ${
+                            isGroupingMode
+                                ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm'
+                                : 'bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 border-indigo-200 dark:border-indigo-800 hover:bg-indigo-100'
+                        }`}
+                        title="Agrupar exercícios em Biset, Triset ou Giant Set"
+                    >
+                        <span className="material-symbols-rounded text-base" aria-hidden="true">link</span>
+                        <span className="hidden sm:inline">{isGroupingMode ? 'Cancelar Seleção' : 'Agrupar (Biset)'}</span>
+                        <span className="sm:hidden">{isGroupingMode ? 'Cancelar' : 'Agrupar'}</span>
+                    </button>
+
+                    <button
+                        type="button"
+                        onClick={() => handleSave(true)}
+                        disabled={saving}
+                        className="min-h-[40px] bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-bold px-5 py-2 rounded-xl transition-all disabled:opacity-50 shadow-md hover:shadow-glow active:scale-95 text-xs sm:text-sm"
+                    >
+                        {saving ? 'Salvando...' : 'Sair e Salvar'}
+                    </button>
+                </div>
             </header>
+
+            {/* Floating Action Bar quando em Modo de Agrupamento */}
+            {isGroupingMode && (
+                <div className="sticky top-[73px] z-20 bg-indigo-600 text-white p-3 shadow-lg border-b border-indigo-700 animate-slide-down flex items-center justify-between flex-wrap gap-2 px-4 sm:px-8">
+                    <div className="flex items-center gap-2">
+                        <span className="material-symbols-rounded text-xl" aria-hidden="true">checklist</span>
+                        <span className="text-xs sm:text-sm font-bold">
+                            {selectedItemIds.size === 0
+                                ? 'Marque os exercícios que deseja executar juntos:'
+                                : `${selectedItemIds.size} exercício(s) selecionado(s)`}
+                        </span>
+                    </div>
+
+                    <div className="flex items-center gap-2 flex-wrap">
+                        {selectedItemIds.size === 2 && (
+                            <>
+                                <button
+                                    type="button"
+                                    onClick={() => handleCreateGroup('superset')}
+                                    className="px-3 py-1.5 bg-white text-indigo-700 font-bold text-xs rounded-lg hover:bg-indigo-50 transition-colors flex items-center gap-1 shadow-xs"
+                                >
+                                    <span className="material-symbols-rounded text-sm" aria-hidden="true">dynamic_feed</span>
+                                    Criar Biset
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => handleCreateGroup('paired_antagonist')}
+                                    className="px-3 py-1.5 bg-white text-indigo-700 font-bold text-xs rounded-lg hover:bg-indigo-50 transition-colors flex items-center gap-1 shadow-xs"
+                                >
+                                    <span className="material-symbols-rounded text-sm" aria-hidden="true">swap_horiz</span>
+                                    Criar Antagonista
+                                </button>
+                            </>
+                        )}
+                        {selectedItemIds.size === 3 && (
+                            <button
+                                type="button"
+                                onClick={() => handleCreateGroup('triset')}
+                                className="px-3 py-1.5 bg-white text-indigo-700 font-bold text-xs rounded-lg hover:bg-indigo-50 transition-colors flex items-center gap-1 shadow-xs"
+                            >
+                                <span className="material-symbols-rounded text-sm" aria-hidden="true">view_carousel</span>
+                                Criar Triset
+                            </button>
+                        )}
+                        {selectedItemIds.size >= 4 && (
+                            <button
+                                type="button"
+                                onClick={() => handleCreateGroup('giant_set')}
+                                className="px-3 py-1.5 bg-white text-indigo-700 font-bold text-xs rounded-lg hover:bg-indigo-50 transition-colors flex items-center gap-1 shadow-xs"
+                            >
+                                <span className="material-symbols-rounded text-sm" aria-hidden="true">table_rows</span>
+                                Criar Giant Set
+                            </button>
+                        )}
+
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setIsGroupingMode(false);
+                                setSelectedItemIds(new Set());
+                            }}
+                            className="px-2.5 py-1.5 text-xs text-indigo-100 hover:text-white transition-colors"
+                        >
+                            Fechar
+                        </button>
+                    </div>
+                </div>
+            )}
 
             {/* List */}
             <div className="w-full overflow-x-hidden px-2 sm:px-5 pt-6 max-w-2xl mx-auto pb-10">
                 <div className="flex justify-between items-center mb-4">
-                    <p className="text-sm text-slate-500 font-medium">{items.length} exercícios</p>
+                    <p className="text-sm text-slate-500 font-medium">
+                        {items.length} exercícios {groups.length > 0 && `• ${groups.length} grupo(s)`}
+                    </p>
                 </div>
 
                 {loading ? (
@@ -605,31 +962,87 @@ const Editor: React.FC = () => {
                     </div>
                 ) : (
                     <div className="space-y-6">
-                        {items.map((item, index) => (
-                            <div
-                                key={item.id}
-                                draggable
-                                onDragStart={(e) => handleDragStart(e, index)}
-                                onDragEnter={(e) => handleDragEnter(e, index)}
-                                onDragEnd={handleDragEnd}
-                                className="transition-all"
-                            >
-                                <ExerciseCard
-                                    item={item}
-                                    index={index}
-                                    totalItems={items.length}
-                                    studentId={studentId}
-                                    onUpdate={(updated) => handleUpdateItem(index, updated)}
-                                    onDelete={() => handleDeleteItem(index)}
-                                    onMoveUp={() => handleMoveItem(index, index - 1)}
-                                    onMoveDown={() => handleMoveItem(index, index + 1)}
-                                    onSwapExercise={() => handleSwapExercise(index)}
-                                    onEditExercise={() => setEditingExercise(item.exercise)}
-                                />
-                            </div>
-                        ))}
+                        {displayBlocks.map((block, blockIdx) => {
+                            if (block.type === 'group') {
+                                return (
+                                    <ExerciseGroupCard
+                                        key={block.group.id}
+                                        group={block.group}
+                                        items={block.items.map(entry => entry.item)}
+                                        onUpdateGroup={handleUpdateGroup}
+                                        onUngroup={() => handleUngroup(block.group.id)}
+                                        onUpdateItem={(innerIdx, updated) => {
+                                            const originalIdx = block.items[innerIdx]?.originalIndex;
+                                            if (originalIdx !== undefined) handleUpdateItem(originalIdx, updated);
+                                        }}
+                                        onDeleteItem={(innerIdx) => {
+                                            const originalIdx = block.items[innerIdx]?.originalIndex;
+                                            if (originalIdx !== undefined) handleDeleteItem(originalIdx);
+                                        }}
+                                        onSwapExercise={(innerIdx) => {
+                                            const originalIdx = block.items[innerIdx]?.originalIndex;
+                                            if (originalIdx !== undefined) handleSwapExercise(originalIdx);
+                                        }}
+                                        onEditExercise={(innerIdx) => {
+                                            const originalIdx = block.items[innerIdx]?.originalIndex;
+                                            if (originalIdx !== undefined) setEditingExercise(items[originalIdx]?.exercise);
+                                        }}
+                                        studentId={studentId}
+                                    />
+                                );
+                            }
 
-                        {/* Relative Footer Button - Moves down as list grows */}
+                            // Solo Item
+                            const isSelectedForGroup = selectedItemIds.has(block.item.id || '');
+
+                            return (
+                                <div
+                                    key={block.item.id || block.originalIndex}
+                                    draggable={!isGroupingMode}
+                                    onDragStart={(e) => handleDragStart(e, block.originalIndex)}
+                                    onDragEnter={(e) => handleDragEnter(e, block.originalIndex)}
+                                    onDragEnd={handleDragEnd}
+                                    className="transition-all relative"
+                                >
+                                    {/* Checkbox overlay quando em Modo de Agrupamento */}
+                                    {isGroupingMode && (
+                                        <div
+                                            onClick={() => toggleSelectItem(block.item.id || '')}
+                                            className={`mb-2 p-2.5 rounded-xl border-2 cursor-pointer flex items-center justify-between transition-all ${
+                                                isSelectedForGroup
+                                                    ? 'bg-indigo-50 dark:bg-indigo-950/40 border-indigo-600 text-indigo-700 dark:text-indigo-300'
+                                                    : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300'
+                                            }`}
+                                        >
+                                            <span className="text-xs font-bold">
+                                                {isSelectedForGroup ? '✓ Selecionado para o Grupo' : 'Clique para selecionar este exercício'}
+                                            </span>
+                                            <input
+                                                type="checkbox"
+                                                checked={isSelectedForGroup}
+                                                onChange={() => toggleSelectItem(block.item.id || '')}
+                                                className="w-4 h-4 text-indigo-600 rounded cursor-pointer"
+                                            />
+                                        </div>
+                                    )}
+
+                                    <ExerciseCard
+                                        item={block.item}
+                                        index={block.originalIndex}
+                                        totalItems={items.length}
+                                        studentId={studentId}
+                                        onUpdate={(updated) => handleUpdateItem(block.originalIndex, updated)}
+                                        onDelete={() => handleDeleteItem(block.originalIndex)}
+                                        onMoveUp={() => handleMoveItem(block.originalIndex, block.originalIndex - 1)}
+                                        onMoveDown={() => handleMoveItem(block.originalIndex, block.originalIndex + 1)}
+                                        onSwapExercise={() => handleSwapExercise(block.originalIndex)}
+                                        onEditExercise={() => setEditingExercise(block.item.exercise)}
+                                    />
+                                </div>
+                            );
+                        })}
+
+                        {/* Relative Footer Buttons */}
                         <div className="grid grid-cols-2 gap-3">
                             <button
                                 type="button"
@@ -663,7 +1076,6 @@ const Editor: React.FC = () => {
                     aria-label={swapIndex !== null ? 'Alterar Exercício' : 'Selecionar Exercício'}
                     className="fixed inset-0 z-[60] bg-white dark:bg-slate-900 overflow-auto"
                 >
-                    {/* Simplified Header for Modal Mode */}
                     <div className="sticky top-0 z-10 bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800 p-4 flex items-center gap-3">
                         <button
                             type="button"
@@ -702,7 +1114,6 @@ const Editor: React.FC = () => {
                     isAdmin={false}
                 />
             )}
-
         </MainLayout>
     );
 };

@@ -8,10 +8,19 @@ import VideoPlayerModal from '../../components/shared/VideoPlayerModal';
 import DescriptionModal from '../../components/shared/DescriptionModal';
 import ExerciseHistoryModal from '../../components/shared/ExerciseHistoryModal';
 import RPEGuideModal from '../../components/coach/editor/RPEGuideModal';
+import MethodGuideModal from '../../components/shared/MethodGuideModal';
 import { isWorkoutStale, autoFinalizeWorkout, SavedWorkout } from '../../utils/staleWorkoutService';
 import { saveOfflineWorkout, OfflineWorkoutPayload } from '../../utils/offlineSyncService';
 import { cacheWorkoutExecution, getCachedWorkoutExecution } from '../../utils/offlineCacheService';
 import { notifyNetworkError, notifyNetworkSuccess } from '../../utils/useOnlineStatus';
+import {
+    getGroupToken,
+    getSetTypeToken,
+    getMethodToken,
+    getExecutionModeToken,
+    getTimerModeToken,
+    getMethodTheme
+} from '../../utils/specialSetTokens';
 
 const getYouTubeId = (url: string) => {
     if (!url) return null;
@@ -49,6 +58,30 @@ interface TriggerSet {
     distance_completed?: string;
     speed_actual?: string;
     hiit_cycles_completed?: string;
+
+    // Métodos e intensificação (Camadas 2, 3, 4):
+    set_method?: string | null;
+    micro_rest_seconds?: number | null;
+    execution_mode?: string | null;
+    tempo?: string | null;
+    timer_mode?: string | null;
+    drop_count?: number | null;
+    sub_sets?: number | null;
+    activation_reps?: number | null;
+
+    // Dropset sub-séries realizadas:
+    drops?: Array<{
+        weight: string;
+        reps: string;
+        completed: boolean;
+    }>;
+
+    // Sub-séries de intensificação (Rest-Pause, Cluster, Myo-Reps, Muscle Round, Método 3/7):
+    sub_sets_records?: Array<{
+        index: number;
+        reps: string;
+        completed: boolean;
+    }>;
 }
 
 interface TriggerExercise {
@@ -60,6 +93,8 @@ interface TriggerExercise {
     notes?: string;
     exercise_type: 'reps' | 'time' | 'cardio';
     feedback?: string;
+    group_id?: string | null;
+    group_position?: number | null;
     sets: TriggerSet[];
 }
 
@@ -101,6 +136,14 @@ const WorkoutExecution: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [workout, setWorkout] = useState<any>(null);
     const [exercises, setExercises] = useState<TriggerExercise[]>([]);
+    const [exerciseGroups, setExerciseGroups] = useState<any[]>([]);
+
+    // Modal Pedagógico das 4 Camadas
+    const [methodGuideModal, setMethodGuideModal] = useState<{
+        isOpen: boolean;
+        initialItemId?: string | null;
+        initialLayer?: 'all' | 'group' | 'set_method' | 'execution_mode' | 'timer_mode';
+    }>({ isOpen: false });
 
     // Timer State
     const [startTime, setStartTime] = useState<Date>(new Date());
@@ -109,8 +152,8 @@ const WorkoutExecution: React.FC = () => {
     const [timeLeft, setTimeLeft] = useState(60);
     const [initialTime, setInitialTime] = useState(60);
     const [toastVisible, setToastVisible] = useState(false);
+    const [restTimerLabel, setRestTimerLabel] = useState<string>('Descanso');
     const [currentExerciseIndex, setCurrentExerciseIndex] = useState(0);
-    // Remove timerRef as we use Date check now, but keeping for safety if needed or just remove types
     const audioContextRef = useRef<AudioContext | null>(null);
     const notificationSentRef = useRef(false);
 
@@ -278,6 +321,11 @@ const WorkoutExecution: React.FC = () => {
         exercisesRef.current = exercises;
     }, [exercises]);
 
+    const exerciseGroupsRef = useRef(exerciseGroups);
+    useEffect(() => {
+        exerciseGroupsRef.current = exerciseGroups;
+    }, [exerciseGroups]);
+
     const startTimeRef = useRef(startTime);
     useEffect(() => {
         startTimeRef.current = startTime;
@@ -298,6 +346,7 @@ const WorkoutExecution: React.FC = () => {
                     const sessionData = {
                         workoutId,
                         exercises: exercisesRef.current,
+                        exerciseGroups: exerciseGroupsRef.current,
                         startTime: startTimeRef.current.toISOString(),
                         workoutSeconds: next,
                         isWorkoutPaused: isWorkoutPausedRef.current,
@@ -366,7 +415,7 @@ const WorkoutExecution: React.FC = () => {
     useEffect(() => {
         if (!loading && exercises.length > 0) {
             if (preferences.focusMode) {
-                const el = document.getElementById(`exercise-${currentExerciseIndex}`);
+                const el = document.getElementById(`exercise-card-${currentExerciseIndex}`) || document.getElementById(`exercise-${currentExerciseIndex}`);
                 if (el) {
                     el.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 }
@@ -405,6 +454,18 @@ const WorkoutExecution: React.FC = () => {
                     if (isNaN(r)) r = 0;
 
                     v += w * r;
+
+                    // Incluir sub-séries de Dropset no volume e na contagem de séries
+                    if (set.set_method === 'dropset' && set.drops) {
+                        set.drops.forEach(drop => {
+                            if (drop.completed) {
+                                s++;
+                                const dw = parseFloat(drop.weight) || 0;
+                                const dr = parseFloat(drop.reps) || 0;
+                                v += dw * dr;
+                            }
+                        });
+                    }
                 }
             });
         });
@@ -417,38 +478,39 @@ const WorkoutExecution: React.FC = () => {
         try {
             setLoading(true);
 
-            // 1. Fetch Workout Details
-            const { data: wData, error: wError } = await supabase
-                .from('workouts')
-                .select('*')
-                .eq('id', workoutId)
-                .single();
-            if (wError) throw wError;
-            setWorkout(wData);
-
-            // 2. Fetch Items (Exercises) & Sets
-            const { data: itemsData, error: iError } = await supabase
-                .from('workout_items')
-                .select(`
+            // 1. Fetch Workout Details, Items & Groups
+            const [wRes, itemsRes, groupsRes] = await Promise.all([
+                supabase.from('workouts').select('*').eq('id', workoutId).single(),
+                supabase.from('workout_items').select(`
                     id,
                     order_index,
                     coach_notes,
+                    group_id,
+                    group_position,
                     exercise: exercises(
                         id, name, video_url, description, exercise_type
                     ),
                     sets: workout_sets(
                         id, set_order, type, weight_target, reps_target, rest_seconds, rpe_target,
                         time_target, distance_target, speed_target, hiit_work_seconds, hiit_rest_seconds,
-                        hiit_work_speed, hiit_rest_speed, hiit_cycles
+                        hiit_work_speed, hiit_rest_speed, hiit_cycles,
+                        set_method, micro_rest_seconds, execution_mode, tempo, timer_mode, drop_count, sub_sets, activation_reps
                     )
-                `)
-                .eq('workout_id', workoutId)
-                .order('order_index')
-                .order('set_order', { foreignTable: 'workout_sets', ascending: true });
+                `).eq('workout_id', workoutId).order('order_index').order('set_order', { foreignTable: 'workout_sets', ascending: true }),
+                supabase.from('exercise_groups').select('*').eq('workout_id', workoutId).order('group_order')
+            ]);
 
-            if (iError) throw iError;
+            if (wRes.error) throw wRes.error;
+            if (itemsRes.error) throw itemsRes.error;
 
-            // 3. Transform to local state
+            const wData = wRes.data;
+            const itemsData = itemsRes.data || [];
+            const groupsData = groupsRes.data || [];
+
+            setWorkout(wData);
+            setExerciseGroups(groupsData);
+
+            // 2. Transform to local state
             const mappedExercises: TriggerExercise[] = itemsData.map((item: any) => ({
                 id: item.exercise.id,
                 workout_item_id: item.id,
@@ -458,7 +520,9 @@ const WorkoutExecution: React.FC = () => {
                 notes: item.coach_notes,
                 exercise_type: item.exercise.exercise_type || 'reps',
                 feedback: '',
-                sets: item.sets
+                group_id: item.group_id || null,
+                group_position: item.group_position || null,
+                sets: (item.sets || [])
                     .sort((a: any, b: any) => a.set_order - b.set_order)
                     .map((set: any) => ({
                         id: set.id,
@@ -483,7 +547,39 @@ const WorkoutExecution: React.FC = () => {
                         time_completed: '',
                         distance_completed: '',
                         speed_actual: '',
-                        hiit_cycles_completed: ''
+                        hiit_cycles_completed: '',
+                        set_method: set.set_method || 'standard',
+                        micro_rest_seconds: set.micro_rest_seconds,
+                        execution_mode: set.execution_mode || 'standard',
+                        tempo: set.tempo,
+                        timer_mode: set.timer_mode || 'standard',
+                        drop_count: set.drop_count,
+                        sub_sets: set.sub_sets,
+                        activation_reps: set.activation_reps,
+                        drops: set.set_method === 'dropset'
+                            ? Array.from({ length: set.drop_count || 2 }).map(() => ({
+                                weight: '',
+                                reps: '',
+                                completed: false
+                            }))
+                            : undefined,
+                        sub_sets_records: ['rest_pause', 'cluster', 'myo_reps', 'muscle_round', 'method_3_7'].includes(set.set_method)
+                            ? Array.from({
+                                length: set.set_method === 'muscle_round'
+                                    ? 6
+                                    : set.set_method === 'method_3_7'
+                                        ? 5
+                                        : (set.sub_sets || (set.set_method === 'rest_pause' ? 2 : 3))
+                            }).map((_, subIdx) => ({
+                                index: subIdx + 1,
+                                reps: set.set_method === 'muscle_round'
+                                    ? '4'
+                                    : set.set_method === 'method_3_7'
+                                        ? String(subIdx + 3)
+                                        : '',
+                                completed: false
+                            }))
+                            : undefined
                     }))
             }));
 
@@ -554,7 +650,8 @@ const WorkoutExecution: React.FC = () => {
             if (workoutId && wData) {
                 cacheWorkoutExecution(workoutId, {
                     workout: wData,
-                    exercises: mappedExercises
+                    exercises: mappedExercises,
+                    exerciseGroups: groupsData
                 });
             }
 
@@ -584,7 +681,9 @@ const WorkoutExecution: React.FC = () => {
                                             time_completed: savedSet.time_completed || '',
                                             distance_completed: savedSet.distance_completed || '',
                                             speed_actual: savedSet.speed_actual || '',
-                                            hiit_cycles_completed: savedSet.hiit_cycles_completed || ''
+                                            hiit_cycles_completed: savedSet.hiit_cycles_completed || '',
+                                            drops: savedSet.drops || set.drops,
+                                            sub_sets_records: savedSet.sub_sets_records || set.sub_sets_records
                                         } : set;
                                     })
                                 };
@@ -592,6 +691,7 @@ const WorkoutExecution: React.FC = () => {
                             return ex;
                         });
                         setExercises(merged);
+                        if (data.exerciseGroups) setExerciseGroups(data.exerciseGroups);
                         if (data.workoutSeconds !== undefined) setWorkoutSeconds(data.workoutSeconds);
                         if (data.isWorkoutPaused !== undefined) setIsWorkoutPaused(data.isWorkoutPaused);
                         setLoading(false);
@@ -677,12 +777,216 @@ const WorkoutExecution: React.FC = () => {
         const sessionData = {
             workoutId,
             exercises: currentExercises,
+            exerciseGroups,
             startTime: startTime.toISOString(),
             workoutSeconds: secs !== undefined ? secs : workoutSeconds,
             isWorkoutPaused: paused !== undefined ? paused : isWorkoutPaused,
             lastUpdate: new Date().toISOString()
         };
         localStorage.setItem('active_workout', JSON.stringify(sessionData));
+    };
+
+    const handleDropChange = (
+        exIndex: number,
+        setIndex: number,
+        dropIndex: number,
+        field: 'weight' | 'reps',
+        value: string
+    ) => {
+        const newExercises = [...exercises];
+        const currentSet = { ...newExercises[exIndex].sets[setIndex] };
+        const currentDrops = currentSet.drops ? [...currentSet.drops] : [];
+
+        if (!currentDrops[dropIndex]) {
+            currentDrops[dropIndex] = { weight: '', reps: '', completed: false };
+        }
+
+        currentDrops[dropIndex] = {
+            ...currentDrops[dropIndex],
+            [field]: value
+        };
+
+        currentSet.drops = currentDrops;
+        newExercises[exIndex] = {
+            ...newExercises[exIndex],
+            sets: newExercises[exIndex].sets.map((s, i) => i === setIndex ? currentSet : s)
+        };
+
+        setExercises(newExercises);
+        saveToLocalStorage(newExercises);
+    };
+
+    const toggleDropCompletion = (
+        exIndex: number,
+        setIndex: number,
+        dropIndex: number
+    ) => {
+        const newExercises = [...exercises];
+        const currentSet = { ...newExercises[exIndex].sets[setIndex] };
+        const currentDrops = currentSet.drops ? [...currentSet.drops] : [];
+
+        if (!currentDrops[dropIndex]) {
+            currentDrops[dropIndex] = { weight: '', reps: '', completed: false };
+        }
+
+        const wasCompleted = currentDrops[dropIndex].completed;
+        const isNowCompleted = !wasCompleted;
+
+        let dropWeight = currentDrops[dropIndex].weight;
+        let dropReps = currentDrops[dropIndex].reps;
+
+        // Se estiver marcando como concluído e estiver vazio, auto-preencher estimativa:
+        if (isNowCompleted) {
+            if (!dropWeight || dropWeight === '') {
+                const baseWeight = dropIndex > 0 && currentDrops[dropIndex - 1]?.weight
+                    ? parseFloat(currentDrops[dropIndex - 1].weight)
+                    : (parseFloat(currentSet.weight) || (typeof currentSet.weight_target === 'number' ? currentSet.weight_target : 0));
+                if (baseWeight > 0) {
+                    dropWeight = String(Math.round(baseWeight * 0.75));
+                }
+            }
+            if (!dropReps || dropReps === '') {
+                dropReps = currentSet.reps || '8';
+            }
+        }
+
+        currentDrops[dropIndex] = {
+            ...currentDrops[dropIndex],
+            weight: dropWeight,
+            reps: dropReps,
+            completed: isNowCompleted
+        };
+
+        currentSet.drops = currentDrops;
+
+        // Se todos os drops foram concluídos e a série mãe ainda não foi, marcar a série mãe também
+        const allDropsDone = currentDrops.every(d => d.completed);
+        if (allDropsDone && !currentSet.completed) {
+            currentSet.completed = true;
+            currentSet.completed_at = new Date().toISOString();
+        }
+
+        newExercises[exIndex] = {
+            ...newExercises[exIndex],
+            sets: newExercises[exIndex].sets.map((s, i) => i === setIndex ? currentSet : s)
+        };
+
+        setExercises(newExercises);
+        saveToLocalStorage(newExercises);
+
+        if (isNowCompleted && allDropsDone) {
+            startRestTimer(currentSet.rest_seconds);
+        }
+    };
+
+    const scrollToExercise = (index: number) => {
+        setTimeout(() => {
+            const el = document.getElementById(`exercise-card-${index}`) || document.getElementById(`exercise-${index}`);
+            if (el) {
+                el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        }, 120);
+    };
+
+    const handleSubSetChange = (
+        exIndex: number,
+        setIndex: number,
+        subIndex: number,
+        field: 'reps',
+        value: string
+    ) => {
+        const newExercises = [...exercises];
+        const currentSet = { ...newExercises[exIndex].sets[setIndex] };
+        const currentSubs = currentSet.sub_sets_records ? [...currentSet.sub_sets_records] : [];
+
+        if (!currentSubs[subIndex]) {
+            currentSubs[subIndex] = { index: subIndex + 1, reps: '', completed: false };
+        }
+
+        currentSubs[subIndex] = {
+            ...currentSubs[subIndex],
+            [field]: value
+        };
+
+        currentSet.sub_sets_records = currentSubs;
+        newExercises[exIndex] = {
+            ...newExercises[exIndex],
+            sets: newExercises[exIndex].sets.map((s, i) => i === setIndex ? currentSet : s)
+        };
+
+        setExercises(newExercises);
+        saveToLocalStorage(newExercises);
+    };
+
+    const toggleSubSetCompletion = (
+        exIndex: number,
+        setIndex: number,
+        subIndex: number
+    ) => {
+        const newExercises = [...exercises];
+        const currentSet = { ...newExercises[exIndex].sets[setIndex] };
+        const currentSubs = currentSet.sub_sets_records ? [...currentSet.sub_sets_records] : [];
+
+        if (!currentSubs[subIndex]) {
+            currentSubs[subIndex] = { index: subIndex + 1, reps: '', completed: false };
+        }
+
+        const wasCompleted = currentSubs[subIndex].completed;
+        const isNowCompleted = !wasCompleted;
+
+        let subReps = currentSubs[subIndex].reps;
+        if (isNowCompleted && (!subReps || subReps === '')) {
+            if (currentSet.set_method === 'muscle_round') {
+                subReps = '4';
+            } else if (currentSet.set_method === 'method_3_7') {
+                subReps = String(subIndex + 3);
+            } else if (currentSet.set_method === 'myo_reps') {
+                subReps = '4';
+            } else {
+                const baseReps = parseInt(currentSet.reps || '8', 10);
+                subReps = String(Math.max(2, Math.round(baseReps / 2)));
+            }
+        }
+
+        currentSubs[subIndex] = {
+            ...currentSubs[subIndex],
+            reps: subReps,
+            completed: isNowCompleted
+        };
+
+        currentSet.sub_sets_records = currentSubs;
+
+        const allSubsDone = currentSubs.every(s => s.completed);
+        if (allSubsDone && !currentSet.completed) {
+            currentSet.completed = true;
+            currentSet.completed_at = new Date().toISOString();
+        }
+
+        newExercises[exIndex] = {
+            ...newExercises[exIndex],
+            sets: newExercises[exIndex].sets.map((s, i) => i === setIndex ? currentSet : s)
+        };
+
+        setExercises(newExercises);
+        saveToLocalStorage(newExercises);
+
+        if (isNowCompleted) {
+            if (allSubsDone) {
+                startRestTimer(currentSet.rest_seconds, 'Descanso');
+                toast.success('Todas as sub-séries concluídas! Descanse bem 👏');
+
+                const allSetsCompleted = newExercises[exIndex].sets.every(s => s.completed);
+                if (allSetsCompleted && exIndex === currentExerciseIndex && exIndex < exercises.length - 1) {
+                    setCurrentExerciseIndex(exIndex + 1);
+                    scrollToExercise(exIndex + 1);
+                }
+            } else {
+                const microInfo = getMethodMicroRest(currentSet);
+                const microDuration = microInfo?.seconds || 15;
+                startRestTimer(microDuration, `Micro-Pausa (${microDuration}s)`);
+                toast.success(`Sub-série concluída! Micro-pausa de ${microDuration}s iniciada 🫁`);
+            }
+        }
     };
 
     const toggleSetCompletion = (exIndex: number, setIndex: number) => {
@@ -694,6 +998,7 @@ const WorkoutExecution: React.FC = () => {
 
         if (currentSet.completed) {
             currentSet.completed_at = new Date().toISOString();
+            // Fluxo sequencial: dar check na série principal NÃO conclui as sub-séries nem os drops!
         } else {
             delete currentSet.completed_at;
         }
@@ -736,10 +1041,8 @@ const WorkoutExecution: React.FC = () => {
                     }
 
                     if (prevReps !== null) {
-                        // Use previous session's reps
                         currentSet.reps = String(prevReps);
                     } else if (repsTarget) {
-                        // Use lower bound of range or exact number
                         const lowerBound = parseFloat(repsTarget);
                         currentSet.reps = isNaN(lowerBound) ? '0' : String(lowerBound);
                     } else {
@@ -773,14 +1076,80 @@ const WorkoutExecution: React.FC = () => {
         saveToLocalStorage(newExercises);
 
         if (!wasCompleted) {
-            // Check if all sets of current exercise are completed to move focus
-            const allSetsCompleted = newExercises[exIndex].sets.every(s => s.completed);
-            if (allSetsCompleted && exIndex === currentExerciseIndex && exIndex < exercises.length - 1) {
-                setCurrentExerciseIndex(exIndex + 1);
+            // Se esta série possui sub-séries pendentes:
+            const hasPendingSubs = currentSet.sub_sets_records && currentSet.sub_sets_records.length > 0 && currentSet.sub_sets_records.some(s => !s.completed);
+            if (hasPendingSubs) {
+                const microInfo = getMethodMicroRest(currentSet);
+                const microDuration = microInfo?.seconds || 15;
+                startRestTimer(microDuration, `Micro-Pausa (${microDuration}s)`);
+                toast.success(`Série principal concluída! Micro-pausa de ${microDuration}s iniciada 🫁`);
+                return;
             }
 
-            // Started Rest
-            startRestTimer(currentSet.rest_seconds);
+            // Se for dropset com drops pendentes:
+            const hasPendingDrops = currentSet.set_method === 'dropset' && currentSet.drops && currentSet.drops.length > 0 && currentSet.drops.some(d => !d.completed);
+            if (hasPendingDrops) {
+                toast.success('Série concluída! Reduza o peso e continue sem descanso ⚡');
+                return;
+            }
+
+            // Smart Timer Rule para Agrupamentos (Camada 1):
+            const currentExercise = newExercises[exIndex];
+            const groupId = currentExercise.group_id;
+
+            if (groupId) {
+                const group = exerciseGroups.find(g => g.id === groupId);
+                const groupMembers = newExercises
+                    .map((item, idx) => ({ exercise: item, originalIndex: idx }))
+                    .filter(item => item.exercise.group_id === groupId)
+                    .sort((a, b) => (a.exercise.group_position || 0) - (b.exercise.group_position || 0));
+
+                const currentMemberIndex = groupMembers.findIndex(m => m.originalIndex === exIndex);
+                const isLastMember = currentMemberIndex === groupMembers.length - 1;
+
+                if (!isLastMember && currentMemberIndex >= 0) {
+                    // Não é o último membro do round -> avança para o próximo membro do grupo com auto-scroll
+                    const nextMember = groupMembers[currentMemberIndex + 1];
+                    setCurrentExerciseIndex(nextMember.originalIndex);
+                    scrollToExercise(nextMember.originalIndex);
+
+                    if (group?.transition_seconds && group.transition_seconds > 0) {
+                        startRestTimer(group.transition_seconds);
+                        toast.success(`Transição curta: ${group.transition_seconds}s para ${nextMember.exercise.name}`);
+                    } else {
+                        toast.success(`Vá direto para: ${nextMember.exercise.name} ⚡`);
+                    }
+                } else {
+                    // É o último membro do round -> descanso completo do round do grupo
+                    const restSeconds = group?.rest_seconds || 90;
+                    startRestTimer(restSeconds);
+
+                    const currentRound = setIndex + 1;
+                    const totalRounds = group?.rounds || newExercises[exIndex].sets.length;
+                    toast.success(`Round ${currentRound} de ${totalRounds} finalizado! Descanse ${restSeconds}s 👏`);
+
+                    // Se houver próximo round, foca e rola de volta para o primeiro membro do grupo
+                    if (currentRound < totalRounds && groupMembers.length > 0) {
+                        setCurrentExerciseIndex(groupMembers[0].originalIndex);
+                        scrollToExercise(groupMembers[0].originalIndex);
+                    } else {
+                        // Grupo concluído! Foca no próximo exercício após o grupo se houver
+                        const lastGroupOriginalIdx = Math.max(...groupMembers.map(m => m.originalIndex));
+                        if (lastGroupOriginalIdx < newExercises.length - 1) {
+                            setCurrentExerciseIndex(lastGroupOriginalIdx + 1);
+                            scrollToExercise(lastGroupOriginalIdx + 1);
+                        }
+                    }
+                }
+            } else {
+                // Exercício Solo: regra padrão
+                const allSetsCompleted = newExercises[exIndex].sets.every(s => s.completed);
+                if (allSetsCompleted && exIndex === currentExerciseIndex && exIndex < exercises.length - 1) {
+                    setCurrentExerciseIndex(exIndex + 1);
+                    scrollToExercise(exIndex + 1);
+                }
+                startRestTimer(currentSet.rest_seconds);
+            }
         }
     };
 
@@ -807,11 +1176,12 @@ const WorkoutExecution: React.FC = () => {
         return () => clearInterval(interval);
     }, [timerActive, restEndTime]);
 
-    const startRestTimer = (duration: number) => {
+    const startRestTimer = (duration: number, label: string = 'Descanso') => {
         const end = Date.now() + (duration * 1000);
         setRestEndTime(end);
         setInitialTime(duration);
         setTimeLeft(duration);
+        setRestTimerLabel(label);
         setTimerActive(true);
         setToastVisible(true);
         notificationSentRef.current = false;
@@ -933,8 +1303,68 @@ const WorkoutExecution: React.FC = () => {
                             time_completed: parseInt(set.time_completed || '') || null,
                             distance_completed: parseFloat(set.distance_completed || '') || null,
                             speed_actual: parseFloat(set.speed_actual || '') || null,
-                            hiit_cycles_completed: parseInt(set.hiit_cycles_completed || '') || null
+                            hiit_cycles_completed: parseInt(set.hiit_cycles_completed || '') || null,
+                            group_round: ex.group_id ? (i + 1) : null,
+                            set_method: set.set_method || 'standard',
+                            micro_set_index: null,
+                            execution_mode: set.execution_mode || 'standard',
+                            tempo_used: set.tempo || null,
+                            timer_mode: set.timer_mode || 'standard'
                         });
+
+                        // Se for dropset, desdobrar as sub-séries realizadas
+                        if (set.set_method === 'dropset' && set.drops) {
+                            set.drops.forEach((drop, dIdx) => {
+                                if (drop.completed || set.completed) {
+                                    setsToInsert.push({
+                                        workout_log_id: logData.id,
+                                        exercise_id: ex.id,
+                                        set_type: 'dropset',
+                                        set_order: i,
+                                        weight_kg: parseFloat(drop.weight) || 0,
+                                        reps_completed: parseInt(drop.reps) || 0,
+                                        rpe_actual: null,
+                                        time_completed: null,
+                                        distance_completed: null,
+                                        speed_actual: null,
+                                        hiit_cycles_completed: null,
+                                        group_round: ex.group_id ? (i + 1) : null,
+                                        set_method: 'dropset',
+                                        micro_set_index: dIdx + 1,
+                                        execution_mode: set.execution_mode || 'standard',
+                                        tempo_used: set.tempo || null,
+                                        timer_mode: set.timer_mode || 'standard'
+                                    });
+                                }
+                            });
+                        }
+
+                        // Se for método com micro-pausas (rest-pause, cluster, myo-reps, etc.), desdobrar as sub-séries
+                        if (set.sub_sets_records && set.sub_sets_records.length > 0) {
+                            set.sub_sets_records.forEach((sub) => {
+                                if (sub.completed || set.completed) {
+                                    setsToInsert.push({
+                                        workout_log_id: logData.id,
+                                        exercise_id: ex.id,
+                                        set_type: set.type,
+                                        set_order: i,
+                                        weight_kg: parseFloat(set.weight) || 0,
+                                        reps_completed: parseInt(sub.reps) || 0,
+                                        rpe_actual: null,
+                                        time_completed: null,
+                                        distance_completed: null,
+                                        speed_actual: null,
+                                        hiit_cycles_completed: null,
+                                        group_round: ex.group_id ? (i + 1) : null,
+                                        set_method: set.set_method || 'standard',
+                                        micro_set_index: sub.index,
+                                        execution_mode: set.execution_mode || 'standard',
+                                        tempo_used: set.tempo || null,
+                                        timer_mode: set.timer_mode || 'standard'
+                                    });
+                                }
+                            });
+                        }
                     }
                 });
             });
@@ -1027,8 +1457,64 @@ const WorkoutExecution: React.FC = () => {
                                 time_completed: parseInt(set.time_completed || '') || null,
                                 distance_completed: parseFloat(set.distance_completed || '') || null,
                                 speed_actual: parseFloat(set.speed_actual || '') || null,
-                                hiit_cycles_completed: parseInt(set.hiit_cycles_completed || '') || null
+                                hiit_cycles_completed: parseInt(set.hiit_cycles_completed || '') || null,
+                                group_round: ex.group_id ? (i + 1) : null,
+                                set_method: set.set_method || 'standard',
+                                micro_set_index: null,
+                                execution_mode: set.execution_mode || 'standard',
+                                tempo_used: set.tempo || null,
+                                timer_mode: set.timer_mode || 'standard'
                             });
+
+                            if (set.set_method === 'dropset' && set.drops) {
+                                set.drops.forEach((drop, dIdx) => {
+                                    if (drop.completed || set.completed) {
+                                        setsToQueue.push({
+                                            exercise_id: ex.id,
+                                            set_type: 'dropset',
+                                            set_order: i,
+                                            weight_kg: parseFloat(drop.weight) || 0,
+                                            reps_completed: parseInt(drop.reps) || 0,
+                                            rpe_actual: null,
+                                            time_completed: null,
+                                            distance_completed: null,
+                                            speed_actual: null,
+                                            hiit_cycles_completed: null,
+                                            group_round: ex.group_id ? (i + 1) : null,
+                                            set_method: 'dropset',
+                                            micro_set_index: dIdx + 1,
+                                            execution_mode: set.execution_mode || 'standard',
+                                            tempo_used: set.tempo || null,
+                                            timer_mode: set.timer_mode || 'standard'
+                                        });
+                                    }
+                                });
+                            }
+
+                            if (set.sub_sets_records && set.sub_sets_records.length > 0) {
+                                set.sub_sets_records.forEach((sub) => {
+                                    if (sub.completed || set.completed) {
+                                        setsToQueue.push({
+                                            exercise_id: ex.id,
+                                            set_type: set.type,
+                                            set_order: i,
+                                            weight_kg: parseFloat(set.weight) || 0,
+                                            reps_completed: parseInt(sub.reps) || 0,
+                                            rpe_actual: null,
+                                            time_completed: null,
+                                            distance_completed: null,
+                                            speed_actual: null,
+                                            hiit_cycles_completed: null,
+                                            group_round: ex.group_id ? (i + 1) : null,
+                                            set_method: set.set_method || 'standard',
+                                            micro_set_index: sub.index,
+                                            execution_mode: set.execution_mode || 'standard',
+                                            tempo_used: set.tempo || null,
+                                            timer_mode: set.timer_mode || 'standard'
+                                        });
+                                    }
+                                });
+                            }
                         }
                     });
                 });
@@ -1271,6 +1757,764 @@ const WorkoutExecution: React.FC = () => {
         );
     };
 
+    const getMethodMicroRest = (set: TriggerSet): { seconds: number; label: string } | null => {
+        if (!set.set_method || set.set_method === 'standard') return null;
+        if (set.set_method === 'rest_pause') {
+            return { seconds: set.micro_rest_seconds || 15, label: 'Rest-Pause' };
+        }
+        if (set.set_method === 'cluster') {
+            return { seconds: set.micro_rest_seconds || 20, label: 'Cluster Set' };
+        }
+        if (set.set_method === 'myo_reps') {
+            return { seconds: set.micro_rest_seconds || 15, label: 'Myo-Reps' };
+        }
+        if (set.set_method === 'muscle_round') {
+            return { seconds: set.micro_rest_seconds || 10, label: 'Muscle Round' };
+        }
+        if (set.set_method === 'method_3_7') {
+            return { seconds: set.micro_rest_seconds || 15, label: 'Método 3/7' };
+        }
+        if (set.set_method === 'fst7') {
+            return { seconds: set.micro_rest_seconds || 30, label: 'FST-7' };
+        }
+        return null;
+    };
+
+    const executionBlocks = React.useMemo(() => {
+        const blocks: Array<
+            | { type: 'solo'; exercise: TriggerExercise; originalIndex: number }
+            | { type: 'group'; group: any; items: Array<{ exercise: TriggerExercise; originalIndex: number }> }
+        > = [];
+
+        const processedGroupIds = new Set<string>();
+
+        exercises.forEach((ex, exIndex) => {
+            if (!ex.group_id) {
+                blocks.push({ type: 'solo', exercise: ex, originalIndex: exIndex });
+            } else {
+                if (!processedGroupIds.has(ex.group_id)) {
+                    processedGroupIds.add(ex.group_id);
+                    const group = exerciseGroups.find(g => g.id === ex.group_id) || {
+                        id: ex.group_id,
+                        group_type: 'superset',
+                        rounds: 3,
+                        rest_seconds: 90,
+                        transition_seconds: 0
+                    };
+                    const groupMembers = exercises
+                        .map((item, idx) => ({ exercise: item, originalIndex: idx }))
+                        .filter(item => item.exercise.group_id === ex.group_id)
+                        .sort((a, b) => (a.exercise.group_position || 0) - (b.exercise.group_position || 0));
+
+                    blocks.push({
+                        type: 'group',
+                        group,
+                        items: groupMembers
+                    });
+                }
+            }
+        });
+
+        return blocks;
+    }, [exercises, exerciseGroups]);
+
+    const renderExerciseCard = (exercise: TriggerExercise, exIndex: number, inGroup = false, groupBadge?: string) => {
+        const isFocused = currentExerciseIndex === exIndex;
+        const shouldFocus = preferences.focusMode;
+
+        return (
+            <div
+                key={exercise.id + exIndex}
+                id={`exercise-card-${exIndex}`}
+                className={`transition-all duration-500 ${inGroup ? 'mb-4' : 'mb-8'} ${shouldFocus
+                    ? (isFocused ? 'scale-[1.02] opacity-100 z-10' : 'scale-95 opacity-50 grayscale')
+                    : 'opacity-100'
+                    }`}
+            >
+                <div className={`bg-white dark:bg-slate-800 rounded-xl sm:rounded-[2.5rem] shadow-soft border transition-all duration-500 overflow-hidden ${shouldFocus && isFocused ? 'border-primary/30 ring-4 ring-primary/5 shadow-focus-glow' : inGroup ? 'border-indigo-100 dark:border-indigo-900/50' : 'border-slate-100 dark:border-slate-700'}`}>
+                    {/* Exercise Header */}
+                    <div className="p-4 border-b border-slate-100 dark:border-slate-700">
+                        <div className="flex items-start justify-between mb-3 px-1">
+                            <div className="flex items-center gap-3 flex-1 min-w-0">
+                                {/* Thumbnail Area */}
+                                <button
+                                    type="button"
+                                    aria-label={`Ver vídeo de demonstração de ${exercise.name}`}
+                                    className="w-14 h-14 rounded-xl bg-sky-50 dark:bg-sky-900/20 flex-shrink-0 overflow-hidden relative group cursor-pointer border border-sky-100/50 dark:border-sky-500/10"
+                                    onClick={() => {
+                                        if (exercise.video_url) {
+                                            setVideoModal({ open: true, url: exercise.video_url, title: exercise.name });
+                                        }
+                                    }}
+                                >
+                                    {(() => {
+                                        const ytId = getYouTubeId(exercise.video_url);
+                                        const videoUrl = exercise.video_url;
+                                        const isGif = videoUrl?.toLowerCase().endsWith('.gif');
+                                        const isMp4 = videoUrl?.toLowerCase().endsWith('.mp4');
+
+                                        if (isGif) return <img src={videoUrl} className="w-full h-full object-cover" alt={`GIF de ${exercise.name}`} />;
+                                        if (ytId) return (
+                                            <>
+                                                <img
+                                                    src={`https://img.youtube.com/vi/${ytId}/0.jpg`}
+                                                    className="w-full h-full object-cover opacity-60 group-hover:opacity-100 transition-opacity"
+                                                    alt={`Prévia do vídeo de ${exercise.name}`}
+                                                />
+                                                <div className="absolute inset-0 flex items-center justify-center">
+                                                    <span className="material-symbols-rounded text-sky-500 text-2xl drop-shadow-sm group-hover:scale-110 transition-transform" aria-hidden="true">play_circle</span>
+                                                </div>
+                                            </>
+                                        );
+                                        if (isMp4) return (
+                                            <video src={videoUrl} className="w-full h-full object-cover" muted playsInline />
+                                        );
+                                        return (
+                                            <div className="w-full h-full flex items-center justify-center text-sky-300 dark:text-sky-700">
+                                                <span className="material-symbols-rounded text-2xl" aria-hidden="true">image</span>
+                                            </div>
+                                        );
+                                    })()}
+                                </button>
+
+                                <button
+                                    type="button"
+                                    aria-expanded={!!expandedDescIds[exercise.id]}
+                                    aria-label={expandedDescIds[exercise.id] ? `Recolher detalhes de ${exercise.name}` : `Ver detalhes de ${exercise.name}`}
+                                    className="text-left group/title cursor-pointer flex-1 min-w-0"
+                                    onClick={() => setExpandedDescIds(prev => ({ ...prev, [exercise.id]: !prev[exercise.id] }))}
+                                >
+                                    <div className="flex items-center gap-1.5 flex-wrap">
+                                        {groupBadge && (
+                                            <span className="px-2 py-0.5 rounded-lg bg-indigo-500 text-white font-black text-[11px] uppercase tracking-wider shrink-0 shadow-xs">
+                                                {groupBadge}
+                                            </span>
+                                        )}
+                                        <h3 className="font-bold text-lg text-slate-800 dark:text-slate-100 group-hover/title:text-sky-500 transition-colors truncate">{exercise.name}</h3>
+                                        <span
+                                            className="material-symbols-rounded text-[20px] text-slate-400 group-hover/title:text-sky-400 transition-transform duration-300"
+                                            style={{ transform: expandedDescIds[exercise.id] ? 'rotate(180deg)' : 'rotate(0deg)' }}
+                                            aria-hidden="true"
+                                        >
+                                            expand_more
+                                        </span>
+                                    </div>
+                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">
+                                        {expandedDescIds[exercise.id] ? 'Toque para recolher' : 'Toque para detalhes'}
+                                    </p>
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Accordion: Instruções / Descrição do Exercício */}
+                        {expandedDescIds[exercise.id] && (
+                            <div className="mx-2 mb-3 bg-slate-50/90 dark:bg-slate-800/80 p-3.5 sm:p-4 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 transition-all duration-300 animate-in fade-in slide-in-from-top-2">
+                                <div className="flex items-center gap-2 mb-2">
+                                    <span className="material-symbols-rounded text-sky-500 text-base" aria-hidden="true">menu_book</span>
+                                    <span className="uppercase text-[10px] font-bold text-sky-600 dark:text-sky-400 tracking-wider">Instruções de Execução</span>
+                                </div>
+                                <div className="text-slate-700 dark:text-slate-200">
+                                    {renderFormattedDescription(exercise.description)}
+                                </div>
+                            </div>
+                        )}
+
+                        {exercise.notes && (
+                            <div className="mx-2 mb-3 bg-sky-50/50 dark:bg-sky-900/10 p-3 rounded-2xl border border-sky-100 dark:border-sky-500/10 flex gap-3 items-start">
+                                <span className="material-symbols-rounded text-sky-500 text-lg mt-0.5">sticky_note</span>
+                                <div className="flex-1">
+                                    <span className="uppercase text-[10px] font-bold text-sky-600 dark:text-sky-400 block mb-0.5 tracking-wider">Nota do Coach</span>
+                                    <p className="text-xs font-medium text-slate-600 dark:text-slate-300 italic leading-relaxed">
+                                        "{exercise.notes}"
+                                    </p>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Sets Flow */}
+                    <div className="divide-y divide-slate-50 dark:divide-slate-700/50">
+                        {(() => {
+                            const hasHiitAny = exercise.sets.some(s => !!(s.hiit_cycles || s.hiit_work_seconds));
+                            return renderTableHeader(exercise.exercise_type, hasHiitAny);
+                        })()}
+
+                        {(() => {
+                            let workingSetCount = 0;
+                            return exercise.sets.map((set, setIndex) => {
+                                const isWarmup = set.type === 'warmup';
+                                const isFailure = set.type === 'failure';
+                                const isDropset = set.type === 'dropset';
+                                const isPreparation = set.type === 'preparation';
+
+                                if (set.type === 'working') workingSetCount++;
+
+                                const methodTheme = getMethodTheme(set.set_method);
+                                const hasActiveMethod = !!(set.set_method && set.set_method !== 'standard');
+
+                                const rowBg = set.completed
+                                    ? 'bg-emerald-100/70 dark:bg-emerald-900/30'
+                                    : (hasActiveMethod
+                                        ? methodTheme.rowBg
+                                        : (isWarmup ? 'bg-amber-50/40 dark:bg-amber-900/10' : (isFailure ? 'bg-red-50/40 dark:bg-red-900/10' : (isDropset ? 'bg-purple-50/40 dark:bg-purple-900/10' : (isPreparation ? 'bg-cyan-50/40 dark:bg-cyan-900/10' : '')))));
+
+                                const getSetIcon = () => {
+                                    if (isWarmup) return <button type="button" onClick={() => setSeriesHelpModal(true)} aria-label="Série de aquecimento - Ver detalhes" className="flex items-center justify-center w-full"><span className="material-symbols-rounded text-amber-500 text-sm" aria-hidden="true">local_fire_department</span></button>;
+                                    if (isFailure) return <button type="button" onClick={() => setSeriesHelpModal(true)} aria-label="Série até a falha - Ver detalhes" className="flex items-center justify-center w-full"><span className="material-symbols-rounded text-red-600 text-sm" aria-hidden="true">bolt</span></button>;
+                                    if (isDropset) return <button type="button" onClick={() => setSeriesHelpModal(true)} aria-label="Série em dropset - Ver detalhes" className="flex items-center justify-center w-full"><span className="material-symbols-rounded text-purple-500 text-sm" aria-hidden="true">layers</span></button>;
+                                    if (isPreparation) return <button type="button" onClick={() => setSeriesHelpModal(true)} aria-label="Série preparatória - Ver detalhes" className="flex items-center justify-center w-full"><span className="material-symbols-rounded text-cyan-500 text-sm" aria-hidden="true">publish</span></button>;
+                                    return <button type="button" onClick={() => setSeriesHelpModal(true)} aria-label={`Série principal número ${workingSetCount} - Ver detalhes`} className="text-sky-600 dark:text-sky-400 font-black text-sm sm:text-base w-full font-mono leading-none">{workingSetCount}</button>;
+                                };
+
+                                const isHiit = !!(set.hiit_cycles || set.hiit_work_seconds);
+                                const gridRowClass = getGridColsClass(exercise.exercise_type, isHiit) + ` px-2 sm:px-3 py-1.5 sm:py-2 items-center transition-all duration-300 ${rowBg}`;
+
+                                return (
+                                    <React.Fragment key={set.id + setIndex}>
+                                        <div className={gridRowClass}>
+                                            {/* # col */}
+                                            <div className="flex items-center justify-center">
+                                                {getSetIcon()}
+                                            </div>
+
+                                            {/* Anterior/Meta col */}
+                                            <div className="text-left overflow-hidden min-w-0 flex flex-col justify-center">
+                                                {exercise.exercise_type === 'reps' ? (
+                                                    <>
+                                                        {/* 1. Histórico Anterior (Linha 1) */}
+                                                        <button
+                                                            type="button"
+                                                            aria-label={`Ver histórico de cargas do exercício ${exercise.name}`}
+                                                            onClick={() => setHistoryModal({ open: true, exerciseId: exercise.id, exerciseName: exercise.name })}
+                                                            className="text-xs sm:text-[12px] font-bold text-slate-400 dark:text-slate-400 truncate hover:text-sky-500 dark:hover:text-sky-400 transition-colors flex items-center gap-0.5 group/hist max-w-full text-left"
+                                                        >
+                                                            <span className="truncate">
+                                                                {set.prev_log && set.prev_log !== '-' ? set.prev_log : '-'}
+                                                            </span>
+                                                        </button>
+
+                                                        {/* 2. Metas Prescritas pelo Treinador + Badges Compactos de Método/Tempo */}
+                                                        <div className="flex flex-wrap items-center gap-1 mt-0.5 overflow-hidden">
+                                                            {set.weight_target && (
+                                                                <span
+                                                                    title={`Carga alvo: ${set.weight_target} kg`}
+                                                                    className="text-[9px] bg-sky-100/90 dark:bg-sky-950/60 text-sky-700 dark:text-sky-300 border border-sky-300/40 dark:border-sky-800/40 px-1 sm:px-1.5 py-0.5 rounded font-bold uppercase tracking-tight flex-shrink-0"
+                                                                >
+                                                                    {set.weight_target}KG
+                                                                </span>
+                                                            )}
+                                                            {set.reps_target && (
+                                                                <span
+                                                                    title={`Repetições alvo: ${set.reps_target}`}
+                                                                    className="text-[9px] bg-emerald-100/90 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-300/40 dark:border-emerald-800/40 px-1 sm:px-1.5 py-0.5 rounded font-bold uppercase tracking-tight flex-shrink-0"
+                                                                >
+                                                                    {set.reps_target} Reps
+                                                                </span>
+                                                            )}
+                                                            {set.rpe_target && (
+                                                                <span
+                                                                    title={`Percepção de Esforço PSE: ${set.rpe_target}`}
+                                                                    className="text-[9px] bg-purple-100/90 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 border border-purple-300/40 dark:border-purple-800/40 px-1 sm:px-1.5 py-0.5 rounded font-bold uppercase tracking-tight flex-shrink-0"
+                                                                >
+                                                                    @{set.rpe_target}
+                                                                </span>
+                                                            )}
+
+                                                            {/* Badge compacto do Método (Camada 2) */}
+                                                            {set.set_method && set.set_method !== 'standard' && (
+                                                                <span
+                                                                    className={`inline-flex items-center gap-0.5 text-[9px] px-1 sm:px-1.5 py-0.5 rounded font-bold uppercase border flex-shrink-0 ${getMethodToken(set.set_method).badge}`}
+                                                                    title={getMethodToken(set.set_method).description}
+                                                                >
+                                                                    <span>
+                                                                        {set.set_method === 'dropset'
+                                                                            ? `DROPSET ${set.drop_count || 2}x`
+                                                                            : set.set_method === 'rest_pause'
+                                                                                ? `REST-PAUSE ${set.micro_rest_seconds || 15}s`
+                                                                                : set.set_method === 'cluster'
+                                                                                    ? `CLUSTER ${set.micro_rest_seconds || 20}s`
+                                                                                    : set.set_method === 'myo_reps'
+                                                                                        ? `MYO-REPS ${set.activation_reps || 15}r`
+                                                                                        : set.set_method === 'muscle_round'
+                                                                                            ? 'MUSCLE ROUND'
+                                                                                            : set.set_method === 'method_3_7'
+                                                                                                ? 'MÉTODO 3/7'
+                                                                                                : String(set.set_method).toUpperCase()}
+                                                                    </span>
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            setMethodGuideModal({ isOpen: true, initialItemId: set.set_method, initialLayer: 'set_method' });
+                                                                        }}
+                                                                        className="text-[10px] font-black text-sky-500 hover:text-sky-600 ml-0.5 leading-none cursor-pointer"
+                                                                        aria-label="Ver explicação deste método"
+                                                                    >
+                                                                        ?
+                                                                    </button>
+                                                                </span>
+                                                            )}
+
+                                                            {/* Badge compacto de Modo de Execução Biomecânica (Camada 3) */}
+                                                            {set.execution_mode && set.execution_mode !== 'standard' && (
+                                                                <span
+                                                                    className={`inline-flex items-center gap-0.5 text-[9px] px-1 sm:px-1.5 py-0.5 rounded font-bold uppercase border flex-shrink-0 ${getExecutionModeToken(set.execution_mode).badge}`}
+                                                                    title={getExecutionModeToken(set.execution_mode).description}
+                                                                >
+                                                                    <span>{getExecutionModeToken(set.execution_mode).shortLabel}</span>
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            setMethodGuideModal({ isOpen: true, initialItemId: set.execution_mode, initialLayer: 'execution_mode' });
+                                                                        }}
+                                                                        className="text-[10px] font-black text-sky-500 hover:text-sky-600 ml-0.5 leading-none cursor-pointer"
+                                                                        aria-label="Ver explicação do modo de execução"
+                                                                    >
+                                                                        ?
+                                                                    </button>
+                                                                </span>
+                                                            )}
+
+                                                            {/* Badge compacto de Modo de Timer (Camada 4) */}
+                                                            {set.timer_mode && set.timer_mode !== 'standard' && (
+                                                                <span
+                                                                    className={`inline-flex items-center gap-0.5 text-[9px] px-1 sm:px-1.5 py-0.5 rounded font-bold uppercase border flex-shrink-0 ${getTimerModeToken(set.timer_mode).badge}`}
+                                                                    title={getTimerModeToken(set.timer_mode).description}
+                                                                >
+                                                                    <span>{getTimerModeToken(set.timer_mode).shortLabel}</span>
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            setMethodGuideModal({ isOpen: true, initialItemId: set.timer_mode, initialLayer: 'timer_mode' });
+                                                                        }}
+                                                                        className="text-[10px] font-black text-sky-500 hover:text-sky-600 ml-0.5 leading-none cursor-pointer"
+                                                                        aria-label="Ver explicação do modo de timer"
+                                                                    >
+                                                                        ?
+                                                                    </button>
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                    </>
+                                                ) : (
+                                                    <div className="flex flex-wrap items-center gap-0.5 sm:gap-1">
+                                                        {set.time_target && (
+                                                            <span className="text-[9px] sm:text-[10px] bg-sky-50 dark:bg-sky-950/40 text-sky-700 dark:text-sky-300 border border-sky-200/60 dark:border-sky-800/40 px-1.5 py-0.5 rounded-md font-bold uppercase tracking-tight" title="Tempo alvo">
+                                                                {formatTimeTarget(set.time_target)}
+                                                            </span>
+                                                        )}
+                                                        {set.distance_target && (
+                                                            <span className="text-[9px] sm:text-[10px] bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200/60 dark:border-emerald-800/40 px-1.5 py-0.5 rounded-md font-bold uppercase tracking-tight" title="Distância alvo">
+                                                                {set.distance_target}km
+                                                            </span>
+                                                        )}
+                                                        {set.speed_target && (
+                                                            <span className="text-[9px] sm:text-[10px] bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200/60 dark:border-amber-800/40 px-1.5 py-0.5 rounded-md font-bold uppercase tracking-tight" title="Velocidade alvo">
+                                                                {set.speed_target}km/h
+                                                            </span>
+                                                        )}
+                                                        {set.hiit_cycles && (
+                                                            <span className="text-[9px] sm:text-[10px] bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 border border-purple-200/60 dark:border-purple-800/40 px-1.5 py-0.5 rounded-md font-bold uppercase tracking-tight" title="Ciclos HIIT">
+                                                                {set.hiit_cycles}x ({set.hiit_work_seconds}s/{set.hiit_rest_seconds}s)
+                                                            </span>
+                                                        )}
+                                                        {set.rpe_target && (
+                                                            <span className="text-[9px] sm:text-[10px] bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 border border-purple-200/60 dark:border-purple-800/40 px-1.5 py-0.5 rounded-md font-bold uppercase tracking-tight">PSE {set.rpe_target}</span>
+                                                        )}
+                                                        {set.set_method && set.set_method !== 'standard' && (
+                                                            <span
+                                                                className={`inline-flex items-center gap-0.5 text-[9px] px-1.5 py-0.5 rounded font-bold uppercase border ${getMethodToken(set.set_method).badge}`}
+                                                            >
+                                                                <span>{getMethodToken(set.set_method).shortLabel}</span>
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            {/* Input cols based on exercise type */}
+                                            {exercise.exercise_type === 'reps' && (
+                                                <>
+                                                    <div>
+                                                        <input
+                                                            type="number"
+                                                            inputMode="decimal"
+                                                            aria-label={`Carga em kg para série ${setIndex + 1}`}
+                                                            className={`w-full min-h-[44px] h-11 text-center text-xs sm:text-sm font-bold bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl focus:border-sky-500 focus:ring-1 focus:ring-sky-500 px-1 text-slate-900 dark:text-white transition-all shadow-sm ${set.completed ? 'opacity-60' : ''}`}
+                                                            placeholder={set.prev_log !== '-' ? set.prev_log.split('kg')[0] : (set.weight_target ? String(set.weight_target) : '-')}
+                                                            value={set.weight}
+                                                            onChange={(e) => handleInputChange(exIndex, setIndex, 'weight', e.target.value)}
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <input
+                                                            type="number"
+                                                            inputMode="numeric"
+                                                            aria-label={`Repetições para série ${setIndex + 1}`}
+                                                            className={`w-full min-h-[44px] h-11 text-center text-xs sm:text-sm font-bold bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl focus:border-sky-500 focus:ring-1 focus:ring-sky-500 p-0 text-slate-900 dark:text-white transition-all shadow-sm ${set.completed ? 'opacity-60' : ''}`}
+                                                            placeholder={(() => {
+                                                                if (set.prev_log && set.prev_log !== '-') {
+                                                                    const parts = set.prev_log.split('x');
+                                                                    if (parts.length > 1) {
+                                                                        const prevReps = parseInt(parts[1].trim());
+                                                                        if (!isNaN(prevReps)) return String(prevReps);
+                                                                    }
+                                                                }
+                                                                if (set.reps_target) {
+                                                                    const isRange = String(set.reps_target).includes('-');
+                                                                    if (!isRange) return String(set.reps_target);
+                                                                    const lower = parseFloat(String(set.reps_target));
+                                                                    if (!isNaN(lower)) return String(lower);
+                                                                }
+                                                                return '-';
+                                                            })()}
+                                                            value={set.reps}
+                                                            onChange={(e) => handleInputChange(exIndex, setIndex, 'reps', e.target.value)}
+                                                        />
+                                                    </div>
+                                                </>
+                                            )}
+
+                                            {isHiit ? (
+                                                <>
+                                                    <div>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setHiitModal({ open: true, exerciseIndex: exIndex, setIndex: setIndex })}
+                                                            aria-label={`Iniciar cronômetro HIIT para série ${setIndex + 1}`}
+                                                            className={`w-full min-h-[44px] h-11 rounded-xl bg-red-500 text-white hover:bg-red-600 flex items-center justify-center transition-all shadow-sm active:scale-95 ${set.completed ? 'opacity-60' : ''}`}
+                                                            title="Iniciar Cronômetro HIIT"
+                                                        >
+                                                            <span className="material-symbols-rounded text-base sm:text-lg" aria-hidden="true">play_arrow</span>
+                                                        </button>
+                                                    </div>
+                                                    <div>
+                                                        <input
+                                                            type="number"
+                                                            inputMode="numeric"
+                                                            data-testid="hiit-cycles-completed"
+                                                            aria-label={`Ciclos HIIT concluídos na série ${setIndex + 1}`}
+                                                            className={`w-full min-h-[44px] h-11 text-center text-xs sm:text-sm font-bold bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl focus:border-sky-500 focus:ring-1 focus:ring-sky-500 p-0 text-slate-900 dark:text-white transition-all shadow-sm ${set.completed ? 'opacity-60' : ''}`}
+                                                            placeholder={set.hiit_cycles ? String(set.hiit_cycles) : '-'}
+                                                            value={set.hiit_cycles_completed || ''}
+                                                            onChange={(e) => handleInputChange(exIndex, setIndex, 'hiit_cycles_completed', e.target.value)}
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <select
+                                                            aria-label={`Tempo HIIT na série ${setIndex + 1}`}
+                                                            className={`w-full min-h-[44px] h-11 text-center text-xs sm:text-sm font-bold bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl focus:border-sky-500 focus:ring-1 focus:ring-sky-500 p-0 text-slate-900 dark:text-white transition-all shadow-sm ${set.completed ? 'opacity-60' : ''}`}
+                                                            value={set.time_completed || ''}
+                                                            onChange={(e) => handleInputChange(exIndex, setIndex, 'time_completed', e.target.value)}
+                                                        >
+                                                            <option value="">-</option>
+                                                            {generateTimeOptions(set.time_target || undefined).map(opt => (
+                                                                <option key={opt.value} value={opt.value}>{opt.label}</option>
+                                                            ))}
+                                                        </select>
+                                                    </div>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    {exercise.exercise_type === 'time' && (
+                                                        <div className="flex items-center gap-1 w-full">
+                                                            <input
+                                                                type="number"
+                                                                inputMode="numeric"
+                                                                aria-label={`Tempo em segundos na série ${setIndex + 1}`}
+                                                                className={`w-full min-h-[44px] h-11 text-center text-xs sm:text-sm font-bold bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl focus:border-sky-500 focus:ring-1 focus:ring-sky-500 p-0 text-slate-900 dark:text-white transition-all shadow-sm ${set.completed ? 'opacity-60' : ''}`}
+                                                                placeholder={set.time_target ? String(set.time_target) : '-'}
+                                                                value={set.time_completed || ''}
+                                                                onChange={(e) => handleInputChange(exIndex, setIndex, 'time_completed', e.target.value)}
+                                                            />
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => setActiveTimerSet({ exIndex, setIndex, seconds: 0, isRunning: true })}
+                                                                aria-label={`Iniciar cronômetro para série ${setIndex + 1}`}
+                                                                className={`w-11 h-11 min-w-[44px] min-h-[44px] p-2 rounded-xl bg-primary hover:bg-sky-600 text-white flex items-center justify-center transition-all shadow-sm active:scale-95 shrink-0 ${set.completed ? 'opacity-60' : ''}`}
+                                                                title="Iniciar Cronômetro"
+                                                            >
+                                                                <span className="material-symbols-rounded text-base" aria-hidden="true">timer</span>
+                                                            </button>
+                                                        </div>
+                                                    )}
+
+                                                    {exercise.exercise_type === 'cardio' && (
+                                                        <>
+                                                            <div className="flex items-center gap-1 w-full">
+                                                                <select
+                                                                    aria-label={`Tempo de cardio na série ${setIndex + 1}`}
+                                                                    className={`w-full min-h-[44px] h-11 text-center text-xs sm:text-sm font-bold bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl focus:border-sky-500 focus:ring-1 focus:ring-sky-500 p-0 text-slate-900 dark:text-white transition-all shadow-sm ${set.completed ? 'opacity-60' : ''}`}
+                                                                    value={set.time_completed || ''}
+                                                                    onChange={(e) => handleInputChange(exIndex, setIndex, 'time_completed', e.target.value)}
+                                                                >
+                                                                    <option value="">-</option>
+                                                                    {generateTimeOptions(set.time_target || undefined).map(opt => (
+                                                                        <option key={opt.value} value={opt.value}>{opt.label}</option>
+                                                                    ))}
+                                                                </select>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => setActiveTimerSet({ exIndex, setIndex, seconds: 0, isRunning: true })}
+                                                                    aria-label={`Iniciar cronômetro de cardio para série ${setIndex + 1}`}
+                                                                    className={`w-11 h-11 min-w-[44px] min-h-[44px] p-2 rounded-xl bg-primary hover:bg-sky-600 text-white flex items-center justify-center transition-all shadow-sm active:scale-95 shrink-0 ${set.completed ? 'opacity-60' : ''}`}
+                                                                    title="Iniciar Cronômetro"
+                                                                >
+                                                                    <span className="material-symbols-rounded text-base" aria-hidden="true">timer</span>
+                                                                </button>
+                                                            </div>
+                                                            <div>
+                                                                <input
+                                                                    type="number"
+                                                                    inputMode="decimal"
+                                                                    data-testid="distance-completed"
+                                                                    aria-label={`Distância em km na série ${setIndex + 1}`}
+                                                                    className={`w-full min-h-[44px] h-11 text-center text-xs sm:text-sm font-bold bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl focus:border-sky-500 focus:ring-1 focus:ring-sky-500 p-0 text-slate-900 dark:text-white transition-all shadow-sm ${set.completed ? 'opacity-60' : ''}`}
+                                                                    placeholder={set.distance_target ? String(set.distance_target) : '-'}
+                                                                    value={set.distance_completed || ''}
+                                                                    onChange={(e) => handleInputChange(exIndex, setIndex, 'distance_completed', e.target.value)}
+                                                                />
+                                                            </div>
+                                                            <div>
+                                                                <input
+                                                                    type="number"
+                                                                    inputMode="decimal"
+                                                                    data-testid="speed-actual"
+                                                                    aria-label={`Velocidade em km/h na série ${setIndex + 1}`}
+                                                                    className={`w-full min-h-[44px] h-11 text-center text-xs sm:text-sm font-bold bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl focus:border-sky-500 focus:ring-1 focus:ring-sky-500 p-0 text-slate-900 dark:text-white transition-all shadow-sm ${set.completed ? 'opacity-60' : ''}`}
+                                                                    placeholder={set.speed_target ? String(set.speed_target) : '-'}
+                                                                    value={set.speed_actual || ''}
+                                                                    onChange={(e) => handleInputChange(exIndex, setIndex, 'speed_actual', e.target.value)}
+                                                                />
+                                                            </div>
+                                                        </>
+                                                    )}
+                                                </>
+                                            )}
+
+                                            {/* RPE col */}
+                                            <div className="min-w-0 flex items-center justify-center">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setPseModal({ open: true, exerciseIndex: exIndex, setIndex: setIndex })}
+                                                    aria-label={`Definir PSE para série ${setIndex + 1}`}
+                                                    className={`w-full min-h-[44px] h-9 sm:h-10 px-0.5 rounded-lg sm:rounded-xl flex items-center justify-center text-[10px] sm:text-[11px] font-black tracking-tight whitespace-nowrap overflow-hidden transition-all border shrink-0 ${set.rpe
+                                                        ? 'bg-sky-50 dark:bg-sky-950/60 text-sky-700 dark:text-sky-300 border-sky-300 dark:border-sky-700/60 shadow-sm ring-1 ring-sky-400/20'
+                                                        : set.rpe_target
+                                                            ? 'bg-slate-50 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-sky-300 dark:hover:border-sky-600'
+                                                            : 'bg-slate-50/80 dark:bg-slate-800/40 text-slate-400 dark:text-slate-500 border-dashed border-slate-200 dark:border-slate-700/80 hover:text-sky-500 hover:border-sky-300 dark:hover:border-sky-600'
+                                                        } ${set.completed ? 'opacity-60' : ''}`}
+                                                >
+                                                    {set.rpe ? `@${set.rpe}` : (set.rpe_target ? `@${set.rpe_target}` : '@')}
+                                                </button>
+                                            </div>
+
+                                            {/* Check col */}
+                                            <div className="flex justify-center min-w-0">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => toggleSetCompletion(exIndex, setIndex)}
+                                                    data-testid={`complete-set-${setIndex}`}
+                                                    aria-label={set.completed ? `Desmarcar série ${setIndex + 1} de ${exercise.name}` : `Concluir série ${setIndex + 1} de ${exercise.name}`}
+                                                    className={`min-w-[36px] w-full min-h-[44px] h-11 rounded-xl flex items-center justify-center transition-colors shrink-0 ${set.completed
+                                                        ? 'bg-emerald-500 text-white shadow-md shadow-emerald-500/25 ring-2 ring-emerald-500/20'
+                                                        : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700'
+                                                        }`}
+                                                >
+                                                    <span className="material-symbols-rounded text-lg sm:text-2xl" aria-hidden="true">check</span>
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        {/* Sub-linhas de Dropset */}
+                                        {set.set_method === 'dropset' && set.drops && set.drops.length > 0 && (
+                                            <div className="space-y-0.5 border-t border-slate-100/80 dark:border-slate-800/80">
+                                                {set.drops.map((drop, dropIndex) => {
+                                                    const isDropDone = drop.completed;
+                                                    const dropRowBg = isDropDone
+                                                        ? 'bg-emerald-100/70 dark:bg-emerald-900/30'
+                                                        : 'bg-purple-50/60 dark:bg-purple-950/20';
+                                                    const dropGridClass = getGridColsClass(exercise.exercise_type, isHiit) + ` px-2 sm:px-3 py-1.5 sm:py-2 items-center transition-all duration-300 ${dropRowBg}`;
+
+                                                    return (
+                                                        <div key={dropIndex} className={dropGridClass}>
+                                                            <div className="flex items-center justify-center">
+                                                                <span className="text-[11px] sm:text-xs font-bold text-purple-600 dark:text-purple-400 font-mono text-center">
+                                                                    -{dropIndex + 1}
+                                                                </span>
+                                                            </div>
+                                                            <div className="text-left overflow-hidden min-w-0 flex flex-col justify-center">
+                                                                <span className="text-xs sm:text-[12px] font-semibold text-purple-700 dark:text-purple-300 truncate">
+                                                                    Drop {dropIndex + 1} (-20% a -30%)
+                                                                </span>
+                                                            </div>
+                                                            <div>
+                                                                <input
+                                                                    type="number"
+                                                                    inputMode="decimal"
+                                                                    aria-label={`Carga do Drop ${dropIndex + 1}`}
+                                                                    placeholder={(() => {
+                                                                        const baseWeight = dropIndex > 0 && set.drops?.[dropIndex - 1]?.weight
+                                                                            ? parseFloat(set.drops[dropIndex - 1].weight)
+                                                                            : (parseFloat(set.weight) || (typeof set.weight_target === 'number' ? set.weight_target : 0));
+                                                                        return baseWeight > 0 ? String(Math.round(baseWeight * 0.75)) : 'KG';
+                                                                    })()}
+                                                                    value={drop.weight}
+                                                                    onChange={(e) => handleDropChange(exIndex, setIndex, dropIndex, 'weight', e.target.value)}
+                                                                    className={`w-full min-h-[44px] h-11 text-center text-xs sm:text-sm font-bold bg-white dark:bg-slate-700 border border-purple-200 dark:border-purple-800 rounded-xl focus:border-purple-500 focus:ring-1 focus:ring-purple-500 p-0 text-slate-900 dark:text-white transition-all shadow-sm ${isDropDone ? 'opacity-60' : ''}`}
+                                                                />
+                                                            </div>
+                                                            <div>
+                                                                <input
+                                                                    type="number"
+                                                                    inputMode="numeric"
+                                                                    aria-label={`Repetições do Drop ${dropIndex + 1}`}
+                                                                    placeholder={set.reps || '8'}
+                                                                    value={drop.reps}
+                                                                    onChange={(e) => handleDropChange(exIndex, setIndex, dropIndex, 'reps', e.target.value)}
+                                                                    className={`w-full min-h-[44px] h-11 text-center text-xs sm:text-sm font-bold bg-white dark:bg-slate-700 border border-purple-200 dark:border-purple-800 rounded-xl focus:border-purple-500 focus:ring-1 focus:ring-purple-500 p-0 text-slate-900 dark:text-white transition-all shadow-sm ${isDropDone ? 'opacity-60' : ''}`}
+                                                                />
+                                                            </div>
+                                                            <div className="flex items-center justify-center">
+                                                                <span className="text-xs font-bold text-slate-300 dark:text-slate-600">-</span>
+                                                            </div>
+                                                            <div className="flex justify-center min-w-0">
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => toggleDropCompletion(exIndex, setIndex, dropIndex)}
+                                                                    aria-label={isDropDone ? `Desmarcar Drop ${dropIndex + 1}` : `Concluir Drop ${dropIndex + 1}`}
+                                                                    className={`min-w-[36px] w-full min-h-[44px] h-11 rounded-xl flex items-center justify-center transition-colors cursor-pointer shrink-0 ${
+                                                                        isDropDone
+                                                                            ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/25 ring-2 ring-emerald-600/20'
+                                                                            : 'bg-white dark:bg-slate-800 text-slate-400 dark:text-slate-500 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700'
+                                                                    }`}
+                                                                >
+                                                                    <span className="material-symbols-rounded text-lg sm:text-2xl" aria-hidden="true">check</span>
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        )}
+
+                                        {/* Sub-linhas de Métodos com Sub-Séries (Rest-Pause, Cluster, Myo-Reps, Muscle Round, Método 3/7) */}
+                                        {['rest_pause', 'cluster', 'myo_reps', 'muscle_round', 'method_3_7'].includes(set.set_method || '') && set.sub_sets_records && set.sub_sets_records.length > 0 && (
+                                            <div className="space-y-0.5 border-t border-slate-100/80 dark:border-slate-800/80">
+                                                {set.sub_sets_records.map((sub, subIndex) => {
+                                                    const isSubDone = sub.completed;
+                                                    const subRowBg = isSubDone
+                                                        ? 'bg-emerald-100/70 dark:bg-emerald-900/30'
+                                                        : methodTheme.rowBg;
+                                                    const subGridClass = getGridColsClass(exercise.exercise_type, isHiit) + ` px-2 sm:px-3 py-1.5 sm:py-2 items-center transition-all duration-300 ${subRowBg}`;
+
+                                                    return (
+                                                        <div key={subIndex} className={subGridClass}>
+                                                            {/* # col */}
+                                                            <div className="flex items-center justify-center">
+                                                                <span className="text-[11px] sm:text-xs font-bold text-slate-400 dark:text-slate-500 font-mono text-center">
+                                                                    +{sub.index}
+                                                                </span>
+                                                            </div>
+
+                                                            {/* Ant. / Alvo col */}
+                                                            <div className="text-left overflow-hidden min-w-0 flex flex-col justify-center">
+                                                                <span className="text-xs sm:text-[12px] font-semibold text-slate-600 dark:text-slate-300 truncate">
+                                                                    {set.set_method === 'muscle_round'
+                                                                        ? `Mini-bloco ${sub.index} (4 reps)`
+                                                                        : set.set_method === 'method_3_7'
+                                                                            ? `Degrau ${sub.index} (${sub.index + 2} reps)`
+                                                                            : `Sub ${sub.index} (${set.micro_rest_seconds || 15}s pausa)`}
+                                                                </span>
+                                                            </div>
+
+                                                            {/* KG col */}
+                                                            <div className="text-center">
+                                                                <span className="text-xs sm:text-sm font-bold text-slate-600 dark:text-slate-300 font-mono">
+                                                                    {set.weight ? `${set.weight}kg` : (set.weight_target ? `${set.weight_target}kg` : '-')}
+                                                                </span>
+                                                            </div>
+
+                                                            {/* REPS col */}
+                                                            <div>
+                                                                <input
+                                                                    type="number"
+                                                                    inputMode="numeric"
+                                                                    aria-label={`Repetições da Sub-série ${sub.index}`}
+                                                                    placeholder={sub.reps || (set.set_method === 'muscle_round' ? '4' : set.set_method === 'method_3_7' ? String(sub.index + 2) : '4')}
+                                                                    value={sub.reps}
+                                                                    onChange={(e) => handleSubSetChange(exIndex, setIndex, subIndex, 'reps', e.target.value)}
+                                                                    className={`w-full min-h-[44px] h-11 text-center text-xs sm:text-sm font-bold bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl focus:border-sky-500 focus:ring-1 focus:ring-sky-500 p-0 text-slate-900 dark:text-white transition-all shadow-sm ${isSubDone ? 'opacity-60' : ''}`}
+                                                                />
+                                                            </div>
+
+                                                            {/* PSE col */}
+                                                            <div className="flex items-center justify-center">
+                                                                <span className="text-xs font-bold text-slate-300 dark:text-slate-600">-</span>
+                                                            </div>
+
+                                                            {/* Check col */}
+                                                            <div className="flex justify-center min-w-0">
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => toggleSubSetCompletion(exIndex, setIndex, subIndex)}
+                                                                    aria-label={isSubDone ? `Desmarcar Sub-série ${sub.index}` : `Concluir Sub-série ${sub.index}`}
+                                                                    className={`min-w-[36px] w-full min-h-[44px] h-11 rounded-xl flex items-center justify-center transition-colors cursor-pointer shrink-0 ${
+                                                                        isSubDone
+                                                                            ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/25 ring-2 ring-emerald-600/20'
+                                                                            : 'bg-white dark:bg-slate-800 text-slate-400 dark:text-slate-500 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700'
+                                                                    }`}
+                                                                >
+                                                                    <span className="material-symbols-rounded text-lg sm:text-2xl" aria-hidden="true">check</span>
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })}
+
+                                                {/* Linha discreta de total acumulado na série */}
+                                                <div className="flex justify-between items-center px-3 py-1.5 bg-slate-50/50 dark:bg-slate-800/30 text-[11px] text-slate-500 dark:text-slate-400 font-medium border-t border-slate-100 dark:border-slate-800">
+                                                    <span>Total acumulado na série:</span>
+                                                    <span className="font-mono font-bold text-slate-700 dark:text-slate-200">
+                                                        {(parseInt(set.reps) || 0) + (set.sub_sets_records || []).reduce((acc, curr) => acc + (parseInt(curr.reps) || 0), 0)} reps
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </React.Fragment>
+                                );
+                            });
+                        })()}
+                    </div>
+
+                    {/* Exercise Feedback */}
+                    <div className="p-3 sm:p-4 bg-slate-50/50 dark:bg-slate-800/40 border-t border-slate-100 dark:border-slate-700/50 transition-colors">
+                        <label htmlFor={`feedback-${exercise.id}`} className="flex items-center gap-1.5 mb-2 px-1 text-slate-500 dark:text-slate-400 cursor-pointer">
+                            <span className="material-symbols-rounded text-base" aria-hidden="true">chat_bubble</span>
+                            <span className="text-[10px] font-extrabold uppercase tracking-widest">Feedback do Exercício</span>
+                        </label>
+                        <textarea
+                            id={`feedback-${exercise.id}`}
+                            value={exercise.feedback || ''}
+                            data-testid={`feedback-${exercise.id}`}
+                            aria-label={`Feedback sobre a execução do exercício ${exercise.name}`}
+                            onChange={(e) => {
+                                const newExercises = [...exercises];
+                                newExercises[exIndex].feedback = e.target.value;
+                                setExercises(newExercises);
+                                saveToLocalStorage(newExercises);
+                            }}
+                            placeholder="Feedback: Como foi a execução deste exercício?..."
+                            className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl p-3 text-xs text-slate-800 dark:text-slate-200 placeholder:text-slate-400 focus:border-sky-500 focus:ring-1 focus:ring-sky-500 min-h-[60px] transition-all resize-none shadow-sm"
+                        />
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
     if (loading) return (
         <MainLayout>
             <div className="flex items-center justify-center h-screen" role="status" aria-live="polite">
@@ -1352,455 +2596,99 @@ const WorkoutExecution: React.FC = () => {
                             </div>
                         </div>
 
-                        {/* Exercises List */}
+                        {/* Exercises List / Execution Blocks */}
                         <div className="space-y-6">
-                            {exercises.map((exercise, exIndex) => {
-                                const isFocused = currentExerciseIndex === exIndex;
-                                const isCompleted = exIndex < currentExerciseIndex;
-                                const shouldFocus = preferences.focusMode;
+                            {executionBlocks.map((block, blockIndex) => {
+                                if (block.type === 'solo') {
+                                    return renderExerciseCard(block.exercise, block.originalIndex);
+                                }
+
+                                // Group Block (Biset, Triset, Giant Set, Pareado Antagonista)
+                                const { group, items } = block;
+                                const groupToken = getGroupToken(group.group_type);
+
+                                const maxRounds = group.rounds || (items[0]?.exercise.sets.length || 3);
+                                let completedRounds = 0;
+                                for (let r = 0; r < maxRounds; r++) {
+                                    const roundDone = items.every(it => it.exercise.sets[r]?.completed);
+                                    if (roundDone) completedRounds++;
+                                }
 
                                 return (
                                     <div
-                                        key={exercise.id + exIndex}
-                                        id={`exercise-${exIndex}`}
-                                        className={`transition-all duration-500 mb-8 ${shouldFocus
-                                            ? (isFocused ? 'scale-[1.02] opacity-100 z-10' : 'scale-95 opacity-50 grayscale')
-                                            : 'opacity-100'
-                                            }`}
+                                        key={group.id || blockIndex}
+                                        className={`mb-8 rounded-3xl sm:rounded-[2.5rem] border-2 ${groupToken.border} ${groupToken.bgLight} p-3 sm:p-5 shadow-sm transition-all`}
                                     >
-                                        <div className={`bg-white dark:bg-slate-800 rounded-xl sm:rounded-[2.5rem] shadow-soft border transition-all duration-500 overflow-hidden ${shouldFocus && isFocused ? 'border-primary/30 ring-4 ring-primary/5 shadow-focus-glow' : 'border-slate-100 dark:border-slate-700'}`}>
-                                            {/* Exercise Header */}
-                                            <div className="p-4 border-b border-slate-100 dark:border-slate-700">
-                                                <div className="flex items-start justify-between mb-3 px-1">
-                                                    <div className="flex items-center gap-3">
-                                                        {/* Thumbnail Area */}
-                                                        <button
-                                                            type="button"
-                                                            aria-label={`Ver vídeo de demonstração de ${exercise.name}`}
-                                                            className="w-14 h-14 rounded-xl bg-sky-50 dark:bg-sky-900/20 flex-shrink-0 overflow-hidden relative group cursor-pointer border border-sky-100/50 dark:border-sky-500/10"
-                                                            onClick={() => {
-                                                                if (exercise.video_url) {
-                                                                    setVideoModal({ open: true, url: exercise.video_url, title: exercise.name });
-                                                                }
-                                                            }}
-                                                        >
-                                                            {(() => {
-                                                                const ytId = getYouTubeId(exercise.video_url);
-                                                                const videoUrl = exercise.video_url;
-                                                                const isGif = videoUrl?.toLowerCase().endsWith('.gif');
-                                                                const isMp4 = videoUrl?.toLowerCase().endsWith('.mp4');
-
-                                                                if (isGif) return <img src={videoUrl} className="w-full h-full object-cover" alt={`GIF de ${exercise.name}`} />;
-                                                                if (ytId) return (
-                                                                    <>
-                                                                        <img
-                                                                            src={`https://img.youtube.com/vi/${ytId}/0.jpg`}
-                                                                            className="w-full h-full object-cover opacity-60 group-hover:opacity-100 transition-opacity"
-                                                                            alt={`Prévia do vídeo de ${exercise.name}`}
-                                                                        />
-                                                                        <div className="absolute inset-0 flex items-center justify-center">
-                                                                            <span className="material-symbols-rounded text-sky-500 text-2xl drop-shadow-sm group-hover:scale-110 transition-transform" aria-hidden="true">play_circle</span>
-                                                                        </div>
-                                                                    </>
-                                                                );
-                                                                if (isMp4) return (
-                                                                    <video src={videoUrl} className="w-full h-full object-cover" muted playsInline />
-                                                                );
-                                                                return (
-                                                                    <div className="w-full h-full flex items-center justify-center text-sky-300 dark:text-sky-700">
-                                                                        <span className="material-symbols-rounded text-2xl" aria-hidden="true">image</span>
-                                                                    </div>
-                                                                );
-                                                            })()}
-                                                        </button>
-
-                                                        <button
-                                                            type="button"
-                                                            aria-expanded={!!expandedDescIds[exercise.id]}
-                                                            aria-label={expandedDescIds[exercise.id] ? `Recolher detalhes de ${exercise.name}` : `Ver detalhes de ${exercise.name}`}
-                                                            className="text-left group/title cursor-pointer flex-1"
-                                                            onClick={() => setExpandedDescIds(prev => ({ ...prev, [exercise.id]: !prev[exercise.id] }))}
-                                                        >
-                                                            <div className="flex items-center gap-1.5">
-                                                                <h3 className="font-bold text-lg text-slate-800 dark:text-slate-100 group-hover/title:text-sky-500 transition-colors">{exercise.name}</h3>
-                                                                <span
-                                                                    className="material-symbols-rounded text-[20px] text-slate-400 group-hover/title:text-sky-400 transition-transform duration-300"
-                                                                    style={{ transform: expandedDescIds[exercise.id] ? 'rotate(180deg)' : 'rotate(0deg)' }}
-                                                                    aria-hidden="true"
-                                                                >
-                                                                    expand_more
-                                                                </span>
-                                                            </div>
-                                                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                                                                {expandedDescIds[exercise.id] ? 'Toque para recolher' : 'Toque para detalhes'}
-                                                            </p>
-                                                        </button>
-                                                    </div>
+                                        {/* Group Header */}
+                                        <div className={`flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 mb-4 border-b ${groupToken.border}`}>
+                                            <div className="flex items-center gap-2 flex-wrap">
+                                                <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl ${groupToken.solidBadge} shadow-sm font-black text-xs uppercase tracking-wider`}>
+                                                    <span className="material-symbols-rounded text-base" aria-hidden="true">{groupToken.icon}</span>
+                                                    <span>{groupToken.shortLabel || groupToken.label}</span>
                                                 </div>
 
-                                                {/* Accordion: Instruções / Descrição do Exercício */}
-                                                {expandedDescIds[exercise.id] && (
-                                                    <div className="mx-2 mb-3 bg-slate-50/90 dark:bg-slate-800/80 p-3.5 sm:p-4 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 transition-all duration-300 animate-in fade-in slide-in-from-top-2">
-                                                        <div className="flex items-center gap-2 mb-2">
-                                                            <span className="material-symbols-rounded text-sky-500 text-base" aria-hidden="true">menu_book</span>
-                                                            <span className="uppercase text-[10px] font-bold text-sky-600 dark:text-sky-400 tracking-wider">Instruções de Execução</span>
-                                                        </div>
-                                                        <div className="text-slate-700 dark:text-slate-200">
-                                                            {renderFormattedDescription(exercise.description)}
-                                                        </div>
-                                                    </div>
-                                                )}
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setMethodGuideModal({ isOpen: true, initialItemId: group.group_type, initialLayer: 'group' })}
+                                                    aria-label={`Guia de ${groupToken.label}`}
+                                                    className="w-8 h-8 rounded-xl bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/60 flex items-center justify-center transition-colors shadow-xs cursor-pointer"
+                                                    title="Ver guia pedagógico deste agrupamento"
+                                                >
+                                                    <span className="material-symbols-rounded text-sm" aria-hidden="true">help</span>
+                                                </button>
 
-                                                {
-                                                    exercise.notes && (
-                                                        <div className="mx-2 mb-3 bg-sky-50/50 dark:bg-sky-900/10 p-3 rounded-2xl border border-sky-100 dark:border-sky-500/10 flex gap-3 items-start">
-                                                            <span className="material-symbols-rounded text-sky-500 text-lg mt-0.5">sticky_note</span>
-                                                            <div className="flex-1">
-                                                                <span className="uppercase text-[10px] font-bold text-sky-600 dark:text-sky-400 block mb-0.5 tracking-wider">Nota do Coach</span>
-                                                                <p className="text-xs font-medium text-slate-600 dark:text-slate-300 italic leading-relaxed">
-                                                                    "{exercise.notes}"
-                                                                </p>
-                                                            </div>
-                                                        </div>
-                                                    )
-                                                }
+                                                <span className="text-xs font-bold bg-white/80 dark:bg-slate-800/80 px-2.5 py-1 rounded-xl border border-slate-200/80 dark:border-slate-700/80 text-slate-800 dark:text-slate-200">
+                                                    Round {Math.min(completedRounds + 1, maxRounds)} de {maxRounds}
+                                                </span>
                                             </div>
 
-                                            {/* Sets Flow */}
-                                            <div className="divide-y divide-slate-50 dark:divide-slate-700/50">
-                                                {(() => {
-                                                    const hasHiitAny = exercise.sets.some(s => !!(s.hiit_cycles || s.hiit_work_seconds));
-                                                    return renderTableHeader(exercise.exercise_type, hasHiitAny);
-                                                })()}
+                                            <div className="flex items-center gap-2 text-[11px] font-bold text-slate-600 dark:text-slate-300 flex-wrap">
+                                                <span className="bg-white/80 dark:bg-slate-800/80 px-2.5 py-1 rounded-xl border border-slate-200/80 dark:border-slate-700/80">
+                                                    Descanso pós-round: {group.rest_seconds || 90}s
+                                                </span>
+                                                {group.transition_seconds ? (
+                                                    <span className="bg-white/80 dark:bg-slate-800/80 px-2.5 py-1 rounded-xl border border-slate-200/80 dark:border-slate-700/80">
+                                                        Transição: {group.transition_seconds}s
+                                                    </span>
+                                                ) : null}
+                                            </div>
+                                        </div>
 
-                                                {
-                                                    (() => {
-                                                        let workingSetCount = 0;
-                                                        return exercise.sets.map((set, setIndex) => {
-                                                            const isWarmup = set.type === 'warmup';
-                                                            const isFailure = set.type === 'failure';
-                                                            const isDropset = set.type === 'dropset';
-                                                            const isPreparation = set.type === 'preparation';
+                                        {group.coach_notes && (
+                                            <div className="mb-4 bg-indigo-100/50 dark:bg-indigo-900/30 p-3 rounded-2xl border border-indigo-200/50 dark:border-indigo-800/40 flex items-start gap-2 text-xs text-indigo-950 dark:text-indigo-200 font-medium">
+                                                <span className="material-symbols-rounded text-indigo-500 text-base shrink-0 mt-0.5">sticky_note</span>
+                                                <div>
+                                                    <strong className="block font-bold text-[10px] uppercase tracking-wider text-indigo-600 dark:text-indigo-400">Instruções do Grupo</strong>
+                                                    <span>{group.coach_notes}</span>
+                                                </div>
+                                            </div>
+                                        )}
 
-                                                            if (set.type === 'working') workingSetCount++;
-
-                                                            const rowBg = set.completed
-                                                                ? 'bg-emerald-100/70 dark:bg-emerald-900/30'
-                                                                : (isWarmup ? 'bg-amber-50/30 dark:bg-amber-900/5' : (isFailure ? 'bg-red-50/30 dark:bg-red-900/5' : (isDropset ? 'bg-purple-50/30 dark:bg-purple-900/5' : (isPreparation ? 'bg-cyan-50/30 dark:bg-cyan-900/5' : ''))));
-
-                                                            const getSetIcon = () => {
-                                                                if (isWarmup) return <button type="button" onClick={() => setSeriesHelpModal(true)} aria-label="Série de aquecimento - Ver detalhes" className="flex items-center justify-center w-full"><span className="material-symbols-rounded text-amber-500 text-sm" aria-hidden="true">local_fire_department</span></button>;
-                                                                if (isFailure) return <button type="button" onClick={() => setSeriesHelpModal(true)} aria-label="Série até a falha - Ver detalhes" className="flex items-center justify-center w-full"><span className="material-symbols-rounded text-red-600 text-sm" aria-hidden="true">bolt</span></button>;
-                                                                if (isDropset) return <button type="button" onClick={() => setSeriesHelpModal(true)} aria-label="Série em dropset - Ver detalhes" className="flex items-center justify-center w-full"><span className="material-symbols-rounded text-purple-500 text-sm" aria-hidden="true">layers</span></button>;
-                                                                if (isPreparation) return <button type="button" onClick={() => setSeriesHelpModal(true)} aria-label="Série preparatória - Ver detalhes" className="flex items-center justify-center w-full"><span className="material-symbols-rounded text-cyan-500 text-sm" aria-hidden="true">publish</span></button>;
-                                                                return <button type="button" onClick={() => setSeriesHelpModal(true)} aria-label={`Série principal número ${workingSetCount} - Ver detalhes`} className="text-sky-600 dark:text-sky-400 font-black text-sm sm:text-base w-full font-mono leading-none">{workingSetCount}</button>;
-                                                            };
-
-                                                            const isHiit = !!(set.hiit_cycles || set.hiit_work_seconds);
-                                                            const gridRowClass = getGridColsClass(exercise.exercise_type, isHiit) + ` px-2 sm:px-3 py-1.5 sm:py-2 items-center transition-all duration-300 ${rowBg}`;
-
-                                                            return (
-                                                                <div key={set.id + setIndex} className={gridRowClass}>
-                                                                    {/* # col */}
-                                                                    <div className="flex items-center justify-center">
-                                                                        {getSetIcon()}
-                                                                    </div>
-
-                                                                    {/* Anterior/Meta col */}
-                                                                    <div className="text-left overflow-hidden min-w-0 flex flex-col justify-center">
-                                                                        {exercise.exercise_type === 'reps' ? (
-                                                                            <>
-                                                                                {/* 1. Histórico Anterior (Linha 1) */}
-                                                                                <button
-                                                                                    type="button"
-                                                                                    aria-label={`Ver histórico de cargas do exercício ${exercise.name}`}
-                                                                                    onClick={() => setHistoryModal({ open: true, exerciseId: exercise.id, exerciseName: exercise.name })}
-                                                                                    className="text-xs sm:text-[12px] font-bold text-slate-400 dark:text-slate-400 truncate hover:text-sky-500 dark:hover:text-sky-400 transition-colors flex items-center gap-0.5 group/hist max-w-full text-left"
-                                                                                >
-                                                                                    <span className="truncate">
-                                                                                        {set.prev_log && set.prev_log !== '-' ? set.prev_log : '-'}
-                                                                                    </span>
-                                                                                </button>
-
-                                                                                {/* 2. Metas Prescritas pelo Treinador (Linha 2) */}
-                                                                                {(set.weight_target || set.reps_target || set.rpe_target) ? (
-                                                                                    <div className="flex items-center gap-1 mt-0.5 overflow-hidden">
-                                                                                        {set.weight_target && (
-                                                                                            <span
-                                                                                                title={`Carga alvo: ${set.weight_target} kg`}
-                                                                                                className="text-[9px] bg-sky-100/90 dark:bg-sky-950/60 text-sky-700 dark:text-sky-300 border border-sky-300/40 dark:border-sky-800/40 px-1 sm:px-1.5 py-0.5 rounded font-bold uppercase tracking-tight flex-shrink-0"
-                                                                                            >
-                                                                                                {set.weight_target}KG
-                                                                                            </span>
-                                                                                        )}
-                                                                                        {set.reps_target && (
-                                                                                            <span
-                                                                                                title={`Repetições alvo: ${set.reps_target}`}
-                                                                                                className="text-[9px] bg-emerald-100/90 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-300/40 dark:border-emerald-800/40 px-1 sm:px-1.5 py-0.5 rounded font-bold uppercase tracking-tight flex-shrink-0"
-                                                                                            >
-                                                                                                {set.reps_target} Reps
-                                                                                            </span>
-                                                                                        )}
-                                                                                        {set.rpe_target && (
-                                                                                            <span
-                                                                                                title={`Percepção de Esforço PSE: ${set.rpe_target}`}
-                                                                                                className="text-[9px] bg-purple-100/90 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 border border-purple-300/40 dark:border-purple-800/40 px-1 sm:px-1.5 py-0.5 rounded font-bold uppercase tracking-tight flex-shrink-0"
-                                                                                            >
-                                                                                                @{set.rpe_target}
-                                                                                            </span>
-                                                                                        )}
-                                                                                    </div>
-                                                                                ) : null}
-                                                                            </>
-                                                                        ) : (
-                                                                            <div className="flex flex-wrap items-center gap-0.5 sm:gap-1">
-                                                                                {set.time_target && (
-                                                                                    <span className="text-[9px] sm:text-[10px] bg-sky-50 dark:bg-sky-950/40 text-sky-700 dark:text-sky-300 border border-sky-200/60 dark:border-sky-800/40 px-1.5 py-0.5 rounded-md font-bold uppercase tracking-tight" title="Tempo alvo">
-                                                                                        {formatTimeTarget(set.time_target)}
-                                                                                    </span>
-                                                                                )}
-                                                                                {set.distance_target && (
-                                                                                    <span className="text-[9px] sm:text-[10px] bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200/60 dark:border-emerald-800/40 px-1.5 py-0.5 rounded-md font-bold uppercase tracking-tight" title="Distância alvo">
-                                                                                        {set.distance_target}km
-                                                                                    </span>
-                                                                                )}
-                                                                                {set.speed_target && (
-                                                                                    <span className="text-[9px] sm:text-[10px] bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200/60 dark:border-amber-800/40 px-1.5 py-0.5 rounded-md font-bold uppercase tracking-tight" title="Velocidade alvo">
-                                                                                        {set.speed_target}km/h
-                                                                                    </span>
-                                                                                )}
-                                                                                {set.hiit_cycles && (
-                                                                                    <span className="text-[9px] sm:text-[10px] bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 border border-purple-200/60 dark:border-purple-800/40 px-1.5 py-0.5 rounded-md font-bold uppercase tracking-tight" title="Ciclos HIIT">
-                                                                                        {set.hiit_cycles}x ({set.hiit_work_seconds}s/{set.hiit_rest_seconds}s)
-                                                                                    </span>
-                                                                                )}
-                                                                                {set.rpe_target && (
-                                                                                    <span className="text-[9px] sm:text-[10px] bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 border border-purple-200/60 dark:border-purple-800/40 px-1.5 py-0.5 rounded-md font-bold uppercase tracking-tight">PSE {set.rpe_target}</span>
-                                                                                )}
-                                                                            </div>
-                                                                        )}
-                                                                    </div>
-
-                                                                    {/* Input cols based on exercise type */}
-                                                                    {exercise.exercise_type === 'reps' && (
-                                                                        <>
-                                                                            <div>
-                                                                                <input
-                                                                                    type="number"
-                                                                                    inputMode="decimal"
-                                                                                    aria-label={`Carga em kg para série ${setIndex + 1}`}
-                                                                                    className={`w-full min-h-[44px] h-11 text-center text-xs sm:text-sm font-bold bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl focus:border-sky-500 focus:ring-1 focus:ring-sky-500 px-1 text-slate-900 dark:text-white transition-all shadow-sm ${set.completed ? 'opacity-60' : ''}`}
-                                                                                    placeholder={set.prev_log !== '-' ? set.prev_log.split('kg')[0] : (set.weight_target ? String(set.weight_target) : '-')}
-                                                                                    value={set.weight}
-                                                                                    onChange={(e) => handleInputChange(exIndex, setIndex, 'weight', e.target.value)}
-                                                                                />
-                                                                            </div>
-                                                                            <div>
-                                                                                <input
-                                                                                    type="number"
-                                                                                    inputMode="numeric"
-                                                                                    aria-label={`Repetições para série ${setIndex + 1}`}
-                                                                                    className={`w-full min-h-[44px] h-11 text-center text-xs sm:text-sm font-bold bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl focus:border-sky-500 focus:ring-1 focus:ring-sky-500 p-0 text-slate-900 dark:text-white transition-all shadow-sm ${set.completed ? 'opacity-60' : ''}`}
-                                                                                    placeholder={(() => {
-                                                                                        if (set.prev_log && set.prev_log !== '-') {
-                                                                                            const parts = set.prev_log.split('x');
-                                                                                            if (parts.length > 1) {
-                                                                                                const prevReps = parseInt(parts[1].trim());
-                                                                                                if (!isNaN(prevReps)) return String(prevReps);
-                                                                                            }
-                                                                                        }
-                                                                                        if (set.reps_target) {
-                                                                                            const isRange = String(set.reps_target).includes('-');
-                                                                                            if (!isRange) return String(set.reps_target);
-                                                                                            const lower = parseFloat(String(set.reps_target));
-                                                                                            if (!isNaN(lower)) return String(lower);
-                                                                                        }
-                                                                                        return '-';
-                                                                                    })()}
-                                                                                    value={set.reps}
-                                                                                    onChange={(e) => handleInputChange(exIndex, setIndex, 'reps', e.target.value)}
-                                                                                />
-                                                                            </div>
-                                                                        </>
-                                                                    )}
-
-                                                                    {isHiit ? (
-                                                                        <>
-                                                                            <div>
-                                                                                <button
-                                                                                    type="button"
-                                                                                    onClick={() => setHiitModal({ open: true, exerciseIndex: exIndex, setIndex: setIndex })}
-                                                                                    aria-label={`Iniciar cronômetro HIIT para série ${setIndex + 1}`}
-                                                                                    className={`w-full min-h-[44px] h-11 rounded-xl bg-red-500 text-white hover:bg-red-600 flex items-center justify-center transition-all shadow-sm active:scale-95 ${set.completed ? 'opacity-60' : ''}`}
-                                                                                    title="Iniciar Cronômetro HIIT"
-                                                                                >
-                                                                                    <span className="material-symbols-rounded text-base sm:text-lg" aria-hidden="true">play_arrow</span>
-                                                                                </button>
-                                                                            </div>
-                                                                            <div>
-                                                                                <input
-                                                                                    type="number"
-                                                                                    inputMode="numeric"
-                                                                                    data-testid="hiit-cycles-completed"
-                                                                                    aria-label={`Ciclos HIIT concluídos na série ${setIndex + 1}`}
-                                                                                    className={`w-full min-h-[44px] h-11 text-center text-xs sm:text-sm font-bold bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl focus:border-sky-500 focus:ring-1 focus:ring-sky-500 p-0 text-slate-900 dark:text-white transition-all shadow-sm ${set.completed ? 'opacity-60' : ''}`}
-                                                                                    placeholder={set.hiit_cycles ? String(set.hiit_cycles) : '-'}
-                                                                                    value={set.hiit_cycles_completed || ''}
-                                                                                    onChange={(e) => handleInputChange(exIndex, setIndex, 'hiit_cycles_completed', e.target.value)}
-                                                                                />
-                                                                            </div>
-                                                                            <div>
-                                                                                <select
-                                                                                    aria-label={`Tempo HIIT na série ${setIndex + 1}`}
-                                                                                    className={`w-full min-h-[44px] h-11 text-center text-xs sm:text-sm font-bold bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl focus:border-sky-500 focus:ring-1 focus:ring-sky-500 p-0 text-slate-900 dark:text-white transition-all shadow-sm ${set.completed ? 'opacity-60' : ''}`}
-                                                                                    value={set.time_completed || ''}
-                                                                                    onChange={(e) => handleInputChange(exIndex, setIndex, 'time_completed', e.target.value)}
-                                                                                >
-                                                                                    <option value="">-</option>
-                                                                                    {generateTimeOptions(set.time_target || undefined).map(opt => (
-                                                                                        <option key={opt.value} value={opt.value}>{opt.label}</option>
-                                                                                    ))}
-                                                                                </select>
-                                                                            </div>
-                                                                        </>
-                                                                    ) : (
-                                                                        <>
-                                                                            {exercise.exercise_type === 'time' && (
-                                                                                <div className="flex items-center gap-1 w-full">
-                                                                                    <input
-                                                                                        type="number"
-                                                                                        inputMode="numeric"
-                                                                                        aria-label={`Tempo em segundos na série ${setIndex + 1}`}
-                                                                                        className={`w-full min-h-[44px] h-11 text-center text-xs sm:text-sm font-bold bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl focus:border-sky-500 focus:ring-1 focus:ring-sky-500 p-0 text-slate-900 dark:text-white transition-all shadow-sm ${set.completed ? 'opacity-60' : ''}`}
-                                                                                        placeholder={set.time_target ? String(set.time_target) : '-'}
-                                                                                        value={set.time_completed || ''}
-                                                                                        onChange={(e) => handleInputChange(exIndex, setIndex, 'time_completed', e.target.value)}
-                                                                                    />
-                                                                                    <button
-                                                                                        type="button"
-                                                                                        onClick={() => setActiveTimerSet({ exIndex, setIndex, seconds: 0, isRunning: true })}
-                                                                                        aria-label={`Iniciar cronômetro para série ${setIndex + 1}`}
-                                                                                        className={`w-11 h-11 min-w-[44px] min-h-[44px] p-2 rounded-xl bg-primary hover:bg-sky-600 text-white flex items-center justify-center transition-all shadow-sm active:scale-95 shrink-0 ${set.completed ? 'opacity-60' : ''}`}
-                                                                                        title="Iniciar Cronômetro"
-                                                                                    >
-                                                                                        <span className="material-symbols-rounded text-base" aria-hidden="true">timer</span>
-                                                                                    </button>
-                                                                                </div>
-                                                                            )}
-
-                                                                            {exercise.exercise_type === 'cardio' && (
-                                                                                <>
-                                                                                    <div className="flex items-center gap-1 w-full">
-                                                                                        <select
-                                                                                            aria-label={`Tempo de cardio na série ${setIndex + 1}`}
-                                                                                            className={`w-full min-h-[44px] h-11 text-center text-xs sm:text-sm font-bold bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl focus:border-sky-500 focus:ring-1 focus:ring-sky-500 p-0 text-slate-900 dark:text-white transition-all shadow-sm ${set.completed ? 'opacity-60' : ''}`}
-                                                                                            value={set.time_completed || ''}
-                                                                                            onChange={(e) => handleInputChange(exIndex, setIndex, 'time_completed', e.target.value)}
-                                                                                        >
-                                                                                            <option value="">-</option>
-                                                                                            {generateTimeOptions(set.time_target || undefined).map(opt => (
-                                                                                                <option key={opt.value} value={opt.value}>{opt.label}</option>
-                                                                                            ))}
-                                                                                        </select>
-                                                                                        <button
-                                                                                            type="button"
-                                                                                            onClick={() => setActiveTimerSet({ exIndex, setIndex, seconds: 0, isRunning: true })}
-                                                                                            aria-label={`Iniciar cronômetro de cardio para série ${setIndex + 1}`}
-                                                                                            className={`w-11 h-11 min-w-[44px] min-h-[44px] p-2 rounded-xl bg-primary hover:bg-sky-600 text-white flex items-center justify-center transition-all shadow-sm active:scale-95 shrink-0 ${set.completed ? 'opacity-60' : ''}`}
-                                                                                            title="Iniciar Cronômetro"
-                                                                                        >
-                                                                                            <span className="material-symbols-rounded text-base" aria-hidden="true">timer</span>
-                                                                                        </button>
-                                                                                    </div>
-                                                                                    <div>
-                                                                                        <input
-                                                                                            type="number"
-                                                                                            inputMode="decimal"
-                                                                                            data-testid="distance-completed"
-                                                                                            aria-label={`Distância em km na série ${setIndex + 1}`}
-                                                                                            className={`w-full min-h-[44px] h-11 text-center text-xs sm:text-sm font-bold bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl focus:border-sky-500 focus:ring-1 focus:ring-sky-500 p-0 text-slate-900 dark:text-white transition-all shadow-sm ${set.completed ? 'opacity-60' : ''}`}
-                                                                                            placeholder={set.distance_target ? String(set.distance_target) : '-'}
-                                                                                            value={set.distance_completed || ''}
-                                                                                            onChange={(e) => handleInputChange(exIndex, setIndex, 'distance_completed', e.target.value)}
-                                                                                        />
-                                                                                    </div>
-                                                                                    <div>
-                                                                                        <input
-                                                                                            type="number"
-                                                                                            inputMode="decimal"
-                                                                                            data-testid="speed-actual"
-                                                                                            aria-label={`Velocidade em km/h na série ${setIndex + 1}`}
-                                                                                            className={`w-full min-h-[44px] h-11 text-center text-xs sm:text-sm font-bold bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl focus:border-sky-500 focus:ring-1 focus:ring-sky-500 p-0 text-slate-900 dark:text-white transition-all shadow-sm ${set.completed ? 'opacity-60' : ''}`}
-                                                                                            placeholder={set.speed_target ? String(set.speed_target) : '-'}
-                                                                                            value={set.speed_actual || ''}
-                                                                                            onChange={(e) => handleInputChange(exIndex, setIndex, 'speed_actual', e.target.value)}
-                                                                                        />
-                                                                                    </div>
-                                                                                </>
-                                                                            )}
-                                                                        </>
-                                                                    )}
-
-                                                                    {/* RPE col */}
-                                                                    <div className="min-w-0 flex items-center justify-center">
-                                                                        <button
-                                                                            type="button"
-                                                                            onClick={() => setPseModal({ open: true, exerciseIndex: exIndex, setIndex: setIndex })}
-                                                                            aria-label={`Definir PSE para série ${setIndex + 1}`}
-                                                                            className={`w-full min-h-[44px] h-9 sm:h-10 px-0.5 rounded-lg sm:rounded-xl flex items-center justify-center text-[10px] sm:text-[11px] font-black tracking-tight whitespace-nowrap overflow-hidden transition-all border shrink-0 ${set.rpe
-                                                                                ? 'bg-sky-50 dark:bg-sky-950/60 text-sky-700 dark:text-sky-300 border-sky-300 dark:border-sky-700/60 shadow-sm ring-1 ring-sky-400/20'
-                                                                                : set.rpe_target
-                                                                                    ? 'bg-slate-50 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-sky-300 dark:hover:border-sky-600'
-                                                                                    : 'bg-slate-50/80 dark:bg-slate-800/40 text-slate-400 dark:text-slate-500 border-dashed border-slate-200 dark:border-slate-700/80 hover:text-sky-500 hover:border-sky-300 dark:hover:border-sky-600'
-                                                                                } ${set.completed ? 'opacity-60' : ''}`}
-                                                                        >
-                                                                            {set.rpe ? `@${set.rpe}` : (set.rpe_target ? `@${set.rpe_target}` : '@')}
-                                                                        </button>
-                                                                    </div>
-
-                                                                    {/* Check col */}
-                                                                    <div className="flex justify-center min-w-0">
-                                                                        <button
-                                                                            type="button"
-                                                                            onClick={() => toggleSetCompletion(exIndex, setIndex)}
-                                                                            data-testid={`complete-set-${setIndex}`}
-                                                                            aria-label={set.completed ? `Desmarcar série ${setIndex + 1} de ${exercise.name}` : `Concluir série ${setIndex + 1} de ${exercise.name}`}
-                                                                            className={`min-w-[36px] w-full min-h-[44px] h-11 rounded-xl flex items-center justify-center transition-colors shrink-0 ${set.completed
-                                                                                ? 'bg-emerald-500 text-white shadow-md shadow-emerald-500/25 ring-2 ring-emerald-500/20'
-                                                                                : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700'
-                                                                                }`}
-                                                                        >
-                                                                            <span className="material-symbols-rounded text-lg sm:text-2xl" aria-hidden="true">check</span>
-                                                                        </button>
-                                                                    </div>
+                                        {/* Exercises with Connectors */}
+                                        <div className="space-y-4">
+                                            {items.map((item, itemIdx) => {
+                                                const letterBadge = String.fromCharCode(65 + itemIdx); // A, B, C, D...
+                                                return (
+                                                    <React.Fragment key={item.exercise.id + item.originalIndex}>
+                                                        {itemIdx > 0 && (
+                                                            <div className="flex items-center justify-center my-3 relative py-1">
+                                                                <div className="h-6 w-0.5 bg-slate-300 dark:bg-slate-700"></div>
+                                                                <div className={`absolute px-3 py-1 rounded-full ${groupToken.badge} text-[10px] font-black uppercase tracking-wider flex items-center gap-1 shadow-xs`}>
+                                                                    <span className="material-symbols-rounded text-xs" aria-hidden="true">
+                                                                        {group.group_type === 'paired_antagonist' ? 'swap_horiz' : 'link'}
+                                                                    </span>
+                                                                    <span>
+                                                                        {group.group_type === 'paired_antagonist'
+                                                                            ? (group.transition_seconds ? `${group.transition_seconds}s intervalo` : 'Sem intervalo')
+                                                                            : (group.transition_seconds ? `${group.transition_seconds}s transição` : 'Seguir imediatamente')}
+                                                                    </span>
                                                                 </div>
-                                                            );
-                                                        });
-                                                    })()
-                                                }
-                                            </div>
-
-                                            {/* Exercise Feedback */}
-                                            <div className="p-3 sm:p-4 bg-slate-50/50 dark:bg-slate-800/40 border-t border-slate-100 dark:border-slate-700/50 transition-colors">
-                                                <label htmlFor={`feedback-${exercise.id}`} className="flex items-center gap-1.5 mb-2 px-1 text-slate-500 dark:text-slate-400 cursor-pointer">
-                                                    <span className="material-symbols-rounded text-base" aria-hidden="true">chat_bubble</span>
-                                                    <span className="text-[10px] font-extrabold uppercase tracking-widest">Feedback do Exercício</span>
-                                                </label>
-                                                <textarea
-                                                    id={`feedback-${exercise.id}`}
-                                                    value={exercise.feedback || ''}
-                                                    data-testid={`feedback-${exercise.id}`}
-                                                    aria-label={`Feedback sobre a execução do exercício ${exercise.name}`}
-                                                    onChange={(e) => {
-                                                        const newExercises = [...exercises];
-                                                        newExercises[exIndex].feedback = e.target.value;
-                                                        setExercises(newExercises);
-                                                        saveToLocalStorage(newExercises);
-                                                    }}
-                                                    placeholder="Feedback: Como foi a execução deste exercício?..."
-                                                    className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl p-3 text-xs text-slate-800 dark:text-slate-200 placeholder:text-slate-400 focus:border-sky-500 focus:ring-1 focus:ring-sky-500 min-h-[60px] transition-all resize-none shadow-sm"
-                                                />
-                                            </div>
+                                                            </div>
+                                                        )}
+                                                        {renderExerciseCard(item.exercise, item.originalIndex, true, `${letterBadge}`)}
+                                                    </React.Fragment>
+                                                );
+                                            })}
                                         </div>
                                     </div>
                                 );
@@ -1828,7 +2716,7 @@ const WorkoutExecution: React.FC = () => {
                                         </div>
                                         <div className="flex flex-col min-w-0">
                                             <span className={`text-[9px] sm:text-[10px] font-bold uppercase tracking-wider truncate ${timeLeft === 0 ? 'text-emerald-300' : 'text-slate-400'}`}>
-                                                {timeLeft === 0 ? 'Descanso Concluído' : 'Descanso'}
+                                                {timeLeft === 0 ? `${restTimerLabel} Concluído` : restTimerLabel}
                                             </span>
                                             <span className={`font-mono text-xl sm:text-2xl font-black tabular-nums leading-none tracking-tight ${timeLeft === 0 ? 'text-white text-base sm:text-lg' : 'text-white'}`}>
                                                 {timeLeft === 0 ? '+15s?' : formatTime(timeLeft)}
@@ -1894,7 +2782,7 @@ const WorkoutExecution: React.FC = () => {
                             </div>
                         )
                     }
-                </div >
+                </div>
 
                 <HIITExecutionModal
                     isOpen={hiitModal.open}
@@ -1969,6 +2857,14 @@ const WorkoutExecution: React.FC = () => {
                     exerciseId={historyModal.exerciseId}
                     exerciseName={historyModal.exerciseName}
                     studentId={user!.id}
+                />
+
+                <MethodGuideModal
+                    isOpen={methodGuideModal.isOpen}
+                    onClose={() => setMethodGuideModal({ isOpen: false })}
+                    initialItemId={methodGuideModal.initialItemId || undefined}
+                    initialLayer={methodGuideModal.initialLayer || 'all'}
+                    isStudent={true}
                 />
 
                 {/* Cardio/Time Active Timer Modal */}

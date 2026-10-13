@@ -14,6 +14,12 @@ export interface RawWorkoutLogWithSets {
         speed_actual?: number | null;
         hiit_cycles_completed?: number | null;
         completed_at?: string | null;
+        group_round?: number | null;
+        set_method?: string | null;
+        micro_set_index?: number | null;
+        execution_mode?: string | null;
+        tempo_used?: string | null;
+        timer_mode?: string | null;
         exercise?: {
             exercise_type?: string | null;
         } | null;
@@ -37,6 +43,12 @@ export interface ExerciseSessionSet {
     hiit_cycles_completed: number | null;
     completed_at?: string | null;
     exercise_type?: string | null;
+    group_round?: number | null;
+    set_method?: string | null;
+    micro_set_index?: number | null;
+    execution_mode?: string | null;
+    tempo_used?: string | null;
+    timer_mode?: string | null;
 }
 
 export interface GroupedExerciseSession {
@@ -92,6 +104,12 @@ export function groupExerciseSessions(
             hiit_cycles_completed: s.hiit_cycles_completed ?? null,
             completed_at: s.completed_at ?? null,
             exercise_type: s.exercise?.exercise_type ?? 'weight',
+            group_round: s.group_round ?? null,
+            set_method: s.set_method ?? null,
+            micro_set_index: s.micro_set_index ?? null,
+            execution_mode: s.execution_mode ?? null,
+            tempo_used: s.tempo_used ?? null,
+            timer_mode: s.timer_mode ?? null,
         }));
 
         // Buscar feedback específico deste exercício na sessão

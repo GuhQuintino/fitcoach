@@ -99,6 +99,7 @@ export function getCachedSelectionWorkouts(studentId: string) {
 export interface CachedWorkoutData {
     workout: any;
     exercises: any[];
+    exerciseGroups?: any[];
 }
 
 export function cacheWorkoutExecution(workoutId: string, data: CachedWorkoutData): void {

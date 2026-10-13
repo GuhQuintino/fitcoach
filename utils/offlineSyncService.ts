@@ -15,6 +15,12 @@ export interface OfflineSetLog {
     distance_completed?: number | null;
     speed_actual?: number | null;
     hiit_cycles_completed?: number | null;
+    group_round?: number | null;
+    set_method?: string | null;
+    micro_set_index?: number | null;
+    execution_mode?: string | null;
+    tempo_used?: string | null;
+    timer_mode?: string | null;
 }
 
 export interface OfflineExerciseFeedback {
@@ -199,7 +205,13 @@ export async function flushOfflineQueue(): Promise<{ syncedCount: number; failed
                         time_completed: s.time_completed ?? null,
                         distance_completed: s.distance_completed ?? null,
                         speed_actual: s.speed_actual ?? null,
-                        hiit_cycles_completed: s.hiit_cycles_completed ?? null
+                        hiit_cycles_completed: s.hiit_cycles_completed ?? null,
+                        group_round: s.group_round ?? null,
+                        set_method: s.set_method || 'standard',
+                        micro_set_index: s.micro_set_index ?? null,
+                        execution_mode: s.execution_mode || 'standard',
+                        tempo_used: s.tempo_used ?? null,
+                        timer_mode: s.timer_mode || 'standard'
                     }));
 
                     const { error: setsError } = await (supabase

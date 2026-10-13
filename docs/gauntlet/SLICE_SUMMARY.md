@@ -1,23 +1,28 @@
-# Slice Summary - Correção de Race Condition, Deduplicação Offline e Rollback de Workout Logs
+# Slice Summary - Restauração do Padrão Visual Nativo & Fluxo Sequencial de Sub-Séries
 
 - **Status:** COMPLETED
-- **Perfil / Stack:** full-stack (React 19 + TypeScript + Vite + Supabase / PostgreSQL)
+- **Perfil / Stack:** `frontend-framework` (React 19 + TypeScript + Vite + Tailwind CSS)
 - **Arquivos Criados/Modificados:**
-  - `pages/student/WorkoutExecution.tsx`: Adicionada trava de submissão concorrente/duplo clique (`isSubmitting` state + ref `isSubmittingRef`), desativação de controles e botões no `FinishWorkoutModal`, seleção de esforço desvinculada do submit imediato, e rollback cirúrgico de `workout_logs` órfão no `catch` antes do fallback para a fila offline.
-  - `utils/offlineSyncService.ts`: Implementada deduplicação e idempotência no `flushOfflineQueue` (reaproveitando `workout_log` prévio com mesmo `student_id`, `workout_id` e `started_at`), rollback automático caso inserção de séries falhe, e limite máximo de retentativas `MAX_SYNC_RETRIES = 3` para prevenir loops infinitos na fila.
-  - `utils/staleWorkoutService.ts`: Adicionado rollback com exclusão do `workout_log` recém-criado em caso de erro na persistência de séries durante auto-finalização de treino.
-  - `scripts/test_offline_suite.ts`: Atualizado para validar a constante canônica `MAX_SYNC_RETRIES = 3`.
+  - `pages/student/WorkoutExecution.tsx`:
+    - **Remoção de Borda Lateral Grossa:** Eliminadas todas as ocorrências de `border-l-4` e linhas divisórias pesadas na esquerda das séries e sub-séries, restabelecendo o layout limpo e arredondado original do app (Print 2 - Puxada Neutra).
+    - **Fundo da Linha da Série (`rowBg`):** Quando a série não está concluída, exibe exclusivamente a cor suave e clara do método (`rest_pause` com `bg-rose-50/60`, `dropset` com `bg-purple-50/60`, `cluster` com `bg-blue-50/60`, `myo_reps` com `bg-amber-50/60`, etc.) ou a cor nativa de aquecimento/preparação. Quando a série é marcada como concluída, o fundo vira obrigatoriamente o **verde claro padrão do app** (`bg-emerald-100/70 dark:bg-emerald-900/30`).
+    - **Badges Compactos na Coluna Ant./Alvo:** O badge de método (ex: `[REST-PAUSE 15s ?]`) foi integrado de forma compacta e discreta na segunda coluna ("Ant. / Alvo") junto dos badges de metas do treinador, eliminando completamente a sub-barra redundante e pesada que fragmentava a tela.
+    - **Grade Direta de Sub-Séries & Drops:** Removido o cabeçalho grossudo (`REST-PAUSE • Sub-Séries 2 de 2 concluídas`) e containers isolados. As sub-séries (`+1`, `+2`) e drops (`-1`, `-2`) agora utilizam rigorosamente a mesma grade de 6 colunas do app (`getGridColsClass`), alinhando cada campo com `#`, `Ant. / Alvo`, `KG`, `REPS`, `PSE` e `✓`.
+    - **Linha de Total Acumulado:** Renderizada de forma discreta e elegante ao final das sub-séries: `Total acumulado na série: X reps`.
+    - **Correção do Bug de Auto-Conclusão:** Em `toggleSetCompletion`, removida a marcação automática em lote de `sub_sets_records` e `drops`. Ao marcar a série principal, ela fica verde claro e as sub-séries permanecem pendentes no fluxo sequencial do aluno.
+    - **Fluxo Sequencial & Timer Único:** Ao dar check na série principal ou nas sub-séries intermediárias, a micro-pausa (15s) é acionada diretamente no **timer inferior padrão do app** (`startRestTimer`), eliminando a segunda cápsula flutuante superior (`microTimer`). Quando todas as sub-séries são finalizadas, dispara o descanso normal do exercício.
+    - **Aparência dos Botões de Check de Sub-Séries:** Enquanto pendente, exibe o botão limpo com borda sutil; quando concluído, exibe o verde esmeralda padrão (`bg-emerald-600 text-white`) e a linha correspondente fica com o fundo verde claro do app.
+  - `utils/specialSetTokens.ts`:
+    - Atualizados os tokens de `rowBg` para tons suaves e claros (`bg-rose-50/60`, `bg-purple-50/60`, `bg-blue-50/60`, `bg-amber-50/60`, `bg-emerald-50/60`, `bg-cyan-50/60`).
+    - Removida qualquer classe `border-l-4` de `rowBorderLeft`.
+  - `utils/specialSetTokens.test.ts`:
+    - Adicionado teste unitário validando a ausência de `border-l-4` e a conformidade dos tokens suaves de `rowBg`.
 
 ### Entregas End-to-End da Fatia:
-1. **Dados & Modelos:**
-   - Limpeza direta no banco de dados Supabase via session pooler: 8 duplicatas órfãs (`0ae87bf9-9711-4b45-bcf9-ec05d0c98a40`, `4de3b8f1-0587-4e62-b92a-5d366f3f54b2`, `d911d1b2-c3ed-4f97-aff2-5a17da0fa84b`, `d9e30921-b0c3-4e69-8e92-da188d1860a6`, `b596f3ae-191f-4255-9774-f1af9c462011`, `5b33c98a-d23b-4bd3-b2dd-e66afced5613`, `8ba9a26b-21be-4e96-8492-5eed89c687b3`, `08d36a89-09cf-49a4-ac5b-6b7ca0bd3b0c`) do Gabriel Pontes de 08/10 foram removidas com integridade total, preservando o registro canônico `0cbd5ee0-107e-438a-b718-8a0463de8241`.
-2. **Serviços & Contratos:**
-   - Atomicidade garantida em `confirmFinishWorkout`, `flushOfflineQueue` e `autoFinalizeWorkout` através de rollback imediato se `workout_logs` for inserido mas a gravação de séries falhar.
-   - Idempotência no sincronismo offline que reutiliza o ID de cabeçalho existente em vez de reinserir duplicatas a cada ciclo de heartbeat/reconexão.
-   - Proteção de retry queue (`MAX_SYNC_RETRIES = 3`).
-3. **Interface & Componentes:**
-   - Prevenção de duplo disparo na interface do aluno (`WorkoutExecution.tsx` / `FinishWorkoutModal`): botões de nota de esforço alteram o valor selecionado sem disparar submit prematuro; o envio ocorre pelo botão de confirmação com loading spinner e bloqueio de cliques concorrentes.
-4. **Testes & Validação:**
-   - Suíte `vitest`: 37/37 testes unitários passando.
-   - Suíte offline `scripts/test_offline_suite.ts`: 24/24 testes passando.
-   - Build de produção (`vite build`): concluído sem erros.
+1. **Fidelidade Visual Canônica Restaurada:** Resgate do padrão visual do Print 2 (Puxada Neutra): grade limpa, fundo suave, sem bordas laterais duras na esquerda, com retorno imediato ao verde claro ao concluir qualquer série ou sub-série.
+2. **Despoluição e Redução de Ruído Cognitivo:** Eliminados cabeçalhos redundantes de sub-séries, sub-barras pesadas e o segundo relógio flutuante superior.
+3. **Fluxo de Execução Sequencial Intuitivo:** Ciclo de treino passo a passo: Série Principal -> Micro-pausa de 15s no timer inferior -> Sub 1 -> Micro-pausa -> Sub 2 -> Descanso total.
+
+### Testes & Validação:
+- `npx tsc --noEmit`: 0 erros de compilação/tipagem.
+- `npm test -- --run`: 4 suítes, 48 testes executados com 100% de aprovação.

@@ -120,7 +120,6 @@ const CoachDashboard: React.FC = () => {
             setCoachName(user.user_metadata.name.split(' ')[0]);
         }
     }, [user]);
-    // ... (rest of the file)
     const currentHour = new Date().getHours();
     let greeting = 'Bom dia';
     if (currentHour >= 12 && currentHour < 18) {

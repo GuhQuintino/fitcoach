@@ -98,13 +98,14 @@ const Library: React.FC = () => {
         try {
             setAssignLoading(true);
 
-            // 1. Fetch Original Routine Data (Deep)
+            // 1. Fetch Original Routine Data (Deep com exercise_groups)
             const { data: fullRoutine, error: fError } = await supabase
                 .from('routines')
                 .select(`
                     *,
                     workouts (
                         *,
+                        exercise_groups (*),
                         workout_items (
                             *,
                             workout_sets (*)
@@ -134,9 +135,8 @@ const Library: React.FC = () => {
 
             if (rError) throw rError;
 
-            // 3. Clone Workouts and Descendants
+            // 3. Clone Workouts and Descendants (incluindo exercise_groups e remapeamento de group_id)
             if (fullRoutine.workouts && fullRoutine.workouts.length > 0) {
-                // We'll do this sequentially to maintain relationships correctly
                 for (const w of fullRoutine.workouts) {
                     const { data: newW, error: wError } = await supabase
                         .from('workouts')
@@ -151,15 +151,44 @@ const Library: React.FC = () => {
 
                     if (wError) throw wError;
 
+                    // 3.1 Clonar Grupos de Exercício (Biset, Triset, etc.)
+                    const groupIdMap = new Map<string, string>();
+                    if (w.exercise_groups && w.exercise_groups.length > 0) {
+                        const groupsToInsert = w.exercise_groups.map((g: any) => ({
+                            workout_id: newW.id,
+                            group_type: g.group_type,
+                            group_order: g.group_order,
+                            rest_seconds: g.rest_seconds,
+                            rounds: g.rounds,
+                            transition_seconds: g.transition_seconds,
+                            coach_notes: g.coach_notes
+                        }));
+                        const { data: newGroups, error: gError } = await supabase
+                            .from('exercise_groups')
+                            .insert(groupsToInsert)
+                            .select();
+                        if (gError) throw gError;
+
+                        w.exercise_groups.forEach((oldG: any, gIdx: number) => {
+                            if (newGroups && newGroups[gIdx]) {
+                                groupIdMap.set(oldG.id, newGroups[gIdx].id);
+                            }
+                        });
+                    }
+
+                    // 3.2 Clonar Workout Items e Workout Sets completos
                     if (w.workout_items && w.workout_items.length > 0) {
                         for (const item of w.workout_items) {
+                            const newGroupId = item.group_id ? (groupIdMap.get(item.group_id) || null) : null;
                             const { data: newItem, error: iError } = await supabase
                                 .from('workout_items')
                                 .insert([{
                                     workout_id: newW.id,
                                     exercise_id: item.exercise_id,
                                     order_index: item.order_index,
-                                    coach_notes: item.coach_notes
+                                    coach_notes: item.coach_notes,
+                                    group_id: newGroupId,
+                                    group_position: item.group_position || null
                                 }])
                                 .select()
                                 .single();
@@ -170,9 +199,26 @@ const Library: React.FC = () => {
                                 const setsToInsert = item.workout_sets.map((s: any) => ({
                                     workout_item_id: newItem.id,
                                     type: s.type,
-                                    reps_target: s.reps_target,
-                                    rest_seconds: s.rest_seconds,
-                                    rpe_target: s.rpe_target,
+                                    weight_target: s.weight_target ?? null,
+                                    reps_target: s.reps_target ?? null,
+                                    rest_seconds: s.rest_seconds ?? 60,
+                                    rpe_target: s.rpe_target ?? null,
+                                    time_target: s.time_target ?? null,
+                                    distance_target: s.distance_target ?? null,
+                                    speed_target: s.speed_target ?? null,
+                                    hiit_work_seconds: s.hiit_work_seconds ?? null,
+                                    hiit_rest_seconds: s.hiit_rest_seconds ?? null,
+                                    hiit_work_speed: s.hiit_work_speed ?? null,
+                                    hiit_rest_speed: s.hiit_rest_speed ?? null,
+                                    hiit_cycles: s.hiit_cycles ?? null,
+                                    set_method: s.set_method || 'standard',
+                                    micro_rest_seconds: s.micro_rest_seconds ?? null,
+                                    execution_mode: s.execution_mode || 'standard',
+                                    tempo: s.tempo ?? null,
+                                    timer_mode: s.timer_mode || 'standard',
+                                    drop_count: s.drop_count ?? null,
+                                    sub_sets: s.sub_sets ?? null,
+                                    activation_reps: s.activation_reps ?? null,
                                     order_index: s.order_index || s.set_order,
                                     set_order: s.set_order || s.order_index
                                 }));

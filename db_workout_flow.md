@@ -53,7 +53,7 @@ Onde fica a configuração detalhada de metas de cada série (**série por séri
 *   `id` (`UUID`): Chave primária.
 *   `workout_item_id` (`UUID`): Chave estrangeira que referencia `workout_items.id`.
 *   `set_order` (`INTEGER`): Índice da série (1ª série, 2ª série, etc.).
-*   `type` (`ENUM`): Classificação da série para planejamento metabólico (`warmup` [aquecimento], `working` [série de trabalho], `failure` [até a falha], `drop` [dropset], `preparation` [série preparatória]).
+*   `type` (`ENUM`): Classificação da série para planejamento metabólico (`warmup` [aquecimento], `working` [série de trabalho], `failure` [até a falha], `drop` [dropset], `preparation` [série preparatória], `backoff` [série regressiva com redução de carga para volume]).
 *   `rest_seconds` (`INTEGER`): Tempo sugerido de descanso em segundos após finalizar a série.
 
 #### Metas de Exercício Dinâmicas (Por Tipo de Exercício):
@@ -74,9 +74,69 @@ Para dar suporte aos tipos de exercícios cadastrados (musculação convencional
     *   `hiit_rest_speed` (`NUMERIC`, opcional): Velocidade sugerida durante o descanso ativo.
     *   `hiit_cycles` (`INTEGER`, opcional): Quantidade de ciclos (rounds) de HIIT programados.
 
+### E. Tabela de Grupos de Exercícios (`exercise_groups`)
+Permite o agrupamento de múltiplos exercícios em circuitos e métodos combinados (**Camada 1: Agrupamento**).
+*   `id` (`UUID`): Chave primária.
+*   `workout_id` (`UUID`): Chave estrangeira referenciando `workouts.id` (ON DELETE CASCADE).
+*   `name` (`TEXT`, opcional): Nome descritivo (ex: *"Biset Peito/Tríceps"*).
+*   `group_type` (`TEXT`): Tipo de agrupamento:
+    *   `biset`: 2 exercícios em sequência imediata.
+    *   `triset`: 3 exercícios em sequência imediata.
+    *   `giant_set`: 4+ exercícios em circuito contínuo.
+    *   `paired_antagonist`: 2 exercícios antagonistas alternados com pausa curta entre eles.
+*   `order_index` (`INTEGER`): Ordem visual do grupo dentro do treino.
+*   `rounds` (`INTEGER`): Quantidade de passagens/rounds planejadas pelo grupo.
+*   `rest_seconds` (`INTEGER`): Tempo de descanso completo após finalizar cada round do grupo.
+*   `transition_seconds` (`INTEGER`, opcional): Intervalo entre os exercícios membros (ex: 30s no Pareado Antagonista).
+*   `coach_notes` (`TEXT`, opcional): Orientações gerais do coach para a dinâmica do grupo.
+
+> **Vinculação em `workout_items`:** Cada item associado a um grupo recebe:
+> * `group_id` (`UUID`, FK `exercise_groups.id` ON DELETE SET NULL).
+> * `group_position` (`INTEGER`): Ordem do exercício dentro do grupo (0 = A, 1 = B, 2 = C...).
+
 ---
 
-## 2. Fluxo de Prescrição e Edição Individual por Aluno
+## 2. Arquitetura Ortogonal de Métodos de Intensificação (4 Camadas)
+
+O sistema desacopla a prescrição de intensidade em 4 camadas totalmente ortogonais e combináveis:
+
+```
+┌────────────────────────────────────────────────────────┐
+│ CAMADA 1: AGRUPAMENTO (Estrutura do Treino)            │
+│ Solo, Biset, Triset, Giant Set, Pareado Antagonista    │
+└────────────────────────────────────────────────────────┘
+                           │
+┌────────────────────────────────────────────────────────┐
+│ CAMADA 2: MÉTODO DE SÉRIE (Sobrecarga Metabólica)       │
+│ Standard, Dropset, Rest-Pause, Cluster, Myo-Reps,      │
+│ Muscle Round, Método 3/7, FST-7, BFR                   │
+└────────────────────────────────────────────────────────┘
+                           │
+┌────────────────────────────────────────────────────────┐
+│ CAMADA 3: EXECUÇÃO DO REP (Tensão Mecânica & Cadência) │
+│ Standard, Tempo (4 dígitos), Pause Reps, Deadstop,    │
+│ Ponto Zero, Parciais Alongadas, 21s, 1.5 Reps, etc.   │
+└────────────────────────────────────────────────────────┘
+                           │
+┌────────────────────────────────────────────────────────┐
+│ CAMADA 4: TIMER ENGINE (Ritmo e Densidade)             │
+│ Standard, EMOM, AMRAP, Tabata                          │
+└────────────────────────────────────────────────────────┘
+```
+
+### Colunas de Intensificação em `workout_sets`:
+*   `set_method` (`TEXT`): Método da Camada 2 (`standard`, `dropset`, `rest_pause`, `cluster`, `myo_reps`, `muscle_round`, `method_3_7`, `fst7`, `bfr`).
+*   `drop_count` (`INTEGER`, opcional): Número de reduções de carga (ex: 2 a 4 para dropset).
+*   `sub_sets` (`INTEGER`, opcional): Quantidade de sub-séries (ex: 4-6 para cluster ou muscle round).
+*   `micro_rest_seconds` (`INTEGER`, opcional): Pausa intra-série em segundos (ex: 15s para rest-pause/cluster).
+*   `activation_reps` (`INTEGER`, opcional): Repetições de ativação (ex: 12 reps no myo-reps antes das mini-séries).
+*   `execution_mode` (`TEXT`): Modo de rep da Camada 3 (`standard`, `tempo`, `pause_reps`, `deadstop`, `ponto_zero`, `partials_stretched`, `twenty_one`, `one_and_half`, `negative`, `forced`).
+*   `tempo` (`TEXT`, opcional): Cadência de 4 dígitos em segundos no formato `E-A-C-I` (ex: `"4-0-1-0"`: 4s excêntrica, 0s alongamento, 1s concêntrica, 0s encurtamento).
+*   `timer_mode` (`TEXT`): Modo de densidade da Camada 4 (`standard`, `emom`, `amrap`, `tabata`).
+
+---
+
+## 3. Fluxo de Prescrição e Edição Individual por Aluno
 
 Para que as alterações de treino feitas para um aluno não afetem os modelos (templates) padrão que o treinador usa para outros alunos, é executado um fluxo de **Clonagem Profunda (Deep Clone)**:
 
@@ -86,9 +146,10 @@ graph TD
     B --> C[Altera is_template para false]
     C --> D(Cria a associação em student_assignments)
     D --> E(Busca treinos vinculados e clona cada um em workouts)
-    E --> F(Para cada treino, busca e clona itens em workout_items)
-    F --> G(Para cada item de treino, busca e clona as séries em workout_sets)
-    G --> H[Fim do Clone: Aluno tem uma rotina 100% exclusiva]
+    E --> F(Clona exercise_groups de cada treino mapeando IDs antigos para novos)
+    F --> G(Para cada treino, busca e clona itens em workout_items remapeando group_id)
+    G --> H(Para cada item de treino, busca e clona as séries em workout_sets com 4 camadas)
+    H --> I[Fim do Clone: Aluno tem uma rotina 100% exclusiva e agrupamentos preservados]
 ```
 
 ### Passos do Processo:
@@ -97,14 +158,15 @@ graph TD
 2.  **Duplicação em Cascata no Banco**:
     *   Cria-se uma cópia exata do registro em `routines`, alterando `is_template` para `false` e definindo um novo `id`.
     *   Copiam-se todas as linhas em `workouts` vinculadas à rotina antiga, apontando para o ID da nova rotina.
-    *   Copiam-se todas as linhas em `workout_items` vinculadas aos treinos duplicados.
-    *   Copiam-se todas as linhas em `workout_sets` vinculadas aos itens duplicados.
+    *   Copiam-se todas as linhas em `exercise_groups` criando um mapa `oldGroupId -> newGroupId`.
+    *   Copiam-se todas as linhas em `workout_items` vinculadas aos treinos duplicados, remapeando `group_id` via mapa de IDs.
+    *   Copiam-se todas as linhas em `workout_sets` vinculadas aos itens duplicados, preservando todos os atributos das 4 camadas.
 3.  **Edição Exclusiva**:
     A partir de agora, quando o treinador edita o treino de um aluno nas telas do aplicativo, ele está modificando diretamente os registros específicos dessa cópia (`is_template = false`). O template original permanece intacto na biblioteca do coach.
 
 ---
 
-## 3. Logs e Histórico de Execução (O que o Aluno de Fato Executa)
+## 4. Logs e Histórico de Execução (O que o Aluno de Fato Executa)
 
 Para registrar a execução real dos treinos sem corromper ou perder o planejamento configurado em `workout_sets`, o banco de dados armazena os dados reais de conclusão em duas tabelas de log separadas:
 
@@ -119,11 +181,19 @@ Registra a sessão geral de treino realizada pelo aluno.
 *   `feedback_notes` (`TEXT`): Comentários livres do aluno sobre o treino.
 
 ### B. Tabela de Logs de Séries Realizadas (`set_logs`)
-Registra os valores e métricas reais alcançados em cada série.
+Registra os valores e métricas reais alcançados em cada série, suportando os dados detalhados das 4 camadas ortogonais:
 *   `id` (`UUID`): Chave primária.
 *   `workout_log_id` (`UUID`): Chave estrangeira que referencia `workout_logs.id` (Deletada em cascata).
 *   `exercise_id` (`UUID`): Referência ao exercício concluído.
-*   `set_type` (`ENUM`): Tipo de série realizada.
+*   `set_type` (`ENUM`): Tipo de série realizada (`working`, `warmup`, `failure`, `drop`, `preparation`, `backoff`, `dropset`).
+*   `set_order` (`INTEGER`): Posição da série no exercício.
+*   **Campos de Intensificação e Rastreamento:**
+    *   `group_round` (`INTEGER`, opcional): Número da volta/round no circuito ou agrupamento.
+    *   `set_method` (`TEXT`, opcional): Método aplicado (`standard`, `dropset`, `rest_pause`, `cluster`, `myo_reps`, etc.).
+    *   `micro_set_index` (`INTEGER`, opcional): Índice da sub-série (ex: `1`, `2`, `3` para cada drop do dropset).
+    *   `execution_mode` (`TEXT`, opcional): Modo mecânico executado (`tempo`, `pause_reps`, `deadstop`, etc.).
+    *   `tempo_used` (`TEXT`, opcional): Cadência efetivamente executada (ex: `"4-0-1-0"`).
+    *   `timer_mode` (`TEXT`, opcional): Protocolo de timer acionado (`standard`, `emom`, `amrap`, `tabata`).
 *   **Dados Reais de Conclusão:**
     *   `weight_kg` (`NUMERIC`): Carga real utilizada.
     *   `reps_completed` (`INTEGER`): Repetições reais concluídas.
@@ -132,3 +202,9 @@ Registra os valores e métricas reais alcançados em cada série.
     *   `distance_completed` (`NUMERIC`): Distância real percorrida.
     *   `speed_actual` (`NUMERIC`): Velocidade média mantida.
     *   `hiit_cycles_completed` (`INTEGER`): Ciclos de HIIT que o aluno conseguiu concluir.
+
+#### Desdobramento Automático de Dropset (Explosion of Sub-Sets):
+Quando o aluno realiza um método com reduções consecutivas (`dropset`), cada sub-série completada é salva como uma linha individual em `set_logs`:
+*   A série-mãe é registrada com `set_method: 'dropset'` e `micro_set_index: null`.
+*   Cada drop subsequente é registrado com `set_type: 'dropset'`, `set_method: 'dropset'`, `micro_set_index: 1, 2...`, seu respectivo peso reduzido e repetições reais.
+*   Isso garante cálculo fidedigno de tonelagem e volume total tanto na sincronização online (Supabase) quanto na fila offline local (IndexedDB/localStorage).

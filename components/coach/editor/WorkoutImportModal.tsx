@@ -139,23 +139,31 @@ const WorkoutImportModal: React.FC<WorkoutImportModalProps> = ({ isOpen, onClose
         setSelectedWorkout(workout);
         setLoading(true);
         try {
-            // Fetch Items + Sets + Exercise Details (Similar to Editor.tsx)
-            const { data, error } = await supabase
-                .from('workout_items')
-                .select(`
-                    *,
-                    exercise:exercises(*),
-                    sets:workout_sets(*)
-                `)
-                .eq('workout_id', workout.id)
-                .order('order_index');
+            const [itemsRes, groupsRes] = await Promise.all([
+                supabase
+                    .from('workout_items')
+                    .select(`
+                        *,
+                        exercise:exercises(*),
+                        sets:workout_sets(*)
+                    `)
+                    .eq('workout_id', workout.id)
+                    .order('order_index'),
+                supabase
+                    .from('exercise_groups')
+                    .select('*')
+                    .eq('workout_id', workout.id)
+                    .order('group_order')
+            ]);
 
-            if (error) throw error;
+            if (itemsRes.error) throw itemsRes.error;
 
-            // Sort sets
-            const formattedItems = (data || []).map((item: any) => ({
+            const groupsData = groupsRes.data || [];
+            // Sort sets and attach exercise_groups
+            const formattedItems = (itemsRes.data || []).map((item: any) => ({
                 ...item,
-                sets: item.sets.sort((a: any, b: any) => a.set_order - b.set_order)
+                exercise_groups: groupsData.find((g: any) => g.id === item.group_id) || null,
+                sets: (item.sets || []).sort((a: any, b: any) => a.set_order - b.set_order)
             }));
 
             setAvailableExercises(formattedItems);
@@ -389,8 +397,18 @@ const WorkoutImportModal: React.FC<WorkoutImportModalProps> = ({ isOpen, onClose
                                                 <div className={`w-5 h-5 rounded border flex items-center justify-center transition-colors ${isSelected ? 'bg-primary border-primary' : 'bg-white dark:bg-slate-700 border-slate-300 dark:border-slate-600'}`}>
                                                     {isSelected && <span className="material-symbols-rounded text-white text-sm" aria-hidden="true">check</span>}
                                                 </div>
-                                                <div className="flex-1">
-                                                    <h4 className="font-bold text-slate-900 dark:text-white text-sm">{item.exercise?.name}</h4>
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="flex items-center gap-2 flex-wrap">
+                                                        <h4 className="font-bold text-slate-900 dark:text-white text-sm truncate">{item.exercise?.name}</h4>
+                                                        {item.exercise_groups && (
+                                                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800">
+                                                                {item.exercise_groups.group_type === 'superset' && 'Biset'}
+                                                                {item.exercise_groups.group_type === 'triset' && 'Triset'}
+                                                                {item.exercise_groups.group_type === 'giant_set' && 'Giant Set'}
+                                                                {item.exercise_groups.group_type === 'paired_antagonist' && 'Pareado Antagonista'}
+                                                            </span>
+                                                        )}
+                                                    </div>
                                                     <p className="text-xs text-slate-500 dark:text-slate-400">{item.sets?.length} séries</p>
                                                 </div>
                                             </button>

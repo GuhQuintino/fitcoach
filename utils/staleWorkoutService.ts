@@ -25,12 +25,14 @@ interface SavedExercise {
     workout_item_id: string;
     name: string;
     feedback?: string;
+    group_id?: string | null;
     sets: SavedSet[];
 }
 
 export interface SavedWorkout {
     workoutId: string;
     exercises: SavedExercise[];
+    exerciseGroups?: any[];
     startTime: string;
     workoutSeconds: number;
     isWorkoutPaused: boolean;
@@ -89,6 +91,7 @@ export async function autoFinalizeWorkout(
     userId: string
 ): Promise<AutoFinalizeResult> {
     const { completedSets, totalSets } = getCompletionStats(saved);
+    let createdLogId: string | null = null;
 
     try {
         // Calcular started_at/finished_at a partir dos timestamps completed_at
@@ -122,8 +125,6 @@ export async function autoFinalizeWorkout(
             realFinishedAt = new Date(saved.lastUpdate);
         }
 
-        let createdLogId: string | null = null;
-
         // 1. Inserir workout_log (effort_rating null = auto-finalizado)
         const { data: logData, error: logError } = await (supabase
             .from('workout_logs') as any)
@@ -144,7 +145,7 @@ export async function autoFinalizeWorkout(
         // 2. Inserir set_logs para séries completadas
         const setsToInsert: any[] = [];
         saved.exercises.forEach(ex => {
-            ex.sets.forEach((set, i) => {
+            ex.sets.forEach((set: any, i) => {
                 if (set.completed) {
                     setsToInsert.push({
                         workout_log_id: logData.id,
@@ -157,8 +158,36 @@ export async function autoFinalizeWorkout(
                         time_completed: parseInt(set.time_completed || '') || null,
                         distance_completed: parseFloat(set.distance_completed || '') || null,
                         speed_actual: parseFloat(set.speed_actual || '') || null,
-                        hiit_cycles_completed: parseInt(set.hiit_cycles_completed || '') || null
+                        hiit_cycles_completed: parseInt(set.hiit_cycles_completed || '') || null,
+                        group_round: ex.group_id ? (i + 1) : null,
+                        set_method: set.set_method || 'standard',
+                        micro_set_index: null,
+                        execution_mode: set.execution_mode || 'standard',
+                        tempo_used: set.tempo || null,
+                        timer_mode: set.timer_mode || 'standard'
                     });
+
+                    if (set.drops && Array.isArray(set.drops)) {
+                        set.drops.forEach((d: any, dIdx: number) => {
+                            if (d.completed) {
+                                setsToInsert.push({
+                                    workout_log_id: logData.id,
+                                    exercise_id: ex.id,
+                                    set_type: 'dropset',
+                                    set_order: i,
+                                    weight_kg: parseFloat(d.weight) || 0,
+                                    reps_completed: parseInt(d.reps) || 0,
+                                    rpe_actual: null,
+                                    group_round: ex.group_id ? (i + 1) : null,
+                                    set_method: 'dropset',
+                                    micro_set_index: dIdx + 1,
+                                    execution_mode: set.execution_mode || 'standard',
+                                    tempo_used: set.tempo || null,
+                                    timer_mode: set.timer_mode || 'standard'
+                                });
+                            }
+                        });
+                    }
                 }
             });
         });

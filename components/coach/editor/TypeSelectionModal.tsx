@@ -1,52 +1,44 @@
-import React from 'react';
+import React, { useEffect } from 'react';
+import { SET_TYPE_TOKENS } from '../../../utils/specialSetTokens';
 
 interface TypeSelectionModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onSelect: (type: 'warmup' | 'working' | 'failure' | 'dropset' | 'preparation') => void;
+    onSelect: (type: 'warmup' | 'working' | 'failure' | 'dropset' | 'preparation' | 'backoff') => void;
     currentType: string;
 }
 
 const TypeSelectionModal: React.FC<TypeSelectionModalProps> = ({ isOpen, onClose, onSelect, currentType }) => {
+    useEffect(() => {
+        if (!isOpen) return;
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') onClose();
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [isOpen, onClose]);
+
     if (!isOpen) return null;
 
-    const types = [
-        {
-            id: 'warmup',
-            label: 'Aquecimento',
-            icon: 'local_fire_department',
-            color: 'text-amber-500 bg-amber-100 dark:bg-amber-900/30',
-            desc: 'Série com carga reduzida para preparar a articulação e o músculo.'
-        },
-        {
-            id: 'preparation',
-            label: 'Preparação / Feeder',
-            icon: 'publish', // Icon for ramping up
-            color: 'text-cyan-500 bg-cyan-100 dark:bg-cyan-900/30',
-            desc: 'Série com poucas repetições para aclimatar com a carga, sem gerar fadiga.'
-        },
-        {
-            id: 'working',
-            label: 'Trabalho (Normal)',
-            icon: 'fitness_center', // Or shows Number in UI
-            color: 'text-blue-500 bg-blue-100 dark:bg-blue-900/30',
-            desc: 'Série principal do treino. Focar na execução e carga alvo.'
-        },
-        {
-            id: 'failure',
-            label: 'Falha',
-            icon: 'bolt',
-            color: 'text-red-500 bg-red-100 dark:bg-red-900/30',
-            desc: 'Executar o máximo de repetições possíveis até a falha concêntrica.'
-        },
-        {
-            id: 'dropset',
-            label: 'Dropset',
-            icon: 'layers',
-            color: 'text-indigo-600 bg-indigo-100 dark:bg-indigo-900/30',
-            desc: 'Realizar série até a falha, reduzir a carga e continuar sem descanso.'
-        }
+    const typeIds: Array<'warmup' | 'preparation' | 'working' | 'failure' | 'backoff' | 'dropset'> = [
+        'warmup',
+        'preparation',
+        'working',
+        'failure',
+        'backoff',
+        'dropset'
     ];
+
+    const types = typeIds.map(id => {
+        const token = SET_TYPE_TOKENS[id] || SET_TYPE_TOKENS.working;
+        return {
+            id,
+            label: token.label,
+            icon: token.icon,
+            color: token.badge,
+            desc: token.description || ''
+        };
+    });
 
     return (
         <div

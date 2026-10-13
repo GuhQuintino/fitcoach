@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabaseClient';
 import { groupExerciseSessions, GroupedExerciseSession } from '../../utils/workoutHistoryGrouper';
+import { getSetTypeToken, getMethodToken, getExecutionModeToken } from '../../utils/specialSetTokens';
 
 const formatTime = (seconds: number | string | null | undefined) => {
     if (seconds === null || seconds === undefined) return '-';
@@ -81,6 +82,12 @@ const ExerciseHistoryModal: React.FC<ExerciseHistoryModalProps> = ({
                             speed_actual,
                             hiit_cycles_completed,
                             completed_at,
+                            group_round,
+                            set_method,
+                            micro_set_index,
+                            execution_mode,
+                            tempo_used,
+                            timer_mode,
                             exercise:exercises (
                                 exercise_type
                             )
@@ -289,27 +296,37 @@ const ExerciseHistoryModal: React.FC<ExerciseHistoryModalProps> = ({
                                                                     </>
                                                                 )}
                                                             </span>
-                                                            <span className="text-[9px] font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wide">
-                                                                {(() => {
-                                                                    switch (set.set_type) {
-                                                                        case 'working':
-                                                                            return 'Série Normal';
-                                                                        case 'warmup':
-                                                                            return 'Aquecimento';
-                                                                        case 'failure':
-                                                                            return 'Até a Falha';
-                                                                        case 'drop':
-                                                                        case 'dropset':
-                                                                            return 'Drop-set';
-                                                                        case 'preparation':
-                                                                            return 'Preparatória';
-                                                                        case 'feeder':
-                                                                            return 'Feeder';
-                                                                        default:
-                                                                            return 'Série Normal';
-                                                                    }
-                                                                })()}
-                                                            </span>
+                                                            <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
+                                                                <span className={`text-[9px] font-bold uppercase tracking-wide ${getSetTypeToken(set.set_type).textColor}`}>
+                                                                    {getSetTypeToken(set.set_type).label}
+                                                                </span>
+                                                                {set.group_round && (
+                                                                    <span className="px-1.5 py-0.5 rounded text-[8px] font-black uppercase bg-indigo-100 text-indigo-800 dark:bg-indigo-900/40 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
+                                                                        Round {set.group_round}
+                                                                    </span>
+                                                                )}
+                                                                {set.set_method && set.set_method !== 'standard' && (
+                                                                    <span className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase border ${getMethodToken(set.set_method).badge}`}>
+                                                                        {getMethodToken(set.set_method).shortLabel}
+                                                                    </span>
+                                                                )}
+                                                                {set.execution_mode && set.execution_mode !== 'standard' && (
+                                                                    <span className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase border ${getExecutionModeToken(set.execution_mode).badge}`}>
+                                                                        {set.execution_mode === 'tempo' ? `TEMPO ${set.tempo_used || ''}` : getExecutionModeToken(set.execution_mode).shortLabel}
+                                                                    </span>
+                                                                )}
+                                                                {set.micro_set_index && (
+                                                                    <span className={`px-1.5 py-0.5 rounded text-[8px] font-bold uppercase ${
+                                                                        set.set_method === 'dropset' || set.set_type === 'dropset' || set.set_type === 'drop'
+                                                                            ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300'
+                                                                            : 'bg-rose-100 text-rose-800 dark:bg-rose-900/40 dark:text-rose-300'
+                                                                    }`}>
+                                                                        {set.set_method === 'dropset' || set.set_type === 'dropset' || set.set_type === 'drop'
+                                                                            ? `Drop ${set.micro_set_index}`
+                                                                            : `Sub ${set.micro_set_index}`}
+                                                                    </span>
+                                                                )}
+                                                            </div>
                                                         </div>
                                                     </div>
                                                     {set.rpe_actual && (

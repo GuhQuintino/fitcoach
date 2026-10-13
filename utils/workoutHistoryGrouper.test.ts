@@ -125,4 +125,62 @@ describe('workoutHistoryGrouper utils', () => {
         const result = groupExerciseSessions(mockLogs, 'supino');
         expect(result).toHaveLength(0);
     });
+
+    it('deve preservar os metadados de séries especiais e métodos avançados nos sets agrupados', () => {
+        const mockLogs: RawWorkoutLogWithSets[] = [
+            {
+                id: 'log-special-sets',
+                finished_at: '2026-10-12T14:00:00Z',
+                workout: { name: 'Treino Hipertrofia Avançado' },
+                set_logs: [
+                    {
+                        id: 's-drop-1',
+                        exercise_id: 'elevacao-lateral',
+                        weight_kg: 14,
+                        reps_completed: 10,
+                        set_type: 'drop_set',
+                        set_method: 'drop_set',
+                        group_round: 1,
+                        micro_set_index: 0,
+                        execution_mode: 'bi_set',
+                        tempo_used: '3-0-1-0',
+                        timer_mode: 'stopwatch',
+                        exercise: { exercise_type: 'weight' }
+                    },
+                    {
+                        id: 's-drop-2',
+                        exercise_id: 'elevacao-lateral',
+                        weight_kg: 10,
+                        reps_completed: 12,
+                        set_type: 'drop_set',
+                        set_method: 'drop_set',
+                        group_round: 1,
+                        micro_set_index: 1,
+                        execution_mode: 'bi_set',
+                        tempo_used: '3-0-1-0',
+                        timer_mode: 'stopwatch',
+                        exercise: { exercise_type: 'weight' }
+                    }
+                ]
+            }
+        ];
+
+        const result = groupExerciseSessions(mockLogs, 'elevacao-lateral');
+        expect(result).toHaveLength(1);
+        expect(result[0].sets).toHaveLength(2);
+
+        const set1 = result[0].sets[0];
+        expect(set1.set_method).toBe('drop_set');
+        expect(set1.group_round).toBe(1);
+        expect(set1.micro_set_index).toBe(0);
+        expect(set1.execution_mode).toBe('bi_set');
+        expect(set1.tempo_used).toBe('3-0-1-0');
+        expect(set1.timer_mode).toBe('stopwatch');
+
+        const set2 = result[0].sets[1];
+        expect(set2.set_method).toBe('drop_set');
+        expect(set2.group_round).toBe(1);
+        expect(set2.micro_set_index).toBe(1);
+    });
 });
+

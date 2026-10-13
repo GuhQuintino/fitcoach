@@ -4,6 +4,191 @@
 
 ---
 
+## [2026-10-12] — Restauração do Padrão Visual Nativo & Fluxo Sequencial de Sub-Séries (Fase 9 — PASS)
+
+- **Identificador da Fatia:** `native-visual-restoration-sequential-subsets` / `special-sets-ux-refinement`
+- **Perfil Gauntlet:** `frontend-framework` (React 19 + TypeScript + Vite + Tailwind CSS + Vitest)
+- **Subagente Executor:** `gauntlet-builder`
+- **Sumário da Fatia:** [`docs/gauntlet/SLICE_SUMMARY.md`](file:///c:/Users/Gustavo/Desktop/Fitcoach/docs/gauntlet/SLICE_SUMMARY.md)
+- **Status / Veredito:** **PASS** (48/48 testes Vitest aprovados, 24/24 offline aprovados, 0 erros TypeScript, build Vite 100% OK em 8.32s)
+
+### Resumo do Valor Entregue (End-to-End)
+1. **Fidelidade Visual Canônica Restaurada:**
+   - Remoção de todas as bordas laterais duras na esquerda (`border-l-4`) em séries principais e sub-séries, resgatando a identidade visual limpa e arredondada original do aplicativo (Print 2 - Puxada Neutra).
+2. **Dinamismo Cromático de Linhas (`rowBg`):**
+   - Séries e sub-séries ativas/pendentes exibem tons suaves e claros contextuais do método (`bg-rose-50/60`, `bg-purple-50/60`, `bg-blue-50/60`, `bg-amber-50/60`, etc.) ou a cor nativa de aquecimento/preparação.
+   - Ao receber o check `[✓]`, o fundo da linha é imediatamente promovido para o verde claro padrão do app (`bg-emerald-100/70 dark:bg-emerald-900/30`), unificando o feedback visual de dever cumprido em séries mãe e sub-séries.
+3. **Badges Compactos na Coluna Ant./Alvo:**
+   - Badge do método (ex: `[REST-PAUSE 15s ?]`) incorporado de forma compacta e discreta na segunda coluna ("Ant. / Alvo") junto dos alvos de carga/reps do treinador, eliminando a sub-barra pesada que fragmentava o layout.
+4. **Grade Direta de 6 Colunas para Sub-Séries:**
+   - Remoção do cabeçalho volumoso e containers isolados. As sub-séries (`+1`, `+2`) e drops (`-1`, `-2`) agora adotam a grade nativa de 6 colunas (`#`, `Ant. / Alvo`, `KG`, `REPS`, `PSE`, `✓`), com alinhamento perfeito de inputs e linha sutil de total acumulado (`Total acumulado na série: X reps`).
+5. **Fluxo Sequencial & Correção do Bug de Auto-Conclusão:**
+   - Desacoplamento da conclusão em `toggleSetCompletion`: dar check na série principal não marca mais as sub-séries em lote. Cada sub-série é completada independentemente no ritmo do aluno.
+6. **Timer Único Integrado Inferior:**
+   - Micro-pausas de métodos (ex: 15s) disparam no cronômetro inferior padrão do app (`startRestTimer`), eliminando a cápsula de relógio flutuante superior (`microTimer`). Ao finalizar todas as sub-séries, o descanso global do exercício assume naturalmente.
+7. **Testes Automatizados & Estabilidade:**
+   - Atualização da suíte [`specialSetTokens.test.ts`](file:///c:/Users/Gustavo/Desktop/Fitcoach/utils/specialSetTokens.test.ts) validando a ausência de `border-l-4` e a conformidade dos tokens suaves de `rowBg`.
+   - Suíte Vitest com 48/48 testes aprovados (100%), 0 erros TypeScript (`tsc --noEmit`) e 24/24 asserções na suíte offline (total de 72 asserções verdes).
+
+### Arquivos Criados e Modificados
+- `pages/student/WorkoutExecution.tsx`: remoção de `border-l-4`, fundo dinâmico suave/verde claro padrão, badge compacto na coluna Ant./Alvo, grade de 6 colunas para sub-séries, desacoplamento de check e timer único inferior.
+- `utils/specialSetTokens.ts`: tokens suaves de `rowBg` e remoção de `border-l-4` em `rowBorderLeft`.
+- `utils/specialSetTokens.test.ts`: asserções de validação de tokens e ausência de bordas duras.
+- `docs/gauntlet/SLICE_SUMMARY.md`: sumário de engenharia da fatia.
+- `.planning/STATE.md`: atualização de estado, decisões travadas e métricas da fatia.
+- `ROADMAP.md` e `.planning/ROADMAP.md`: registro das entregas concluídas.
+- `PROGRESS.md` e `.planning/PROGRESS.md`: registro histórico detalhado da fatia.
+
+---
+
+## [2026-10-12] — Harmonização Cromática do Método & Automação de Micro-Timers (Fase 9 — PASS)
+
+- **Identificador da Fatia:** `method-chromatic-themes` / `special-sets-visual-unification`
+- **Perfil Gauntlet:** `frontend-framework` (React 19 + TypeScript + Vite + Tailwind CSS + Vitest)
+- **Subagente Executor:** `gauntlet-builder`
+- **Sumário da Fatia:** [`docs/gauntlet/SLICE_SUMMARY.md`](file:///c:/Users/Gustavo/Desktop/Fitcoach/docs/gauntlet/SLICE_SUMMARY.md)
+- **Status / Veredito:** **PASS** (47/47 testes Vitest aprovados, 24/24 offline aprovados, 0 erros TypeScript, build Vite 100% OK em 8.32s)
+
+### Resumo do Valor Entregue (End-to-End)
+1. **Unificação Cromática Total por Método (`METHOD_THEMES` & `getMethodTheme`):**
+   - Criação da interface `MethodTheme` e mapa centralizado `METHOD_THEMES` em [`specialSetTokens.ts`](file:///c:/Users/Gustavo/Desktop/Fitcoach/utils/specialSetTokens.ts) com 13 tokens temáticos dedicados por método:
+     - `rest_pause`: tons Rose (`border-rose-500`, `bg-rose-500/10`, `text-rose-400`, `text-rose-600 dark:text-rose-300`, etc.)
+     - `dropset`: tons Purple (`border-purple-500`, `bg-purple-500/10`, `text-purple-400`, etc.)
+     - `cluster`: tons Blue (`border-blue-500`, `bg-blue-500/10`, `text-blue-400`, etc.)
+     - `myo_reps`: tons Amber (`border-amber-500`, `bg-amber-500/10`, `text-amber-400`, etc.)
+     - `muscle_round`: tons Emerald (`border-emerald-500`, `bg-emerald-500/10`, `text-emerald-400`, etc.)
+     - `method_3_7`: tons Cyan (`border-cyan-500`, `bg-cyan-500/10`, `text-cyan-400`, etc.)
+     - `fst7`: tons Fuchsia (`border-fuchsia-500`, `bg-fuchsia-500/10`, `text-fuchsia-400`, etc.)
+     - `bfr`: tons Teal (`border-teal-500`, `bg-teal-500/10`, `text-teal-400`, etc.)
+     - `standard`: tons Slate neutros com fallback seguro.
+2. **Conexão Perfeita do Bloco no Player do Aluno:**
+   - Em [`WorkoutExecution.tsx`](file:///c:/Users/Gustavo/Desktop/Fitcoach/pages/student/WorkoutExecution.tsx), a linha principal da série ativa, a sub-barra de metadados e o container de sub-linhas agora compartilham o mesmo fundo semântico e a borda esquerda contínua `border-l-4 ${methodTheme.borderColor}`.
+   - Eliminação de fraturas ou margens isoladas (`ml-1 mr-1`), unificando o card em um bloco coeso de ponta a ponta.
+   - Séries padrão mantêm `border-l-4 border-transparent` assegurando alinhamento do grid milimétrico sem reflow.
+3. **Automação Pura de Micro-Timers & Despoluição Visual:**
+   - Remoção do botão manual de micro-pausa na sub-barra que poluía a interface, mantendo a engine automática reativa disparada ao dar check `[✓]` na sub-série ou série de ativação.
+4. **Testes Automatizados & Estabilidade:**
+   - Nova suíte de testes unitários [`specialSetTokens.test.ts`](file:///c:/Users/Gustavo/Desktop/Fitcoach/utils/specialSetTokens.test.ts) com 9 asserções validando 100% dos métodos e resiliência a nulos/desconhecidos.
+   - Suíte Vitest ampliada para 47/47 testes passando (100%), totalizando 71 asserções com a suíte offline.
+   - 0 erros no typecheck TypeScript e build Vite 100% OK em 8.32s.
+
+### Arquivos Criados e Modificados
+- `utils/specialSetTokens.ts`: interface `MethodTheme`, mapa `METHOD_THEMES` e helper `getMethodTheme`.
+- `utils/specialSetTokens.test.ts`: suíte de 9 testes unitários para tokens cromáticos.
+- `pages/student/WorkoutExecution.tsx`: aplicação do tema unificado, borda conectora `border-l-4` e remoção de botão manual redundante.
+- `docs/gauntlet/SLICE_SUMMARY.md`: sumário de engenharia da fatia.
+- `.planning/STATE.md`: atualização de estado, decisões travadas e métricas.
+- `ROADMAP.md` e `.planning/ROADMAP.md`: registro das entregas concluídas.
+- `PROGRESS.md` e `.planning/PROGRESS.md`: registro cronológico do marco.
+
+---
+
+## [2026-10-12] — Auditoria Impeccable Loop: Fase 9 — Séries Especiais & Refinamentos de UX (PASS18 — Grade A+ 20.0/20.0)
+
+- **Identificador da Auditoria:** `PASS18` / `impeccable-audit-phase-9-special-sets`
+- **Avaliador:** `Impeccable Independent Auditor` (Fresh Context)
+- **Veredito:** **PASS (20.0 / 20.0 — Aprovado com Excelência)** — [QA_REPORT_IMPECCABLE_PASS18.md](file:///c:/Users/Gustavo/Desktop/Fitcoach/docs/gauntlet/QA_REPORT_IMPECCABLE_PASS18.md)
+
+### Melhorias de Craftsmanship, Acessibilidade & Refinamentos Funcionais Aplicados
+1. **Acessibilidade & Teclado (A11y — 4.0/4.0):**
+   - Micro-botões inline de interrogação `?` (métodos, modos biomecânicos e timers) ampliados para `min-w-[28px] min-h-[28px]` com hover tátil e rótulos explícitos `aria-label` para leitores de tela em [`ExerciseCard.tsx`](file:///c:/Users/Gustavo/Desktop/Fitcoach/components/coach/editor/ExerciseCard.tsx) e [`WorkoutExecution.tsx`](file:///c:/Users/Gustavo/Desktop/Fitcoach/pages/student/WorkoutExecution.tsx).
+   - Suporte à tecla `Escape` via `useEffect` com desmontagem e limpeza de listeners adicionado em [`TypeSelectionModal.tsx`](file:///c:/Users/Gustavo/Desktop/Fitcoach/components/coach/editor/TypeSelectionModal.tsx), [`MethodSelectionModal.tsx`](file:///c:/Users/Gustavo/Desktop/Fitcoach/components/coach/editor/MethodSelectionModal.tsx) e [`ExecutionModeModal.tsx`](file:///c:/Users/Gustavo/Desktop/Fitcoach/components/coach/editor/ExecutionModeModal.tsx).
+   - Associação semântica de formulários acessível com `id` e `htmlFor` nos campos de rounds (`group-rounds-input`), descanso entre rounds (`group-rest-input`) e transição (`group-transition-input`) em [`ExerciseGroupCard.tsx`](file:///c:/Users/Gustavo/Desktop/Fitcoach/components/coach/editor/ExerciseGroupCard.tsx).
+2. **Theming & Color Contrast (WCAG AA/AAA — 4.0/4.0):**
+   - Calibração de contraste de tokens em [`specialSetTokens.ts`](file:///c:/Users/Gustavo/Desktop/Fitcoach/utils/specialSetTokens.ts): série de aquecimento promovida para `text-amber-700 dark:text-amber-400` e método 3/7 ajustado para `bg-cyan-700 text-white` (contraste > 4.5:1).
+   - Subtítulos do cabeçalho focado e cards conceituais em [`MethodGuideModal.tsx`](file:///c:/Users/Gustavo/Desktop/Fitcoach/components/shared/MethodGuideModal.tsx) promovidos para `text-slate-600 dark:text-slate-300` para alta legibilidade.
+   - Refinamento completo de Dark Mode com tipografia explícita `text-slate-900 dark:text-white` em textareas e inputs numéricos, além de estados táteis `dark:hover:bg-slate-700`, `dark:hover:bg-purple-950/40` e `dark:hover:bg-amber-950/40`.
+3. **Clareza Pedagógica & Adaptação Contextual (4.0/4.0):**
+   - **Omissão de "Quando Aplicar" para o Aluno (`isStudent = true`):** Em [`MethodGuideModal.tsx`](file:///c:/Users/Gustavo/Desktop/Fitcoach/components/shared/MethodGuideModal.tsx), a seção de indicação de uso foi isolada para o treinador. O estudante visualiza exclusivamente instruções práticas passo a passo de postura, execução e recuperação, eliminando ruído conceitual durante o treino.
+4. **Interação & Smart Timers no Player (4.0/4.0):**
+   - **Auto-Scroll no Biset e Agrupamentos:** Navegação com centralização automática suave (`el.scrollIntoView({ behavior: 'smooth', block: 'center' })`) ao avançar entre exercícios agrupados em [`WorkoutExecution.tsx`](file:///c:/Users/Gustavo/Desktop/Fitcoach/pages/student/WorkoutExecution.tsx).
+   - **Prioridade do Timer do Método:** Em métodos fracionados (Rest-Pause, Cluster, Myo-Reps, Dropset), o micro-timer tem precedência absoluta sobre descansos convencionais; o timer de intervalo do grupo dispara exclusivamente após o round completo.
+   - **Métricas e Tracking de Sub-Séries:** Suporte completo com inputs individuais reativos de cargas e repetições (`handleSubSetChange`) e alternância de conclusão de sub-séries (`toggleSubSetCompletion`).
+5. **Anti-AI-Slop, Tokens & Engenharia (4.0/4.0):**
+   - Padronização centralizada de tokens de agrupamento, métodos, modos biomecânicos e tipos de série em [`specialSetTokens.ts`](file:///c:/Users/Gustavo/Desktop/Fitcoach/utils/specialSetTokens.ts).
+   - Zero código genérico, zero em-dashes artificiais ou decorators desnecessários.
+   - Suíte Vitest com 38/38 testes aprovados (100%), 0 erros estáticos de TypeScript (`tsc --noEmit`) e compilação de produção Vite 100% verde em 8.32s.
+
+### Arquivos Modificados no Refinamento
+- `components/coach/editor/ExerciseCard.tsx`: ampliação dos micro-botões inline `?` para 28x28px com ARIA labels.
+- `components/coach/editor/TypeSelectionModal.tsx`: adição de listener de teclado `Escape` e desmontagem limpa.
+- `components/coach/editor/MethodSelectionModal.tsx`: listener `Escape`, foco em inputs de sub-parâmetros e estados dark mode.
+- `components/coach/editor/ExecutionModeModal.tsx`: listener `Escape`, contraste de inputs de cadência e hover dark mode.
+- `components/coach/editor/ExerciseGroupCard.tsx`: semântica `id`/`htmlFor` nos campos de formulário e contraste de notas.
+- `components/shared/MethodGuideModal.tsx`: omissão de "Quando Aplicar" para alunos (`isStudent`) e contraste de subtítulos.
+- `pages/student/WorkoutExecution.tsx`: micro-botões 28x28px, auto-scroll no Biset, precedência de micro-timers e tracking de sub-séries.
+- `utils/specialSetTokens.ts`: correção de tokens de contraste WCAG AA para aquecimento e método 3/7.
+- `docs/gauntlet/QA_REPORT_IMPECCABLE_PASS18.md`: laudo formal independente com nota máxima 20.0 / 20.0.
+
+---
+
+## [2026-10-12] — Fase 9: Séries Especiais & Métodos de Intensificação (Taxonomia em 4 Camadas — PASS)
+
+
+- **Identificador da Fatia:** `special_sets` / `feature-special-sets-intensification`
+- **Perfil Gauntlet:** `full-stack` (React 19 + TypeScript + Tailwind CSS v4 + Supabase / PostgreSQL + Vitest)
+- **Subagente Executor:** `gauntlet-builder`
+- **Veredito do Gauntlet Critic:** **PASS (3.00 / 3.00 na Rubrica 6D)** — [QA_REPORT_special_sets.md](file:///c:/Users/Gustavo/Desktop/Fitcoach/docs/gauntlet/QA_REPORT_special_sets.md)
+
+### Resumo do Valor Entregue (End-to-End)
+1. **Modelagem Relacional & Persistência (Supabase PostgreSQL):**
+   - Criação da migração [`20261012000000_special_sets_and_intensification.sql`](file:///c:/Users/Gustavo/Desktop/Fitcoach/supabase/migrations/20261012000000_special_sets_and_intensification.sql) com a tabela dedicada `public.exercise_groups` (tipo de grupo, rounds, descansos entre rounds e transição, notas e RLS para coaches e alunos).
+   - Extensão das tabelas `workout_items` (com `group_id`, `group_order`, `exercise_notes`), `workout_sets` (com `set_method`, `method_config` JSONB, `execution_mode`, `tempo`, `timer_mode`, `micro_pause_seconds`, `activation_reps`) e `set_logs` com telemetria completa de execução.
+   - Tipagem completa e segura gerada em [`types/supabase.ts`](file:///c:/Users/Gustavo/Desktop/Fitcoach/types/supabase.ts).
+2. **Editor do Coach & UX de Prescrição:**
+   - Implementação de [`ExerciseGroupCard.tsx`](file:///c:/Users/Gustavo/Desktop/Fitcoach/components/coach/editor/ExerciseGroupCard.tsx) para agrupamentos visuais (Biset, Triset, Giant Set, Pareado Antagonista) com rounds, intervalos de transição e desagrupamento seguro.
+   - Modais interativos com WAI-ARIA e touch targets $\ge 44\text{px}$: [`MethodSelectionModal.tsx`](file:///c:/Users/Gustavo/Desktop/Fitcoach/components/coach/editor/MethodSelectionModal.tsx) (9 métodos de intensificação com sliders dinâmicos de drops, pausas e reps), [`ExecutionModeModal.tsx`](file:///c:/Users/Gustavo/Desktop/Fitcoach/components/coach/editor/ExecutionModeModal.tsx) (10 modos biomecânicos e notação 4 dígitos E-P-C-P) e [`TypeSelectionModal.tsx`](file:///c:/Users/Gustavo/Desktop/Fitcoach/components/coach/editor/TypeSelectionModal.tsx).
+   - Desdobramento cirúrgico de dropsets em sub-séries com carga e repetições independentes.
+3. **Guia Pedagógico de Métodos ("? Help System"):**
+   - Catálogo estruturado em [`methodGuideContent.ts`](file:///c:/Users/Gustavo/Desktop/Fitcoach/components/shared/methodGuideContent.ts) contendo instruções científicas e biomecânicas em PT-BR para todos os métodos e modos.
+   - Modal interativo [`MethodGuideModal.tsx`](file:///c:/Users/Gustavo/Desktop/Fitcoach/components/shared/MethodGuideModal.tsx) acionado por badges com "?", provendo clareza pedagógica instantânea para treinador e aluno.
+4. **Player do Aluno & Smart Timers:**
+   - Execução em [`WorkoutExecution.tsx`](file:///c:/Users/Gustavo/Desktop/Fitcoach/pages/student/WorkoutExecution.tsx) com agrupamentos visuais e **Smart Rest Timer**: o cronômetro principal de descanso não dispara prematuramente entre exercícios do mesmo grupo; dispara unicamente após a conclusão de todos os exercícios do round.
+   - **Micro-Timers Automáticos:** Contagem regressiva embutida na tela para transições e pausas curtas (dropset, rest-pause, clusters, myo-reps).
+   - Gravação completa de metadados em `set_logs` e persistência sem consultas N+1.
+5. **Clonagem Profunda & Resiliência:**
+   - Clonagem profunda em [`Library.tsx`](file:///c:/Users/Gustavo/Desktop/Fitcoach/pages/coach/Library.tsx) recriando instâncias de `exercise_groups` e mapeando `oldGroupId -> newGroupId` para cada item clonado, com inserção em lote das 4 camadas.
+   - Rollback atômico em falhas de rede no registro de logs para evitar cabeçalhos órfãos.
+6. **Testes Automatizados & Qualidade:**
+   - 38/38 testes passando no Vitest (incluindo testes de metadados das 4 camadas em `utils/workoutHistoryGrouper.test.ts`).
+   - 24/24 testes aprovados na suíte offline (`scripts/test_offline_suite.ts`).
+   - 0 erros de TypeScript (`tsc --noEmit`) e build de produção Vite 100% OK em 7.96s.
+
+### Métricas da Rubrica 6D
+| Dimensão | Nota | Status |
+|---|:---:|:---:|
+| **D1. Funcionalidade & Requisitos** | 3.0 / 3.0 | Aprovado |
+| **D2. Robustez & Estabilidade** | 3.0 / 3.0 | Aprovado |
+| **D3. Qualidade de Implementação & Anti-Slop** | 3.0 / 3.0 | Aprovado |
+| **D4. Consistência Arquitetural & Stack Nativa** | 3.0 / 3.0 | Aprovado |
+| **D5. Performance & Eficiência** | 3.0 / 3.0 | Aprovado |
+| **D6. Testabilidade, Segurança & Conformidade** | 3.0 / 3.0 | Aprovado |
+| **Média Consolidada** | **3.00 / 3.00** | **PASS** |
+
+### Arquivos Criados e Modificados
+- `supabase/migrations/20261012000000_special_sets_and_intensification.sql`: migração SQL criando `exercise_groups` e novos campos em `workout_items`, `workout_sets` e `set_logs`.
+- `types/supabase.ts`: tipagem TypeScript completa atualizada com as novas tabelas e colunas.
+- `components/coach/editor/ExerciseGroupCard.tsx`: componente de agrupamento para Biset, Triset, Giant Set e Pareado.
+- `components/coach/editor/MethodSelectionModal.tsx`: modal para seleção e parametrização dos 9 métodos avançados.
+- `components/coach/editor/ExecutionModeModal.tsx`: modal para seleção dos 10 modos biomecânicos e cadência.
+- `components/coach/editor/TypeSelectionModal.tsx`: modal para seleção de tipos de série.
+- `components/coach/editor/ExerciseCard.tsx`: integração das 4 camadas, badges de métodos e modos e acionamento de ajuda.
+- `components/shared/methodGuideContent.ts`: catálogo canônico de textos pedagógicos e orientações científicas em PT-BR.
+- `components/shared/MethodGuideModal.tsx`: modal de consulta pedagógica com busca e abas por camada.
+- `components/shared/ExerciseHistoryModal.tsx`: exibição de metadados das séries especiais no histórico do exercício.
+- `pages/coach/Editor.tsx`: persistência e remapeamento de UUIDs de grupos em 4 fases sem N+1.
+- `pages/coach/Library.tsx`: deep clone de rotinas com recriação de `exercise_groups` e mapeamento de IDs.
+- `pages/student/WorkoutExecution.tsx`: execução do aluno com smart timers de grupo, micro-pausas e gravação de metadados.
+- `utils/workoutHistoryGrouper.ts` e `utils/workoutHistoryGrouper.test.ts`: agrupamento e testes com preservação de metadados das 4 camadas.
+- `docs/gauntlet/QA_REPORT_special_sets.md`: laudo formal de avaliação com veredito PASS (3.00 / 3.00).
+- `docs/gauntlet/CRAFT_AUDIT_special_sets.md`: laudo estático de compilação, build, segurança e higiene.
+- `docs/gauntlet/TEST_REPORT_special_sets.md`: relatório de testes automatizados com 62/62 asserções aprovadas.
+- `.planning/STATE.md`: atualização de estado da Fase 9 com decisões travadas e métricas.
+- `.planning/ROADMAP.md` e `ROADMAP.md`: checklist completo da Fase 9.
+- `PRODUCT.md`: especificação viva validada com as regras de negócio da Taxonomia em 4 Camadas.
+
+---
+
 ## [2026-10-12] — Resolução de Race Condition, Deduplicação Offline & Rollback Atômico de Workout Logs (duplicate_workout_bug — PASS)
 
 - **Identificador da Fatia:** `duplicate_workout_bug` / `fix-duplicate-workout-logs`

@@ -1,16 +1,20 @@
 import React, { useState } from 'react';
 import TypeSelectionModal from './TypeSelectionModal';
+import MethodSelectionModal, { MethodConfig } from './MethodSelectionModal';
+import ExecutionModeModal, { ExecutionConfig } from './ExecutionModeModal';
+import MethodGuideModal from '../../shared/MethodGuideModal';
 import RPEGuideModal from './RPEGuideModal';
 import VideoPlayerModal from '../../shared/VideoPlayerModal';
 import ExerciseHistoryModal from '../../shared/ExerciseHistoryModal';
 import VideoThumbnail from '../../shared/VideoThumbnail';
 import toast from 'react-hot-toast';
 import SetTemplateManager from './SetTemplateManager';
+import { getSetTypeToken, getMethodToken, getExecutionModeToken } from '../../../utils/specialSetTokens';
 
 export interface Set {
     id: string;
     set_order: number;
-    type: 'warmup' | 'working' | 'failure' | 'dropset' | 'preparation';
+    type: 'warmup' | 'working' | 'failure' | 'dropset' | 'preparation' | 'backoff' | 'drop';
     weight_target?: string;
     reps_target: string;
     rest_seconds: string;
@@ -24,6 +28,15 @@ export interface Set {
     hiit_rest_speed?: string;
     hiit_cycles?: string;
     is_hiit?: boolean;
+    // 4 Camadas ortogonais
+    set_method?: 'standard' | 'dropset' | 'rest_pause' | 'cluster' | 'myo_reps' | 'muscle_round' | 'method_3_7' | 'fst7' | 'bfr';
+    micro_rest_seconds?: string;
+    execution_mode?: 'standard' | 'tempo' | 'pause_reps' | 'deadstop' | 'ponto_zero' | 'lengthened_partial' | 'twenty_ones' | 'one_and_half' | 'negative' | 'forced_reps';
+    tempo?: string;
+    timer_mode?: 'standard' | 'emom' | 'amrap' | 'tabata';
+    drop_count?: string;
+    sub_sets?: string;
+    activation_reps?: string;
 }
 
 export interface ExerciseItemData {
@@ -33,6 +46,8 @@ export interface ExerciseItemData {
     order_index?: number;
     notes?: string;
     coach_notes?: string;
+    group_id?: string | null;
+    group_position?: number | null;
     sets: Set[];
     exercise?: {
         id: string;
@@ -98,7 +113,15 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({ item, index, totalItems, on
             hiit_work_speed: s.hiit_work_speed !== null && s.hiit_work_speed !== undefined ? s.hiit_work_speed.toString() : '',
             hiit_rest_speed: s.hiit_rest_speed !== null && s.hiit_rest_speed !== undefined ? s.hiit_rest_speed.toString() : '',
             hiit_cycles: s.hiit_cycles !== null && s.hiit_cycles !== undefined ? s.hiit_cycles.toString() : '',
-            is_hiit: s.is_hiit !== undefined ? !!s.is_hiit : !!(s.hiit_work_seconds || s.hiit_cycles)
+            is_hiit: s.is_hiit !== undefined ? !!s.is_hiit : !!(s.hiit_work_seconds || s.hiit_cycles),
+            set_method: s.set_method || 'standard',
+            micro_rest_seconds: s.micro_rest_seconds !== null && s.micro_rest_seconds !== undefined ? s.micro_rest_seconds.toString() : '',
+            execution_mode: s.execution_mode || 'standard',
+            tempo: s.tempo || '',
+            timer_mode: s.timer_mode || 'standard',
+            drop_count: s.drop_count !== null && s.drop_count !== undefined ? s.drop_count.toString() : '',
+            sub_sets: s.sub_sets !== null && s.sub_sets !== undefined ? s.sub_sets.toString() : '',
+            activation_reps: s.activation_reps !== null && s.activation_reps !== undefined ? s.activation_reps.toString() : ''
         }));
     });
     const [notes, setNotes] = useState(item.coach_notes || '');
@@ -120,13 +143,24 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({ item, index, totalItems, on
                 hiit_work_speed: s.hiit_work_speed !== null && s.hiit_work_speed !== undefined ? s.hiit_work_speed.toString() : '',
                 hiit_rest_speed: s.hiit_rest_speed !== null && s.hiit_rest_speed !== undefined ? s.hiit_rest_speed.toString() : '',
                 hiit_cycles: s.hiit_cycles !== null && s.hiit_cycles !== undefined ? s.hiit_cycles.toString() : '',
-                is_hiit: s.is_hiit !== undefined ? !!s.is_hiit : !!(s.hiit_work_seconds || s.hiit_cycles)
+                is_hiit: s.is_hiit !== undefined ? !!s.is_hiit : !!(s.hiit_work_seconds || s.hiit_cycles),
+                set_method: s.set_method || 'standard',
+                micro_rest_seconds: s.micro_rest_seconds !== null && s.micro_rest_seconds !== undefined ? s.micro_rest_seconds.toString() : '',
+                execution_mode: s.execution_mode || 'standard',
+                tempo: s.tempo || '',
+                timer_mode: s.timer_mode || 'standard',
+                drop_count: s.drop_count !== null && s.drop_count !== undefined ? s.drop_count.toString() : '',
+                sub_sets: s.sub_sets !== null && s.sub_sets !== undefined ? s.sub_sets.toString() : '',
+                activation_reps: s.activation_reps !== null && s.activation_reps !== undefined ? s.activation_reps.toString() : ''
             })));
         }
     }, [item.sets]);
 
     // Modal States
     const [typeModal, setTypeModal] = useState<{ isOpen: boolean; setIndex: number | null }>({ isOpen: false, setIndex: null });
+    const [methodModal, setMethodModal] = useState<{ isOpen: boolean; setIndex: number | null }>({ isOpen: false, setIndex: null });
+    const [executionModal, setExecutionModal] = useState<{ isOpen: boolean; setIndex: number | null }>({ isOpen: false, setIndex: null });
+    const [guideModalItem, setGuideModalItem] = useState<string | null>(null);
     const [rpeModalOpen, setRpeModalOpen] = useState(false);
     const [showDescription, setShowDescription] = useState(false);
     const [showVideoModal, setShowVideoModal] = useState(false);
@@ -144,7 +178,7 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({ item, index, totalItems, on
         const newSet: Set = {
             id: `new-${Date.now()}`,
             set_order: sets.length + 1,
-            type: lastSet ? lastSet.type : 'working', // Copy last type or default to working
+            type: lastSet ? lastSet.type : 'working',
             weight_target: lastSet?.weight_target || '',
             reps_target: lastSet?.reps_target || '',
             rest_seconds: lastSet?.rest_seconds || '60',
@@ -157,7 +191,15 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({ item, index, totalItems, on
             hiit_work_speed: lastSet?.hiit_work_speed || '',
             hiit_rest_speed: lastSet?.hiit_rest_speed || '',
             hiit_cycles: lastSet?.hiit_cycles || '',
-            is_hiit: lastSet ? !!lastSet.is_hiit : false
+            is_hiit: lastSet ? !!lastSet.is_hiit : false,
+            set_method: lastSet?.set_method || 'standard',
+            micro_rest_seconds: lastSet?.micro_rest_seconds || '',
+            execution_mode: lastSet?.execution_mode || 'standard',
+            tempo: lastSet?.tempo || '',
+            timer_mode: lastSet?.timer_mode || 'standard',
+            drop_count: lastSet?.drop_count || '',
+            sub_sets: lastSet?.sub_sets || '',
+            activation_reps: lastSet?.activation_reps || ''
         };
         const newSets = [...sets, newSet];
         setSets(newSets);
@@ -190,8 +232,10 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({ item, index, totalItems, on
         switch (type) {
             case 'warmup': return <span className="material-symbols-rounded text-amber-500 text-lg">local_fire_department</span>;
             case 'failure': return <span className="material-symbols-rounded text-red-600 text-lg">bolt</span>;
-            case 'dropset': return <span className="material-symbols-rounded text-purple-500 text-lg">layers</span>;
+            case 'dropset':
+            case 'drop': return <span className="material-symbols-rounded text-purple-500 text-lg">layers</span>;
             case 'preparation': return <span className="material-symbols-rounded text-cyan-500 text-lg">publish</span>;
+            case 'backoff': return <span className="material-symbols-rounded text-emerald-500 text-lg">trending_down</span>;
             default: return <span className="text-blue-600 font-bold text-sm">{index + 1}</span>; // Shows Set Number
         }
     };
@@ -618,9 +662,9 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({ item, index, totalItems, on
 
                             // Renderização comum por tipo de exercício
                             return (
-                                <div
-                                    key={set.id}
-                                    className={`
+                                <React.Fragment key={set.id}>
+                                    <div
+                                        className={`
                                         grid gap-0.5 sm:gap-2 items-center
                                         ${item.exercise?.exercise_type === 'time'
                                             ? 'grid-cols-[24px_minmax(0,1fr)_minmax(0,1.5fr)_minmax(0,1fr)_minmax(0,1fr)_20px] sm:grid-cols-[2.5rem_1.2fr_1.8fr_1fr_1.2fr_auto]'
@@ -631,27 +675,23 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({ item, index, totalItems, on
                                     `}
                                 >
                                     {/* Type Selector */}
-                                    <button
-                                        type="button"
-                                        onClick={() => setTypeModal({ isOpen: true, setIndex: i })}
-                                        aria-label={`Alterar tipo da série ${workingSetIndex}`}
-                                        className={`w-full min-h-[44px] h-11 rounded-xl border flex items-center justify-center transition-all duration-300 ${set.type === 'warmup'
-                                            ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800/50 text-amber-600'
-                                            : set.type === 'failure'
-                                                ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800/50 text-red-600'
-                                                : set.type === 'dropset'
-                                                    ? 'bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-800/50 text-purple-600'
-                                                    : set.type === 'preparation'
-                                                        ? 'bg-cyan-50 dark:bg-cyan-900/20 border-cyan-200 dark:border-cyan-800/50 text-cyan-600'
-                                                        : 'bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-sky-600'
-                                            } hover:scale-105 active:scale-95 shadow-sm p-0 focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none cursor-pointer`}
-                                    >
-                                        {set.type === 'working' ? (
-                                            <span className="font-black text-xs uppercase tracking-tighter">{workingSetIndex}</span>
-                                        ) : (
-                                            getSetTypeIcon(set.type, false)
-                                        )}
-                                    </button>
+                                    {(() => {
+                                        const typeToken = getSetTypeToken(set.type);
+                                        return (
+                                            <button
+                                                type="button"
+                                                onClick={() => setTypeModal({ isOpen: true, setIndex: i })}
+                                                aria-label={`Alterar tipo da série ${workingSetIndex}`}
+                                                className={`w-full min-h-[44px] h-11 rounded-xl border flex items-center justify-center transition-all duration-300 ${typeToken.bgLight} ${typeToken.border} ${typeToken.textColor} hover:scale-105 active:scale-95 shadow-sm p-0 focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none cursor-pointer`}
+                                            >
+                                                {set.type === 'working' ? (
+                                                    <span className="font-black text-xs uppercase tracking-tighter">{workingSetIndex}</span>
+                                                ) : (
+                                                    <span className="material-symbols-rounded text-lg">{typeToken.icon}</span>
+                                                )}
+                                            </button>
+                                        );
+                                    })()}
 
                                     {/* Inputs baseados no Tipo */}
                                     {item.exercise?.exercise_type === 'cardio' ? (
@@ -797,8 +837,128 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({ item, index, totalItems, on
                                         <span className="material-symbols-rounded text-base sm:text-lg" aria-hidden="true">close</span>
                                     </button>
                                 </div>
-                            );
-                        })}
+
+                                {/* Sub-barra de Metadados: Métodos de Série & Execução Biomecânica */}
+                                {item.exercise?.exercise_type !== 'cardio' && (
+                                    <div className="flex items-center gap-2 pl-7 sm:pl-10 -mt-0.5 pb-1 flex-wrap">
+                                        {/* Badge / Botão do Método */}
+                                        {set.set_method && set.set_method !== 'standard' ? (
+                                            <div className="inline-flex items-center gap-0.5">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setMethodModal({ isOpen: true, setIndex: i })}
+                                                    className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-black uppercase border hover:scale-105 active:scale-95 transition-all cursor-pointer ${getMethodToken(set.set_method).badge}`}
+                                                    title="Editar método de intensificação"
+                                                >
+                                                    <span className="material-symbols-rounded text-[11px]" aria-hidden="true">
+                                                        {getMethodToken(set.set_method).icon}
+                                                    </span>
+                                                    <span>
+                                                        {set.set_method === 'dropset'
+                                                            ? `DROPSET (${set.drop_count || 2}x)`
+                                                            : set.set_method === 'rest_pause'
+                                                                ? `REST-PAUSE (${set.micro_rest_seconds || 15}s)`
+                                                                : set.set_method === 'cluster'
+                                                                    ? `CLUSTER (${set.micro_rest_seconds || 20}s)`
+                                                                    : set.set_method === 'myo_reps'
+                                                                        ? `MYO-REPS (${set.activation_reps || 15}r)`
+                                                                        : set.set_method === 'muscle_round'
+                                                                            ? 'MUSCLE ROUND (6x4)'
+                                                                            : set.set_method === 'method_3_7'
+                                                                                ? 'MÉTODO 3/7'
+                                                                                : set.set_method === 'fst7'
+                                                                                    ? 'FST-7'
+                                                                                    : set.set_method === 'bfr'
+                                                                                        ? 'BFR (OCLUSÃO)'
+                                                                                        : String(set.set_method).toUpperCase()}
+                                                    </span>
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setGuideModalItem(set.set_method || null);
+                                                    }}
+                                                    className="inline-flex items-center justify-center min-w-[28px] min-h-[28px] p-1 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-black/5 dark:hover:bg-white/10 transition-colors cursor-pointer"
+                                                    title={`Guia do método ${set.set_method}`}
+                                                    aria-label="Ver guia pedagógico deste método"
+                                                >
+                                                    <span className="material-symbols-rounded text-sm">help</span>
+                                                </button>
+                                            </div>
+                                        ) : (
+                                            <button
+                                                type="button"
+                                                onClick={() => setMethodModal({ isOpen: true, setIndex: i })}
+                                                className="text-[10px] text-slate-400 hover:text-amber-600 dark:hover:text-amber-400 font-bold flex items-center gap-0.5 transition-colors cursor-pointer"
+                                            >
+                                                <span className="material-symbols-rounded text-[11px]" aria-hidden="true">add</span>
+                                                Método
+                                            </button>
+                                        )}
+
+                                        {/* Badge / Botão do Modo de Execução */}
+                                        {set.execution_mode && set.execution_mode !== 'standard' ? (
+                                            <div className="inline-flex items-center gap-0.5">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setExecutionModal({ isOpen: true, setIndex: i })}
+                                                    className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-black uppercase border hover:scale-105 active:scale-95 transition-all cursor-pointer ${getExecutionModeToken(set.execution_mode).badge}`}
+                                                    title="Editar modo de execução"
+                                                >
+                                                    <span className="material-symbols-rounded text-[11px]" aria-hidden="true">
+                                                        {getExecutionModeToken(set.execution_mode).icon}
+                                                    </span>
+                                                    <span>
+                                                        {set.execution_mode === 'tempo'
+                                                            ? `TEMPO ${set.tempo || '4-0-1-0'}`
+                                                            : set.execution_mode === 'pause_reps'
+                                                                ? 'PAUSA (2-3s)'
+                                                                : set.execution_mode === 'deadstop'
+                                                                    ? 'DEADSTOP'
+                                                                    : set.execution_mode === 'ponto_zero'
+                                                                        ? 'PONTO ZERO'
+                                                                        : set.execution_mode === 'lengthened_partial'
+                                                                            ? 'PARCIAL ALONGADA'
+                                                                            : set.execution_mode === 'twenty_ones'
+                                                                                ? '21s'
+                                                                                : set.execution_mode === 'one_and_half'
+                                                                                    ? '1.5 REPS'
+                                                                                    : set.execution_mode === 'negative'
+                                                                                        ? 'NEGATIVA'
+                                                                                        : set.execution_mode === 'forced_reps'
+                                                                                            ? 'FORÇADAS'
+                                                                                            : String(set.execution_mode).replace('_', ' ').toUpperCase()}
+                                                    </span>
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setGuideModalItem(set.execution_mode || null);
+                                                    }}
+                                                    className="inline-flex items-center justify-center min-w-[28px] min-h-[28px] p-1 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-black/5 dark:hover:bg-white/10 transition-colors cursor-pointer"
+                                                    title={`Guia do modo ${set.execution_mode}`}
+                                                    aria-label="Ver guia pedagógico deste método"
+                                                >
+                                                    <span className="material-symbols-rounded text-sm">help</span>
+                                                </button>
+                                            </div>
+                                        ) : (
+                                            <button
+                                                type="button"
+                                                onClick={() => setExecutionModal({ isOpen: true, setIndex: i })}
+                                                className="text-[10px] text-slate-400 hover:text-sky-600 dark:hover:text-sky-400 font-bold flex items-center gap-0.5 transition-colors cursor-pointer"
+                                            >
+                                                <span className="material-symbols-rounded text-[11px]" aria-hidden="true">add</span>
+                                                Execução
+                                            </button>
+                                        )}
+                                    </div>
+                                )}
+                            </React.Fragment>
+                        );
+                    })}
 
                         <button
                             type="button"
@@ -841,6 +1001,59 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({ item, index, totalItems, on
                     }
                 }}
             />
+
+            <MethodSelectionModal
+                isOpen={methodModal.isOpen}
+                onClose={() => setMethodModal({ isOpen: false, setIndex: null })}
+                currentMethod={methodModal.setIndex !== null ? sets[methodModal.setIndex].set_method : 'standard'}
+                currentDropCount={methodModal.setIndex !== null ? parseInt(sets[methodModal.setIndex].drop_count || '2') : 2}
+                currentSubSets={methodModal.setIndex !== null ? parseInt(sets[methodModal.setIndex].sub_sets || '3') : 3}
+                currentMicroRest={methodModal.setIndex !== null ? parseInt(sets[methodModal.setIndex].micro_rest_seconds || '15') : 15}
+                currentActivationReps={methodModal.setIndex !== null ? parseInt(sets[methodModal.setIndex].activation_reps || '15') : 15}
+                onSave={(cfg: MethodConfig) => {
+                    if (methodModal.setIndex !== null) {
+                        const newSets = [...sets];
+                        newSets[methodModal.setIndex] = {
+                            ...newSets[methodModal.setIndex],
+                            set_method: cfg.set_method,
+                            drop_count: cfg.drop_count !== null && cfg.drop_count !== undefined ? cfg.drop_count.toString() : '',
+                            sub_sets: cfg.sub_sets !== null && cfg.sub_sets !== undefined ? cfg.sub_sets.toString() : '',
+                            micro_rest_seconds: cfg.micro_rest_seconds !== null && cfg.micro_rest_seconds !== undefined ? cfg.micro_rest_seconds.toString() : '',
+                            activation_reps: cfg.activation_reps !== null && cfg.activation_reps !== undefined ? cfg.activation_reps.toString() : ''
+                        };
+                        setSets(newSets);
+                        updateParent(newSets, notes);
+                    }
+                }}
+            />
+
+            <ExecutionModeModal
+                isOpen={executionModal.isOpen}
+                onClose={() => setExecutionModal({ isOpen: false, setIndex: null })}
+                currentExecutionMode={executionModal.setIndex !== null ? sets[executionModal.setIndex].execution_mode : 'standard'}
+                currentTempo={executionModal.setIndex !== null ? sets[executionModal.setIndex].tempo : ''}
+                onSave={(cfg: ExecutionConfig) => {
+                    if (executionModal.setIndex !== null) {
+                        const newSets = [...sets];
+                        newSets[executionModal.setIndex] = {
+                            ...newSets[executionModal.setIndex],
+                            execution_mode: cfg.execution_mode,
+                            tempo: cfg.tempo || ''
+                        };
+                        setSets(newSets);
+                        updateParent(newSets, notes);
+                    }
+                }}
+            />
+
+            {guideModalItem && (
+                <MethodGuideModal
+                    isOpen={!!guideModalItem}
+                    onClose={() => setGuideModalItem(null)}
+                    initialItemId={guideModalItem}
+                />
+            )}
+
             <RPEGuideModal isOpen={rpeModalOpen} onClose={() => setRpeModalOpen(false)} />
 
             <VideoPlayerModal

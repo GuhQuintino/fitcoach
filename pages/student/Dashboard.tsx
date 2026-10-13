@@ -195,7 +195,6 @@ const StudentDashboard: React.FC = () => {
         }
     };
 
-    // ... (rest of helper functions) ...
     const calculateDaysRemaining = () => {
         if (!expiresAt) return null;
         const expires = new Date(expiresAt);
@@ -206,8 +205,6 @@ const StudentDashboard: React.FC = () => {
 
     const daysRemaining = calculateDaysRemaining();
     const isExpired = daysRemaining !== null && daysRemaining < 0; // Blocks after 24h grace period
-
-    // ... (loading, pending, expired screens remain same) ...
 
     if (loading) return (
         <MainLayout>
