@@ -4,6 +4,55 @@
 
 ---
 
+## [2026-10-15] — Otimização de Chunks do Recharts no Rollup / Vite & Atualização Caniuse-Lite (Fase 11 — PASS)
+
+- **Identificador da Fatia:** `rollup_and_caniuse` / `infra-rollup-chunks-caniuse-update`
+- **Perfil Gauntlet:** `frontend-framework` (Vite 6.4.1 + React 19 + TypeScript 5.8.2 + Vitest 5.0.3 + Recharts 2.15.1)
+- **Subagente Executor:** `gauntlet-builder`
+- **Sumário da Fatia:** [`docs/gauntlet/SLICE_SUMMARY.md`](file:///c:/Users/Gustavo/Desktop/Fitcoach/docs/gauntlet/SLICE_SUMMARY.md)
+- **Veredito do Gauntlet Critic:** **PASS (3.00 / 3.00 na Rubrica 6D)** — [`QA_REPORT_rollup_and_caniuse.md`](file:///c:/Users/Gustavo/Desktop/Fitcoach/docs/gauntlet/QA_REPORT_rollup_and_caniuse.md)
+
+### Resumo do Valor Entregue (End-to-End)
+1. **Infraestrutura de Build & Empacotamento Rollup / Vite:**
+   - Adicionada entrada dedicada `'vendor-recharts': ['recharts']` em `build.rollupOptions.output.manualChunks` em [`vite.config.ts`](file:///c:/Users/Gustavo/Desktop/Fitcoach/vite.config.ts).
+   - Eliminação completa do aviso de dependência circular emitido pelo Rollup entre submódulos do Recharts (`Bar.js` e `CartesianChart`).
+   - Geração determinística do chunk dedicado `dist/assets/vendor-recharts-C0ZUWiqA.js` (358.18 kB │ gzip: 107.40 kB), otimizando o particionamento de bundle e o cache HTTP de longa duração para clientes.
+2. **Atualização da Base Caniuse-Lite (Browserslist):**
+   - Execução bem-sucedida de `npx --yes update-browserslist-db@latest`, atualizando o pacote `caniuse-lite` da versão defasada `1.0.30001761` para a versão mais recente `1.0.30001816` em [`package-lock.json`](file:///c:/Users/Gustavo/Desktop/Fitcoach/package-lock.json).
+   - Alinhamento pleno com a base de compatibilidade de navegadores para compilações de produção CSS/JS, mantendo 0 vulnerabilidades no lockfile.
+3. **Saneamento e Governança do Backlog Técnico:**
+   - Resolução e encerramento formal dos itens 1 e 2 em [`docs/planning/BACKLOG_PROXIMAS_MELHORIAS.md`](file:///c:/Users/Gustavo/Desktop/Fitcoach/docs/planning/BACKLOG_PROXIMAS_MELHORIAS.md), com documentação detalhada de diagnóstico, ação implementada e evidências físicas validadas.
+4. **Testes Automatizados & Qualidade Estática:**
+   - Checagem estática TypeScript (`tsc --noEmit`): 0 erros de compilação ou de tipos estáticos.
+   - Suíte Vitest (`npm test`): 88/88 testes passando com 100% de sucesso em 9 arquivos de teste (tempo de execução: ~2.06s).
+   - Build de produção Vite (`npm run build`): concluído com sucesso em 11.78s gerando 778 módulos sem warnings de circularidade.
+   - Laudo Técnico do Gauntlet Critic ([`QA_REPORT_rollup_and_caniuse.md`](file:///c:/Users/Gustavo/Desktop/Fitcoach/docs/gauntlet/QA_REPORT_rollup_and_caniuse.md)): Aprovado com pontuação máxima **3.00 / 3.00 (PASS)**.
+   - Laudo Craft Auditor ([`CRAFT_AUDIT_rollup_and_caniuse.md`](file:///c:/Users/Gustavo/Desktop/Fitcoach/docs/gauntlet/CRAFT_AUDIT_rollup_and_caniuse.md)): **PASS** com 0 erros estáticos, build limpo e secrets preservados.
+
+### Métricas da Rubrica 6D
+| Dimensão | Nota | Status |
+|---|:---:|:---:|
+| **D1. Funcionalidade & Requisitos** | 3.0 / 3.0 | Aprovado |
+| **D2. Robustez & Estabilidade** | 3.0 / 3.0 | Aprovado |
+| **D3. Qualidade de Implementação & Anti-Slop** | 3.0 / 3.0 | Aprovado |
+| **D4. Consistência Arquitetural & Stack Nativa** | 3.0 / 3.0 | Aprovado |
+| **D5. Performance & Eficiência** | 3.0 / 3.0 | Aprovado |
+| **D6. Testabilidade, Segurança & Conformidade** | 3.0 / 3.0 | Aprovado |
+| **Média Consolidada** | **3.00 / 3.00** | **PASS** |
+
+### Arquivos Criados e Modificados
+- `vite.config.ts`: configuração de manualChunks com isolamento dedicado de `'vendor-recharts'`.
+- `package-lock.json`: atualização de `caniuse-lite` para `1.0.30001816` via `update-browserslist-db`.
+- `docs/planning/BACKLOG_PROXIMAS_MELHORIAS.md`: marcação dos itens 1 e 2 como resolvidos e documentados.
+- `docs/gauntlet/SLICE_SUMMARY.md`: sumário de engenharia e entregáveis da fatia vertical.
+- `docs/gauntlet/CRAFT_AUDIT_rollup_and_caniuse.md`: auditoria estática de tipos, build e conformidade.
+- `docs/gauntlet/QA_REPORT_rollup_and_caniuse.md`: laudo formal de avaliação com veredito PASS (3.00 / 3.00).
+- `.planning/STATE.md`: atualização de governança, decisões travadas e métricas da Fase 11.
+- `ROADMAP.md` e `.planning/ROADMAP.md`: checklist da Fase 11 finalizada com sucesso.
+- `PROGRESS.md` e `.planning/PROGRESS.md`: registro cronológico do marco da Fase 11.
+
+---
+
 ## [2026-10-14] — Fix Finalização de Treinos, Blindagem de Séries Especiais & Recuperação de Dados (Fase 10 — PASS)
 
 - **Identificador da Fatia:** `workout_finalization_fix` / `fix-workout-completion-and-set-type-hardening`
