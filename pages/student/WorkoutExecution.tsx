@@ -5,6 +5,7 @@ import { supabase } from '../../lib/supabaseClient';
 import { useAuth } from '../../contexts/AuthContext';
 import toast from 'react-hot-toast';
 import VideoPlayerModal from '../../components/shared/VideoPlayerModal';
+import VideoThumbnail from '../../components/shared/VideoThumbnail';
 import DescriptionModal from '../../components/shared/DescriptionModal';
 import ExerciseHistoryModal from '../../components/shared/ExerciseHistoryModal';
 import RPEGuideModal from '../../components/coach/editor/RPEGuideModal';
@@ -19,7 +20,8 @@ import {
     getMethodToken,
     getExecutionModeToken,
     getTimerModeToken,
-    getMethodTheme
+    getMethodTheme,
+    sanitizeSetType
 } from '../../utils/specialSetTokens';
 
 const getYouTubeId = (url: string) => {
@@ -1294,7 +1296,7 @@ const WorkoutExecution: React.FC = () => {
                         setsToInsert.push({
                             workout_log_id: logData.id,
                             exercise_id: ex.id,
-                            set_type: set.type,
+                            set_type: sanitizeSetType(set.type),
                             set_order: i,
                             weight_kg: parseFloat(set.weight) || 0,
                             reps_completed: parseInt(set.reps) || 0,
@@ -1319,7 +1321,7 @@ const WorkoutExecution: React.FC = () => {
                                     setsToInsert.push({
                                         workout_log_id: logData.id,
                                         exercise_id: ex.id,
-                                        set_type: 'dropset',
+                                        set_type: 'drop',
                                         set_order: i,
                                         weight_kg: parseFloat(drop.weight) || 0,
                                         reps_completed: parseInt(drop.reps) || 0,
@@ -1346,7 +1348,7 @@ const WorkoutExecution: React.FC = () => {
                                     setsToInsert.push({
                                         workout_log_id: logData.id,
                                         exercise_id: ex.id,
-                                        set_type: set.type,
+                                        set_type: sanitizeSetType(set.type),
                                         set_order: i,
                                         weight_kg: parseFloat(set.weight) || 0,
                                         reps_completed: parseInt(sub.reps) || 0,
@@ -1449,7 +1451,7 @@ const WorkoutExecution: React.FC = () => {
                         if (set.completed) {
                             setsToQueue.push({
                                 exercise_id: ex.id,
-                                set_type: set.type,
+                                set_type: sanitizeSetType(set.type),
                                 set_order: i,
                                 weight_kg: parseFloat(set.weight) || 0,
                                 reps_completed: parseInt(set.reps) || 0,
@@ -1471,7 +1473,7 @@ const WorkoutExecution: React.FC = () => {
                                     if (drop.completed || set.completed) {
                                         setsToQueue.push({
                                             exercise_id: ex.id,
-                                            set_type: 'dropset',
+                                            set_type: 'drop',
                                             set_order: i,
                                             weight_kg: parseFloat(drop.weight) || 0,
                                             reps_completed: parseInt(drop.reps) || 0,
@@ -1496,7 +1498,7 @@ const WorkoutExecution: React.FC = () => {
                                     if (sub.completed || set.completed) {
                                         setsToQueue.push({
                                             exercise_id: ex.id,
-                                            set_type: set.type,
+                                            set_type: sanitizeSetType(set.type),
                                             set_order: i,
                                             weight_kg: parseFloat(set.weight) || 0,
                                             reps_completed: parseInt(sub.reps) || 0,
@@ -1851,9 +1853,12 @@ const WorkoutExecution: React.FC = () => {
                                         const ytId = getYouTubeId(exercise.video_url);
                                         const videoUrl = exercise.video_url;
                                         const isGif = videoUrl?.toLowerCase().endsWith('.gif');
-                                        const isMp4 = videoUrl?.toLowerCase().endsWith('.mp4');
 
-                                        if (isGif) return <img src={videoUrl} className="w-full h-full object-cover" alt={`GIF de ${exercise.name}`} />;
+                                        if (isGif) {
+                                            const cleanUrl = videoUrl.replace(/\\/g, '/');
+                                            const normalizedUrl = cleanUrl.startsWith('http') || cleanUrl.startsWith('/') ? cleanUrl : `/${cleanUrl}`;
+                                            return <img src={normalizedUrl} className="w-full h-full object-cover" alt={`GIF de ${exercise.name}`} />;
+                                        }
                                         if (ytId) return (
                                             <>
                                                 <img
@@ -1866,9 +1871,9 @@ const WorkoutExecution: React.FC = () => {
                                                 </div>
                                             </>
                                         );
-                                        if (isMp4) return (
-                                            <video src={videoUrl} className="w-full h-full object-cover" muted playsInline />
-                                        );
+                                        if (videoUrl) {
+                                            return <VideoThumbnail src={videoUrl} alt={exercise.name} className="w-full h-full" />;
+                                        }
                                         return (
                                             <div className="w-full h-full flex items-center justify-center text-sky-300 dark:text-sky-700">
                                                 <span className="material-symbols-rounded text-2xl" aria-hidden="true">image</span>

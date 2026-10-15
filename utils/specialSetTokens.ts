@@ -670,3 +670,17 @@ export const getTimerModeToken = (timer?: string | null): SpecialToken => {
     if (!timer || !TIMER_MODE_TOKENS[timer]) return TIMER_MODE_TOKENS.standard;
     return TIMER_MODE_TOKENS[timer];
 };
+
+/**
+ * Sanitiza e normaliza o tipo de série para garantir conformidade estrita com o enum do banco de dados:
+ * ('warmup', 'working', 'failure', 'drop', 'preparation', 'backoff', 'deload', 'dropset')
+ */
+export function sanitizeSetType(type?: string | null): string {
+    if (!type) return 'working';
+    const lower = type.toLowerCase().trim();
+    if (lower === 'dropset') return 'drop';
+    if (['warmup', 'working', 'failure', 'drop', 'preparation', 'backoff', 'deload'].includes(lower)) {
+        return lower;
+    }
+    return 'working';
+}

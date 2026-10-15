@@ -62,3 +62,6 @@ Brainstorm/
 Thumbs.db
 
 .vercel
+
+# Dossiês de acompanhamento individual de alunos (exclusivos do ambiente local do coach)
+docs/students/

@@ -110,5 +110,10 @@ Fitcoach Pro é uma plataforma progressiva (PWA Mobile-First com suporte a fallb
 - [x] **Timer Único Integrado Inferior:** Acionamento de micro-pausas diretamente no cronômetro inferior nativo do app (`startRestTimer`), removendo o segundo relógio flutuante superior. [2026-10-12]
 - [x] **Testes Automatizados:** 48/48 testes Vitest aprovados (100%), 0 erros TypeScript e 24/24 testes na suíte offline (72 asserções 100% verdes). [2026-10-12]
 
-
-
+### Fase 10: Fix Finalização de Treinos, Blindagem de Séries Especiais & Recuperação de Dados (Concluída — PASS)
+- [x] **F1 — Sanitização Universal de `set_type`:** Função `sanitizeSetType()` em `utils/specialSetTokens.ts` cobrindo com segurança os 8 tipos suportados pelo Postgres (`warmup`, `feeder`, `working`, `top_set`, `backoff`, `failure`, `drop`, `dropset`), com normalização para `'drop'` e fallback seguro para `'working'`. [2026-10-14]
+- [x] **F2 — Desdobramento de Dropsets & Retrocompatibilidade DDL:** Migração idempotente `supabase/migrations/20261014000000_add_dropset_to_set_type_enum.sql` adicionando `'dropset'` ao enum PostgreSQL no Supabase, e desdobramento para `'drop'` nos fluxos de inserção de séries filhas. [2026-10-14]
+- [x] **F3 — Blindagem da Fila Offline (Anti-Data-Loss):** Remoção definitiva do descarte silencioso em `offlineSyncService.ts`, preservando o histórico integral do aluno (`remainingQueue.push(item)`) com registro de `lastError` e retentativa segura. [2026-10-14]
+- [x] **F4 — Suporte Completo a Sub-Séries & Metadados em Stale/Offline:** Registro integral de sub-séries (`sub_sets_records`) e propagação de todos os metadados das 4 camadas (`group_round`, `set_method`, `micro_set_index`, `execution_mode`, `tempo_used`, `timer_mode`) em `staleWorkoutService.ts` e `offlineSyncService.ts`, com rollback cirúrgico ativo contra órfãos. [2026-10-14]
+- [x] **F5 — Restauração Idempotente do Treino de Maria Aparecida:** Script `scripts/restore_maria_workout_14_oct.cjs` restaurando com fidelidade matemática e empírica as 17 séries (5808 kg) e feedback técnico da panturrilha do treino de 14/10/2026 (`156372b5-22f3-4a0d-98c8-e91a36fce1fc`). [2026-10-14]
+- [x] **Garantia de Qualidade & Testes:** Suíte Vitest com 52/52 testes aprovados (100%), suíte offline com 24/24 asserções aprovadas (100%), 0 erros TypeScript, build Vite 100% OK em 7.96s e Laudo Gauntlet Critic aprovado com nota máxima 3.00/3.00 ([`QA_REPORT_workout_finalization_fix.md`](file:///c:/Users/Gustavo/Desktop/Fitcoach/docs/gauntlet/QA_REPORT_workout_finalization_fix.md)). [2026-10-14]

@@ -1,5 +1,6 @@
 import { supabase } from '../lib/supabaseClient';
 import { saveOfflineWorkout, OfflineWorkoutPayload } from './offlineSyncService';
+import { sanitizeSetType } from './specialSetTokens';
 
 // ─── Constantes configuráveis ───────────────────────────────────────
 export const AUTO_FINALIZE_THRESHOLD = 0.6;   // 60% das séries completadas
@@ -18,6 +19,20 @@ interface SavedSet {
     distance_completed?: string;
     speed_actual?: string;
     hiit_cycles_completed?: string;
+    set_method?: string | null;
+    execution_mode?: string | null;
+    tempo?: string | null;
+    timer_mode?: string | null;
+    drops?: Array<{
+        weight: string;
+        reps: string;
+        completed: boolean;
+    }>;
+    sub_sets_records?: Array<{
+        index: number;
+        reps: string;
+        completed: boolean;
+    }>;
 }
 
 interface SavedExercise {
@@ -150,7 +165,7 @@ export async function autoFinalizeWorkout(
                     setsToInsert.push({
                         workout_log_id: logData.id,
                         exercise_id: ex.id,
-                        set_type: set.type,
+                        set_type: sanitizeSetType(set.type),
                         set_order: i,
                         weight_kg: parseFloat(set.weight) || 0,
                         reps_completed: parseInt(set.reps) || 0,
@@ -173,14 +188,44 @@ export async function autoFinalizeWorkout(
                                 setsToInsert.push({
                                     workout_log_id: logData.id,
                                     exercise_id: ex.id,
-                                    set_type: 'dropset',
+                                    set_type: 'drop',
                                     set_order: i,
                                     weight_kg: parseFloat(d.weight) || 0,
                                     reps_completed: parseInt(d.reps) || 0,
                                     rpe_actual: null,
+                                    time_completed: null,
+                                    distance_completed: null,
+                                    speed_actual: null,
+                                    hiit_cycles_completed: null,
                                     group_round: ex.group_id ? (i + 1) : null,
                                     set_method: 'dropset',
                                     micro_set_index: dIdx + 1,
+                                    execution_mode: set.execution_mode || 'standard',
+                                    tempo_used: set.tempo || null,
+                                    timer_mode: set.timer_mode || 'standard'
+                                });
+                            }
+                        });
+                    }
+
+                    if (set.sub_sets_records && Array.isArray(set.sub_sets_records)) {
+                        set.sub_sets_records.forEach((sub: any) => {
+                            if (sub.completed || set.completed) {
+                                setsToInsert.push({
+                                    workout_log_id: logData.id,
+                                    exercise_id: ex.id,
+                                    set_type: sanitizeSetType(set.type),
+                                    set_order: i,
+                                    weight_kg: parseFloat(set.weight) || 0,
+                                    reps_completed: parseInt(sub.reps) || 0,
+                                    rpe_actual: null,
+                                    time_completed: null,
+                                    distance_completed: null,
+                                    speed_actual: null,
+                                    hiit_cycles_completed: null,
+                                    group_round: ex.group_id ? (i + 1) : null,
+                                    set_method: set.set_method || 'standard',
+                                    micro_set_index: sub.index,
                                     execution_mode: set.execution_mode || 'standard',
                                     tempo_used: set.tempo || null,
                                     timer_mode: set.timer_mode || 'standard'
@@ -265,7 +310,7 @@ export async function autoFinalizeWorkout(
                     if (set.completed) {
                         setsToQueue.push({
                             exercise_id: ex.id,
-                            set_type: set.type,
+                            set_type: sanitizeSetType(set.type),
                             set_order: i,
                             weight_kg: parseFloat(set.weight) || 0,
                             reps_completed: parseInt(set.reps) || 0,
@@ -273,8 +318,64 @@ export async function autoFinalizeWorkout(
                             time_completed: parseInt(set.time_completed || '') || null,
                             distance_completed: parseFloat(set.distance_completed || '') || null,
                             speed_actual: parseFloat(set.speed_actual || '') || null,
-                            hiit_cycles_completed: parseInt(set.hiit_cycles_completed || '') || null
+                            hiit_cycles_completed: parseInt(set.hiit_cycles_completed || '') || null,
+                            group_round: ex.group_id ? (i + 1) : null,
+                            set_method: set.set_method || 'standard',
+                            micro_set_index: null,
+                            execution_mode: set.execution_mode || 'standard',
+                            tempo_used: set.tempo || null,
+                            timer_mode: set.timer_mode || 'standard'
                         });
+
+                        if (set.drops && Array.isArray(set.drops)) {
+                            set.drops.forEach((d: any, dIdx: number) => {
+                                if (d.completed || set.completed) {
+                                    setsToQueue.push({
+                                        exercise_id: ex.id,
+                                        set_type: 'drop',
+                                        set_order: i,
+                                        weight_kg: parseFloat(d.weight) || 0,
+                                        reps_completed: parseInt(d.reps) || 0,
+                                        rpe_actual: null,
+                                        time_completed: null,
+                                        distance_completed: null,
+                                        speed_actual: null,
+                                        hiit_cycles_completed: null,
+                                        group_round: ex.group_id ? (i + 1) : null,
+                                        set_method: 'dropset',
+                                        micro_set_index: dIdx + 1,
+                                        execution_mode: set.execution_mode || 'standard',
+                                        tempo_used: set.tempo || null,
+                                        timer_mode: set.timer_mode || 'standard'
+                                    });
+                                }
+                            });
+                        }
+
+                        if (set.sub_sets_records && Array.isArray(set.sub_sets_records)) {
+                            set.sub_sets_records.forEach((sub: any) => {
+                                if (sub.completed || set.completed) {
+                                    setsToQueue.push({
+                                        exercise_id: ex.id,
+                                        set_type: sanitizeSetType(set.type),
+                                        set_order: i,
+                                        weight_kg: parseFloat(set.weight) || 0,
+                                        reps_completed: parseInt(sub.reps) || 0,
+                                        rpe_actual: null,
+                                        time_completed: null,
+                                        distance_completed: null,
+                                        speed_actual: null,
+                                        hiit_cycles_completed: null,
+                                        group_round: ex.group_id ? (i + 1) : null,
+                                        set_method: set.set_method || 'standard',
+                                        micro_set_index: sub.index,
+                                        execution_mode: set.execution_mode || 'standard',
+                                        tempo_used: set.tempo || null,
+                                        timer_mode: set.timer_mode || 'standard'
+                                    });
+                                }
+                            });
+                        }
                     }
                 });
             });

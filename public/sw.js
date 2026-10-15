@@ -1,4 +1,4 @@
-const CACHE_NAME = 'fitcoach-v9';
+const CACHE_NAME = 'fitcoach-v10';
 const ASSETS_TO_CACHE = [
     '/',
     '/index.html',
@@ -42,6 +42,17 @@ self.addEventListener('fetch', (event) => {
 
     // NEVER cache Supabase API calls
     if (isApiCall) {
+        return;
+    }
+
+    // NEVER intercept video or audio media requests or Range requests in the service worker.
+    // Browsers require native HTTP 206 Partial Content handling for video streaming and seeking (#t=0.1).
+    const isMedia = url.pathname.match(/\.(mp4|webm|ogg|mov|mp3|wav)($|\?)/i) ||
+                    event.request.headers.has('range') ||
+                    event.request.destination === 'video' ||
+                    event.request.destination === 'audio';
+
+    if (isMedia) {
         return;
     }
 

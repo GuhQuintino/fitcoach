@@ -1,28 +1,33 @@
-# Slice Summary - Restauração do Padrão Visual Nativo & Fluxo Sequencial de Sub-Séries
+# Slice Summary - Correção Definitiva de Finalização de Treino & Recuperação dos Dados
 
 - **Status:** COMPLETED
-- **Perfil / Stack:** `frontend-framework` (React 19 + TypeScript + Vite + Tailwind CSS)
+- **Perfil / Stack:** full-stack (React 19 + TypeScript + Vite + TailwindCSS + Supabase / PostgreSQL)
 - **Arquivos Criados/Modificados:**
-  - `pages/student/WorkoutExecution.tsx`:
-    - **Remoção de Borda Lateral Grossa:** Eliminadas todas as ocorrências de `border-l-4` e linhas divisórias pesadas na esquerda das séries e sub-séries, restabelecendo o layout limpo e arredondado original do app (Print 2 - Puxada Neutra).
-    - **Fundo da Linha da Série (`rowBg`):** Quando a série não está concluída, exibe exclusivamente a cor suave e clara do método (`rest_pause` com `bg-rose-50/60`, `dropset` com `bg-purple-50/60`, `cluster` com `bg-blue-50/60`, `myo_reps` com `bg-amber-50/60`, etc.) ou a cor nativa de aquecimento/preparação. Quando a série é marcada como concluída, o fundo vira obrigatoriamente o **verde claro padrão do app** (`bg-emerald-100/70 dark:bg-emerald-900/30`).
-    - **Badges Compactos na Coluna Ant./Alvo:** O badge de método (ex: `[REST-PAUSE 15s ?]`) foi integrado de forma compacta e discreta na segunda coluna ("Ant. / Alvo") junto dos badges de metas do treinador, eliminando completamente a sub-barra redundante e pesada que fragmentava a tela.
-    - **Grade Direta de Sub-Séries & Drops:** Removido o cabeçalho grossudo (`REST-PAUSE • Sub-Séries 2 de 2 concluídas`) e containers isolados. As sub-séries (`+1`, `+2`) e drops (`-1`, `-2`) agora utilizam rigorosamente a mesma grade de 6 colunas do app (`getGridColsClass`), alinhando cada campo com `#`, `Ant. / Alvo`, `KG`, `REPS`, `PSE` e `✓`.
-    - **Linha de Total Acumulado:** Renderizada de forma discreta e elegante ao final das sub-séries: `Total acumulado na série: X reps`.
-    - **Correção do Bug de Auto-Conclusão:** Em `toggleSetCompletion`, removida a marcação automática em lote de `sub_sets_records` e `drops`. Ao marcar a série principal, ela fica verde claro e as sub-séries permanecem pendentes no fluxo sequencial do aluno.
-    - **Fluxo Sequencial & Timer Único:** Ao dar check na série principal ou nas sub-séries intermediárias, a micro-pausa (15s) é acionada diretamente no **timer inferior padrão do app** (`startRestTimer`), eliminando a segunda cápsula flutuante superior (`microTimer`). Quando todas as sub-séries são finalizadas, dispara o descanso normal do exercício.
-    - **Aparência dos Botões de Check de Sub-Séries:** Enquanto pendente, exibe o botão limpo com borda sutil; quando concluído, exibe o verde esmeralda padrão (`bg-emerald-600 text-white`) e a linha correspondente fica com o fundo verde claro do app.
-  - `utils/specialSetTokens.ts`:
-    - Atualizados os tokens de `rowBg` para tons suaves e claros (`bg-rose-50/60`, `bg-purple-50/60`, `bg-blue-50/60`, `bg-amber-50/60`, `bg-emerald-50/60`, `bg-cyan-50/60`).
-    - Removida qualquer classe `border-l-4` de `rowBorderLeft`.
-  - `utils/specialSetTokens.test.ts`:
-    - Adicionado teste unitário validando a ausência de `border-l-4` e a conformidade dos tokens suaves de `rowBg`.
+  - `pages/student/WorkoutExecution.tsx`: Sanitização universal de `set_type` no bloco de fallback offline, normalizando para `sanitizeSetType(set.type)` e `'drop'` em dropsets filhos.
+  - `utils/offlineSyncService.ts`: Importação de `sanitizeSetType`, sanitização em `setsToInsert` e blindagem crítica contra perda de dados (itens da fila offline NUNCA são descartados silenciosamente).
+  - `utils/staleWorkoutService.ts`: Sanitização de `set_type` em inserção online e offline, conversão de dropsets para `'drop'`, suporte a sub-séries completadas (`sub_sets_records`) e propagação de todos os metadados de execução (`group_round`, `set_method`, `micro_set_index`, `execution_mode`, `tempo_used`, `timer_mode`).
+  - `supabase/migrations/20261014000000_add_dropset_to_set_type_enum.sql`: Migração idempotente adicionando `dropset` ao enum `set_type` no Postgres.
+  - `scripts/restore_maria_workout_14_oct.cjs`: Script autônomo e idempotente que recuperou os registros completos do treino de 14/10/2026 de Maria Aparecida (17 séries, 5808 kg e feedback da panturrilha).
 
 ### Entregas End-to-End da Fatia:
-1. **Fidelidade Visual Canônica Restaurada:** Resgate do padrão visual do Print 2 (Puxada Neutra): grade limpa, fundo suave, sem bordas laterais duras na esquerda, com retorno imediato ao verde claro ao concluir qualquer série ou sub-série.
-2. **Despoluição e Redução de Ruído Cognitivo:** Eliminados cabeçalhos redundantes de sub-séries, sub-barras pesadas e o segundo relógio flutuante superior.
-3. **Fluxo de Execução Sequencial Intuitivo:** Ciclo de treino passo a passo: Série Principal -> Micro-pausa de 15s no timer inferior -> Sub 1 -> Micro-pausa -> Sub 2 -> Descanso total.
+1. **Dados & Modelos:**
+   - Criação da migration `20261014000000_add_dropset_to_set_type_enum.sql`.
+   - Restauração dos dados no Supabase em `workout_logs`, `set_logs` e `exercise_feedback_logs` para a aluna `9003743a-ee11-4fd0-9b97-5cfe767e6e70`.
+2. **Serviços & Contratos:**
+   - Blindagem total do contrato de inserção no banco de dados entre frontend, localStorage e PostgreSQL.
+   - Preservação perpétua de histórico na fila offline do aluno com registro de `lastError` e retentativa segura.
+   - Suporte unificado a micro-séries e métodos especiais (`rest_pause`, `cluster`, `myo_reps`, `muscle_round`, `method_3_7`, `dropset`).
+3. **Interface & Componentes:**
+   - Telas de execução de treino e finalização modal operando com tipagem e sanitização consistente.
+4. **Testes & Validação:**
+   - `npx tsc --noEmit`: 0 erros de compilação ou tipos.
+   - `npm test -- --run`: 4 arquivos de teste passaram, 48 testes unitários bem-sucedidos.
+   - `npm run build`: Build de produção Vite concluído com sucesso em 10.11s.
+   - Verificação em banco: 17 séries com 5807.50 kg (5808 kg) e feedback conferidos.
 
-### Testes & Validação:
-- `npx tsc --noEmit`: 0 erros de compilação/tipagem.
-- `npm test -- --run`: 4 suítes, 48 testes executados com 100% de aprovação.
+### Desvios / Decisões Técnicas (Deviation Rules):
+- **Regra 1 (Ajuste Cirúrgico de Tipagem no Banco):** No schema PostgreSQL, as colunas `effort_rating` e `rpe_actual` são tipadas como `int4` (integer). Para compatibilidade absoluta com os limites estritos do Postgres sem quebrar constraints ou requerer casts arriscados, as frações decimais (ex: 8.5) foram arredondadas com `Math.round()` no script de inserção direta, espelhando fielmente o comportamento dos sliders inteiros do app.
+
+### Handover para Stage 3 / Stage 4:
+- O banco e o código estão 100% íntegros e compatíveis.
+- O auditor do Stage 4 pode validar a integridade através de `npx tsc --noEmit`, `npm test` e checagem direta do banco com `scripts/restore_maria_workout_14_oct.cjs`.

@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabaseClient';
+import { sanitizeSetType } from './specialSetTokens';
 
 export const MAX_OFFLINE_QUEUE_ITEMS = 10;
 export const MAX_SYNC_RETRIES = 3;
@@ -197,7 +198,7 @@ export async function flushOfflineQueue(): Promise<{ syncedCount: number; failed
                     const setsToInsert = setLogs.map(s => ({
                         workout_log_id: logId,
                         exercise_id: s.exercise_id,
-                        set_type: s.set_type,
+                        set_type: sanitizeSetType(s.set_type),
                         set_order: s.set_order,
                         weight_kg: s.weight_kg,
                         reps_completed: s.reps_completed,
@@ -264,11 +265,10 @@ export async function flushOfflineQueue(): Promise<{ syncedCount: number; failed
             item.retryCount = (item.retryCount || 0) + 1;
             item.lastError = err.message || 'Erro desconhecido';
 
-            // Limite de retentativas: descarta itens que falharem mais que MAX_SYNC_RETRIES para evitar loop eterno
-            if (item.retryCount < MAX_SYNC_RETRIES) {
-                remainingQueue.push(item);
-            } else {
-                console.warn(`[OfflineSync] Item ${item.id} atingiu o limite de ${MAX_SYNC_RETRIES} tentativas e foi descartado da fila.`);
+            // PROTEÇÃO CONTRA PERDA DE DADOS (CRÍTICO): NUNCA descartar treinos da fila do aluno!
+            remainingQueue.push(item);
+            if (item.retryCount >= MAX_SYNC_RETRIES) {
+                console.warn(`[OfflineSync] Item ${item.id} atingiu ${item.retryCount} tentativas mas foi preservado na fila para não perder histórico:`, item.lastError);
             }
         }
     }

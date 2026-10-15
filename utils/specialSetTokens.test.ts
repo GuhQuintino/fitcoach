@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { getMethodTheme, METHOD_THEMES } from './specialSetTokens';
+import { getMethodTheme, METHOD_THEMES, sanitizeSetType } from './specialSetTokens';
 
 describe('specialSetTokens - getMethodTheme', () => {
     it('deve retornar o tema ROSE para rest_pause', () => {
@@ -93,3 +93,33 @@ describe('specialSetTokens - getMethodTheme', () => {
         expect(METHOD_THEMES.method_3_7.rowBg).toBe('bg-cyan-50/60 dark:bg-cyan-950/20');
     });
 });
+
+describe('specialSetTokens - sanitizeSetType', () => {
+    it('deve retornar "working" para valores nulos, vazios ou indefinidos', () => {
+        expect(sanitizeSetType(undefined)).toBe('working');
+        expect(sanitizeSetType(null)).toBe('working');
+        expect(sanitizeSetType('')).toBe('working');
+        expect(sanitizeSetType('   ')).toBe('working');
+    });
+
+    it('deve normalizar "dropset" para "drop"', () => {
+        expect(sanitizeSetType('dropset')).toBe('drop');
+        expect(sanitizeSetType('DropSet')).toBe('drop');
+        expect(sanitizeSetType('DROPSET')).toBe('drop');
+    });
+
+    it('deve preservar tipos de série canônicos suportados pelo enum do Postgres', () => {
+        const validTypes = ['warmup', 'working', 'failure', 'drop', 'preparation', 'backoff', 'deload'];
+        validTypes.forEach(t => {
+            expect(sanitizeSetType(t)).toBe(t);
+            expect(sanitizeSetType(t.toUpperCase())).toBe(t);
+        });
+    });
+
+    it('deve retornar "working" para qualquer string desconhecida', () => {
+        expect(sanitizeSetType('invalido')).toBe('working');
+        expect(sanitizeSetType('super_set')).toBe('working');
+    });
+});
+
+

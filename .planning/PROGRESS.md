@@ -4,6 +4,60 @@
 
 ---
 
+## [2026-10-14] — Fix Finalização de Treinos, Blindagem de Séries Especiais & Recuperação de Dados (Fase 10 — PASS)
+
+- **Identificador da Fatia:** `workout_finalization_fix` / `fix-workout-completion-and-set-type-hardening`
+- **Perfil Gauntlet:** `full-stack` (React 19 + TypeScript 5.8.2 + Vite 6.4.1 + Tailwind CSS + Supabase / PostgreSQL 15 + Vitest 5.0.3)
+- **Subagente Executor:** `gauntlet-builder`
+- **Sumário da Fatia:** [`docs/gauntlet/SLICE_SUMMARY.md`](file:///c:/Users/Gustavo/Desktop/Fitcoach/docs/gauntlet/SLICE_SUMMARY.md)
+- **Veredito do Gauntlet Critic:** **PASS (3.00 / 3.00 na Rubrica 6D)** — [`QA_REPORT_workout_finalization_fix.md`](file:///c:/Users/Gustavo/Desktop/Fitcoach/docs/gauntlet/QA_REPORT_workout_finalization_fix.md)
+
+### Resumo do Valor Entregue (End-to-End)
+1. **Dados & Modelos (Supabase PostgreSQL):**
+   - Criação da migração DDL [`20261014000000_add_dropset_to_set_type_enum.sql`](file:///c:/Users/Gustavo/Desktop/Fitcoach/supabase/migrations/20261014000000_add_dropset_to_set_type_enum.sql) adicionando condicional e idempotentemente o valor `'dropset'` ao tipo enumerado `set_type` no schema `public` via consulta em `pg_enum`, conferindo retrocompatibilidade total com bancos legados e payloads desnormalizados.
+   - Restauração idempotente das 17 séries com volume acumulado de 5807.50 kg (~5808 kg) e feedback técnico da panturrilha do treino de Maria Aparecida de 14/10/2026 (`156372b5-22f3-4a0d-98c8-e91a36fce1fc`), auditados diretamente via query PostgreSQL.
+2. **Serviços & Contratos:**
+   - **Sanitização Universal de Tipos de Série:** Implementação da função canônica pura `sanitizeSetType()` em [`specialSetTokens.ts`](file:///c:/Users/Gustavo/Desktop/Fitcoach/utils/specialSetTokens.ts) com validação exaustiva dos 8 tipos suportados no Postgres (`warmup`, `feeder`, `working`, `top_set`, `backoff`, `failure`, `drop`, `dropset`), mapeando variantes e sub-séries de drops para `'drop'` e garantindo fallback seguro para `'working'`.
+   - **Blindagem da Fila Offline (Anti-Data-Loss):** Em [`offlineSyncService.ts`](file:///c:/Users/Gustavo/Desktop/Fitcoach/utils/offlineSyncService.ts), remoção do descarte silencioso destrutivo da fila. Treinos com erros temporários ou indisponibilidade de rede permanecem retidos permanentemente (`remainingQueue.push(item)`) com log de erro (`lastError`) e incremento de retentativas, preservando o histórico integral do atleta.
+   - **Suporte Completo a Sub-Séries & Metadados em Stale Workouts:** Em [`staleWorkoutService.ts`](file:///c:/Users/Gustavo/Desktop/Fitcoach/utils/staleWorkoutService.ts), inclusão e desdobramento das sub-séries concluídas (`sub_sets_records`) para todos os métodos de intensificação, com propagação dos metadados das 4 camadas (`group_round`, `set_method`, `micro_set_index`, `execution_mode`, `tempo_used`, `timer_mode`) e rollback cirúrgico ativo contra órfãos.
+3. **Interface & Componentes:**
+   - Em [`WorkoutExecution.tsx`](file:///c:/Users/Gustavo/Desktop/Fitcoach/pages/student/WorkoutExecution.tsx), aplicação de `sanitizeSetType` no fluxo principal de finalização do modal e no enfileiramento de fallback offline, garantindo que o payload de séries seja estritamente compatível com o Postgres antes de qualquer requisição PostgREST ou gravação no storage.
+4. **Testes Automatizados & Qualidade Estática:**
+   - Checagem estática TypeScript (`tsc --noEmit`): 0 erros de compilação ou tipos.
+   - Suíte Vitest (`npm test`): 52/52 testes passando em 4 arquivos (100% verde em 880ms), incluindo 14 testes em `specialSetTokens.test.ts` cobrindo a sanitização e normalização de `set_type`.
+   - Suíte de Integração Offline (`scripts/test_offline_suite.ts`): 24/24 asserções aprovadas (100% verde em 400ms).
+   - Build de produção Vite (`npm run build`): concluído com sucesso em 7.96s gerando bundle limpo e sem warnings críticos.
+   - Teste de Idempotência no Supabase (`scripts/restore_maria_workout_14_oct.cjs`): 100% aprovado sem duplicação de cabeçalhos, séries ou feedbacks.
+
+### Métricas da Rubrica 6D
+| Dimensão | Nota | Status |
+|---|:---:|:---:|
+| **D1. Funcionalidade & Requisitos** | 3.0 / 3.0 | Aprovado |
+| **D2. Robustez & Estabilidade** | 3.0 / 3.0 | Aprovado |
+| **D3. Qualidade de Implementação & Anti-Slop** | 3.0 / 3.0 | Aprovado |
+| **D4. Consistência Arquitetural & Stack Nativa** | 3.0 / 3.0 | Aprovado |
+| **D5. Performance & Eficiência** | 3.0 / 3.0 | Aprovado |
+| **D6. Testabilidade, Segurança & Conformidade** | 3.0 / 3.0 | Aprovado |
+| **Média Consolidada** | **3.00 / 3.00** | **PASS** |
+
+### Arquivos Criados e Modificados
+- `pages/student/WorkoutExecution.tsx`: sanitização universal de `set_type` no fluxo de finalização e fallback offline, com desdobramento para `'drop'`.
+- `utils/specialSetTokens.ts`: função `sanitizeSetType` cobrindo os 8 tipos do enum Postgres com fallback seguro para `'working'`.
+- `utils/specialSetTokens.test.ts`: ampliação da suíte para 14 testes unitários cobrindo todos os ramos de sanitização de tipos de série.
+- `utils/offlineSyncService.ts`: importação de `sanitizeSetType`, sanitização em `setsToInsert` e blindagem crítica contra perda de dados na fila offline.
+- `utils/staleWorkoutService.ts`: sanitização de `set_type`, desdobramento de drops, suporte a sub-séries concluídas e propagação de telemetria das 4 camadas.
+- `supabase/migrations/20261014000000_add_dropset_to_set_type_enum.sql`: migração condicional e idempotente adicionando `'dropset'` ao tipo enumerado `set_type`.
+- `scripts/restore_maria_workout_14_oct.cjs`: script autônomo e idempotente para recuperação das 17 séries e feedback do treino de Maria Aparecida de 14/10/2026.
+- `docs/gauntlet/QA_REPORT_workout_finalization_fix.md`: laudo formal de avaliação com veredito PASS (3.00 / 3.00).
+- `docs/gauntlet/CRAFT_AUDIT_workout_finalization_fix.md`: laudo estático de compilação, build, segurança e higiene.
+- `docs/gauntlet/TEST_REPORT_workout_finalization_fix.md`: relatório de testes automatizados com 76 asserções 100% verdes.
+- `docs/gauntlet/SLICE_SUMMARY.md`: sumário técnico de engenharia da fatia vertical.
+- `.planning/STATE.md`: atualização de governança, decisões travadas e métricas da Fase 10.
+- `.planning/ROADMAP.md` e `ROADMAP.md`: checklist da Fase 10 finalizada com sucesso.
+- `PROGRESS.md` e `.planning/PROGRESS.md`: registro cronológico do marco da Fase 10.
+
+---
+
 ## [2026-10-12] — Restauração do Padrão Visual Nativo & Fluxo Sequencial de Sub-Séries (Fase 9 — PASS)
 
 - **Identificador da Fatia:** `native-visual-restoration-sequential-subsets` / `special-sets-ux-refinement`
