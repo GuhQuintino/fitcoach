@@ -232,6 +232,9 @@ export function evaluateNotificationEligibility(params: EligibilityParams): Elig
         if (topic === 'training_reminder' && preferences.reminders === false) {
             return { canSend: false, reason: 'TOPIC_DISABLED' };
         }
+        if (topic === 'onboarding_profile' && preferences.profile_completion === false) {
+            return { canSend: false, reason: 'TOPIC_DISABLED' };
+        }
         if (topic === 'evolution_photos' && preferences.evolution_photos === false) {
             return { canSend: false, reason: 'TOPIC_DISABLED' };
         }
@@ -244,6 +247,13 @@ export function evaluateNotificationEligibility(params: EligibilityParams): Elig
     if (topic === 'onboarding_profile') {
         if (isProfileComplete) {
             return { canSend: false, reason: 'ONBOARDING_ALREADY_COMPLETED' };
+        }
+        // Se estiver adiado (snooze de 3 dias), não enviar
+        if (preferences?.profile_completion_snoozed_until) {
+            const snoozedUntil = new Date(preferences.profile_completion_snoozed_until).getTime();
+            if (snoozedUntil > currentTime.getTime()) {
+                return { canSend: false, reason: 'BACKOFF_PAUSED' };
+            }
         }
         // Máximo de 1 inicial e 1 reforço após 4 dias. Cessar após 2.
         if (previousOnboardingCount >= 2) {

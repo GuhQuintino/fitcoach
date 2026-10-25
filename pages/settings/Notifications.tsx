@@ -48,6 +48,8 @@ const NotificationsSettings: React.FC = () => {
             push: raw.push ?? true,
             email: raw.email ?? false,
             reminders: raw.reminders ?? true,
+            profile_completion: raw.profile_completion ?? true,
+            profile_completion_snoozed_until: raw.profile_completion_snoozed_until ?? null,
             evolution_photos: raw.evolution_photos ?? true,
             plan_expiration: raw.plan_expiration ?? true,
             system_updates: raw.system_updates ?? true,
@@ -266,6 +268,18 @@ const NotificationsSettings: React.FC = () => {
         }
     };
 
+    // Reativar lembrete de perfil cancelando o snooze de 3 dias
+    const handleResetProfileSnooze = async () => {
+        if (!user?.id) return;
+        localStorage.removeItem(`fc_profile_banner_snoozed_${user.id}`);
+        const updated = {
+            ...notifPrefs,
+            profile_completion_snoozed_until: null
+        };
+        await updatePreferences({ notifications: updated });
+        toast.success('Lembrete de perfil reativado na tela inicial.');
+    };
+
     // Marcar todas como lidas
     const handleMarkAllAsRead = async () => {
         if (!user?.id) return;
@@ -295,6 +309,11 @@ const NotificationsSettings: React.FC = () => {
             key: 'reminders' as const,
             label: 'Lembretes de Treino',
             desc: 'Lembretes inteligentes no seu horário habitual nos dias que você costuma treinar.'
+        },
+        {
+            key: 'profile_completion' as const,
+            label: 'Completar Perfil',
+            desc: 'Aviso discreto na tela inicial para preencher dados pendentes como foto, peso e idade.'
         },
         {
             key: 'evolution_photos' as const,
@@ -506,22 +525,45 @@ const NotificationsSettings: React.FC = () => {
                     <div className="space-y-3">
                         {activeTopics.map((topic) => {
                             const isChecked = Boolean(notifPrefs[topic.key]);
+                            const isSnoozed = topic.key === 'profile_completion'
+                                && notifPrefs.profile_completion_snoozed_until
+                                && new Date(notifPrefs.profile_completion_snoozed_until).getTime() > Date.now();
+
                             return (
                                 <div
                                     key={topic.key}
-                                    className="bg-white dark:bg-slate-800 p-5 rounded-3xl border border-slate-100 dark:border-slate-700 shadow-soft flex items-center justify-between gap-4 transition-colors"
+                                    className="bg-white dark:bg-slate-800 p-5 rounded-3xl border border-slate-100 dark:border-slate-700 shadow-soft flex flex-col gap-3 transition-colors"
                                 >
-                                    <div className="flex-1 pr-2">
-                                        <h4 className="font-bold text-slate-800 dark:text-slate-200 text-sm">{topic.label}</h4>
-                                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">{topic.desc}</p>
+                                    <div className="flex items-center justify-between gap-4">
+                                        <div className="flex-1 pr-2">
+                                            <h4 className="font-bold text-slate-800 dark:text-slate-200 text-sm">{topic.label}</h4>
+                                            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">{topic.desc}</p>
+                                        </div>
+                                        <ToggleSwitch
+                                            id={`topic-${topic.key}`}
+                                            checked={isChecked}
+                                            onChange={() => handleToggleTopic(topic.key)}
+                                            label={`Alternar notificação para ${topic.label}`}
+                                            size="sm"
+                                        />
                                     </div>
-                                    <ToggleSwitch
-                                        id={`topic-${topic.key}`}
-                                        checked={isChecked}
-                                        onChange={() => handleToggleTopic(topic.key)}
-                                        label={`Alternar notificação para ${topic.label}`}
-                                        size="sm"
-                                    />
+
+                                    {/* Indicador de Snooze de 3 dias com botão de reativação imediata */}
+                                    {isSnoozed && (
+                                        <div className="pt-2.5 border-t border-slate-100 dark:border-slate-700/60 flex items-center justify-between text-xs">
+                                            <span className="text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                                                <span className="material-symbols-rounded text-sm text-amber-500" aria-hidden="true">schedule</span>
+                                                Adiado por 3 dias (até {new Date(notifPrefs.profile_completion_snoozed_until!).toLocaleDateString('pt-BR')})
+                                            </span>
+                                            <button
+                                                type="button"
+                                                onClick={handleResetProfileSnooze}
+                                                className="text-primary hover:underline font-bold text-xs"
+                                            >
+                                                Reativar agora
+                                            </button>
+                                        </div>
+                                    )}
                                 </div>
                             );
                         })}

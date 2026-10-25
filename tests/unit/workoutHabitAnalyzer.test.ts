@@ -378,6 +378,43 @@ describe('workoutHabitAnalyzer - Motor de Inferência e Anti-Spam', () => {
             });
             expect(maxCap.canSend).toBe(false);
             expect(maxCap.reason).toBe('ONBOARDING_CAP_REACHED');
+
+            // Usuário desativou o tópico nas configurações: nunca envia
+            const disabledResult = evaluateNotificationEligibility({
+                userId: 'user-1',
+                topic: 'onboarding_profile',
+                currentTime: createDate(15, 0),
+                preferences: { ...basePreferences, profile_completion: false },
+                hasTrainedToday: false,
+                todayNotificationsCount: 0,
+                weeklyRemindersCount: 0,
+                consecutiveIgnoredCount: 0,
+                daysSinceLastIgnored: 0,
+                isProfileComplete: false,
+                previousOnboardingCount: 0
+            });
+            expect(disabledResult.canSend).toBe(false);
+            expect(disabledResult.reason).toBe('TOPIC_DISABLED');
+
+            // Usuário adiou (snooze de 3 dias no futuro): bloqueia
+            const snoozedResult = evaluateNotificationEligibility({
+                userId: 'user-1',
+                topic: 'onboarding_profile',
+                currentTime: createDate(15, 0),
+                preferences: {
+                    ...basePreferences,
+                    profile_completion_snoozed_until: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString()
+                },
+                hasTrainedToday: false,
+                todayNotificationsCount: 0,
+                weeklyRemindersCount: 0,
+                consecutiveIgnoredCount: 0,
+                daysSinceLastIgnored: 0,
+                isProfileComplete: false,
+                previousOnboardingCount: 0
+            });
+            expect(snoozedResult.canSend).toBe(false);
+            expect(snoozedResult.reason).toBe('BACKOFF_PAUSED');
         });
 
         it('não deve enviar lembrete de treino se hoje não for dia habitual do aluno', () => {

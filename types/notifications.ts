@@ -43,6 +43,8 @@ export interface NotificationPreferences {
     push: boolean;
     email: boolean;
     reminders: boolean;           // Lembretes de treino
+    profile_completion?: boolean; // Lembrete na dashboard para completar perfil
+    profile_completion_snoozed_until?: string | null; // ISO timestamp até quando está adiado (3 dias)
     evolution_photos: boolean;    // Fotos de evolução (aluno) / Feedbacks (coach)
     plan_expiration: boolean;     // Aviso de plano (aluno) / Alunos expirados (coach)
     system_updates?: boolean;     // Atualizações do sistema

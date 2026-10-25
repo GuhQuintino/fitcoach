@@ -380,7 +380,7 @@ const StudentDashboard: React.FC = () => {
                 )}
             </header>
 
-            <div className="px-6 -mt-4 space-y-6 relative z-20">
+            <div className="px-6 -mt-4 space-y-4 relative z-20">
                 <PWAInstallPrompt />
                 <OfflineSyncStatus />
                 <ProfileCompletionBanner completeness={profileCompleteness} />

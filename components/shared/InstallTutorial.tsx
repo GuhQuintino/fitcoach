@@ -1,8 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
 const InstallTutorial: React.FC = () => {
     const [isOpen, setIsOpen] = useState(false);
     const [platform, setPlatform] = useState<'android' | 'ios' | 'other'>('other');
+    const triggerRef = useRef<HTMLButtonElement>(null);
+    const closeButtonRef = useRef<HTMLButtonElement>(null);
+    const modalRef = useRef<HTMLDivElement>(null);
+    const wasOpenRef = useRef(false);
 
     useEffect(() => {
         const userAgent = window.navigator.userAgent.toLowerCase();
@@ -14,12 +18,52 @@ const InstallTutorial: React.FC = () => {
     }, []);
 
     useEffect(() => {
+        if (isOpen) {
+            wasOpenRef.current = true;
+            // Focus initial interactive element inside modal
+            const timer = setTimeout(() => {
+                closeButtonRef.current?.focus();
+            }, 50);
+            return () => clearTimeout(timer);
+        } else if (wasOpenRef.current) {
+            // Restore focus to trigger on modal close
+            triggerRef.current?.focus();
+        }
+    }, [isOpen]);
+
+    useEffect(() => {
         if (!isOpen) return;
+
         const handleKeyDown = (e: KeyboardEvent) => {
             if (e.key === 'Escape') {
                 setIsOpen(false);
+                return;
+            }
+
+            if (e.key === 'Tab') {
+                if (!modalRef.current) return;
+                const focusableElements = modalRef.current.querySelectorAll<HTMLElement>(
+                    'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+                );
+                if (focusableElements.length === 0) return;
+
+                const firstElement = focusableElements[0];
+                const lastElement = focusableElements[focusableElements.length - 1];
+
+                if (e.shiftKey) {
+                    if (document.activeElement === firstElement) {
+                        lastElement.focus();
+                        e.preventDefault();
+                    }
+                } else {
+                    if (document.activeElement === lastElement) {
+                        firstElement.focus();
+                        e.preventDefault();
+                    }
+                }
             }
         };
+
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [isOpen]);
@@ -60,10 +104,11 @@ const InstallTutorial: React.FC = () => {
     return (
         <>
             <button
+                ref={triggerRef}
                 type="button"
                 onClick={() => setIsOpen(true)}
                 aria-label="Abrir tutorial de instalação do aplicativo PWA"
-                className="w-full min-h-[44px] flex items-center justify-between p-4 hover:bg-slate-50 dark:hover:bg-slate-700/50 rounded-2xl transition-all group border border-slate-100 dark:border-slate-700/50"
+                className="w-full min-h-[44px] flex items-center justify-between p-4 hover:bg-slate-50 dark:hover:bg-slate-700/50 rounded-2xl transition-all motion-reduce:transition-none group border border-slate-100 dark:border-slate-700/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900"
             >
                 <div className="flex items-center gap-4">
                     <div className="p-2.5 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-xl flex items-center justify-center">
@@ -74,7 +119,7 @@ const InstallTutorial: React.FC = () => {
                         <span className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">Tutorial de Instalação</span>
                     </div>
                 </div>
-                <span className="material-symbols-rounded text-slate-400 group-hover:translate-x-1 transition-transform" aria-hidden="true">chevron_right</span>
+                <span className="material-symbols-rounded text-slate-400 group-hover:translate-x-1 motion-reduce:group-hover:translate-x-0 transition-transform" aria-hidden="true">chevron_right</span>
             </button>
 
             {isOpen && (
@@ -89,7 +134,10 @@ const InstallTutorial: React.FC = () => {
                         onClick={() => setIsOpen(false)}
                     ></div>
 
-                    <div className="relative w-full max-w-md bg-white dark:bg-slate-800 rounded-[2.5rem] shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-300">
+                    <div
+                        ref={modalRef}
+                        className="relative w-full max-w-md bg-white dark:bg-slate-800 rounded-[2.5rem] shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-300 motion-reduce:animate-none"
+                    >
                         <div className="p-8">
                             <div className="flex items-center justify-between mb-8">
                                 <div className="flex items-center gap-3">
@@ -102,10 +150,11 @@ const InstallTutorial: React.FC = () => {
                                     </div>
                                 </div>
                                 <button
+                                    ref={closeButtonRef}
                                     type="button"
                                     onClick={() => setIsOpen(false)}
                                     aria-label="Fechar tutorial de instalação"
-                                    className="min-w-[44px] min-h-[44px] p-2 bg-slate-100 dark:bg-slate-700 rounded-xl text-slate-500 dark:text-slate-400 flex items-center justify-center"
+                                    className="min-w-[44px] min-h-[44px] p-2 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-xl text-slate-500 dark:text-slate-400 flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary transition-colors"
                                 >
                                     <span className="material-symbols-rounded" aria-hidden="true">close</span>
                                 </button>
@@ -115,7 +164,7 @@ const InstallTutorial: React.FC = () => {
                                 {currentSteps.map((step, index) => (
                                     <div key={index} className="flex gap-4 group">
                                         <div className="flex flex-col items-center">
-                                            <div className="w-10 h-10 rounded-full bg-slate-50 dark:bg-slate-700 flex items-center justify-center text-primary font-black border border-slate-100 dark:border-slate-600 group-hover:scale-110 transition-transform">
+                                            <div className="w-10 h-10 rounded-full bg-slate-50 dark:bg-slate-700 flex items-center justify-center text-primary font-black border border-slate-100 dark:border-slate-600 group-hover:scale-110 motion-reduce:group-hover:scale-100 transition-transform">
                                                 {index + 1}
                                             </div>
                                             {index < currentSteps.length - 1 && (
@@ -145,7 +194,7 @@ const InstallTutorial: React.FC = () => {
                                 type="button"
                                 onClick={() => setIsOpen(false)}
                                 aria-label="Entendi e fechar tutorial"
-                                className="w-full min-h-[44px] mt-6 py-4 bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-black rounded-2xl shadow-xl active:scale-95 transition-all text-sm uppercase tracking-widest flex items-center justify-center"
+                                className="w-full min-h-[44px] mt-6 py-4 bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-black rounded-2xl shadow-xl active:scale-95 transition-all motion-reduce:transition-none text-sm uppercase tracking-widest flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900"
                             >
                                 Entendi
                             </button>
@@ -157,4 +206,4 @@ const InstallTutorial: React.FC = () => {
     );
 };
 
-export default InstallTutorial;
+export default React.memo(InstallTutorial);

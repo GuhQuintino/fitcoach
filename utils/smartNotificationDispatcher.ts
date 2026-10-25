@@ -215,6 +215,8 @@ export async function fetchStudentNotificationContext(
             push: rawPrefs.push ?? true,
             email: rawPrefs.email ?? false,
             reminders: rawPrefs.reminders ?? true,
+            profile_completion: rawPrefs.profile_completion ?? true,
+            profile_completion_snoozed_until: rawPrefs.profile_completion_snoozed_until ?? null,
             evolution_photos: rawPrefs.evolution_photos ?? true,
             plan_expiration: rawPrefs.plan_expiration ?? true,
             quiet_hours_start: rawPrefs.quiet_hours_start || '21:30',
