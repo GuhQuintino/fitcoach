@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import ThemeToggle from '../../components/ThemeToggle';
+import NotificationBell from '../../components/student/NotificationBell';
 
 import MainLayout from '../../components/Layout/MainLayout';
 import { useAuth } from '../../contexts/AuthContext';
@@ -157,7 +158,10 @@ const CoachDashboard: React.FC = () => {
                         </div>
                     </Link>
                     <div className="flex flex-col items-end gap-2">
-                        <ThemeToggle />
+                        <div className="flex items-center gap-2">
+                            <ThemeToggle />
+                            <NotificationBell userId={user?.id} role="coach" />
+                        </div>
                         {role === 'coach' && (
                             <div className="flex items-center gap-2 px-3 py-1 bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-700/50 rounded-full">
                                 <span className={`w-2 h-2 rounded-full ${expiresAt && new Date(expiresAt) > new Date() ? 'bg-emerald-500' : 'bg-red-500'}`}></span>

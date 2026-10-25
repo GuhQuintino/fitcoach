@@ -2,19 +2,21 @@ import React, { useEffect, useState } from 'react';
 import MainLayout from '../../components/Layout/MainLayout';
 
 import { useAuth } from '../../contexts/AuthContext';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { supabase } from '../../lib/supabaseClient';
 import toast from 'react-hot-toast';
 import EvolutionGallery from '../../components/student/EvolutionGallery';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import InstallTutorial from '../../components/shared/InstallTutorial';
 import ConfirmDialog from '../../components/shared/ConfirmDialog';
+import ToggleSwitch from '../../components/shared/ToggleSwitch';
 import { formatToWhatsappUrl } from '../../utils/phoneUtils';
 import { getOptimizedImageUrl } from '../../utils/imageUtils';
 
 const StudentProfile: React.FC = () => {
     const { user, signOut, preferences, updatePreferences } = useAuth();
     const navigate = useNavigate();
+    const location = useLocation();
 
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -32,7 +34,7 @@ const StudentProfile: React.FC = () => {
     const [goal, setGoal] = useState('');
     const [coachProfile, setCoachProfile] = useState<any>(null);
     const [weightHistory, setWeightHistory] = useState<any[]>([]);
-    const [isEditing, setIsEditing] = useState(false);
+    const [isEditing, setIsEditing] = useState(() => Boolean((location.state as any)?.autoEdit));
 
     useEffect(() => {
         if (user?.id) {
@@ -671,16 +673,11 @@ const StudentProfile: React.FC = () => {
                                     <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Destaca exercício atual</p>
                                 </div>
                             </div>
-                            <button
-                                type="button"
-                                role="switch"
-                                aria-checked={preferences.focusMode}
-                                aria-label="Alternar Modo Foco"
-                                onClick={() => updatePreferences({ focusMode: !preferences.focusMode })}
-                                className={`w-14 h-8 rounded-full transition-all relative flex items-center px-1 cursor-pointer focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none ${preferences.focusMode ? 'bg-primary' : 'bg-slate-200 dark:bg-slate-700'}`}
-                            >
-                                <div className={`w-6 h-6 bg-white rounded-full shadow-md transition-all ${preferences.focusMode ? 'translate-x-6' : 'translate-x-0'}`}></div>
-                            </button>
+                            <ToggleSwitch
+                                checked={Boolean(preferences.focusMode)}
+                                onChange={(checked) => updatePreferences({ focusMode: checked })}
+                                label="Alternar Modo Foco"
+                            />
                         </div>
                     </div>
                 </section>

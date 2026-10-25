@@ -339,7 +339,7 @@ const CoachProfile: React.FC = () => {
                     <InstallTutorial />
                     <Link to="/coach/settings/notifications" className="w-full flex items-center justify-between p-4 hover:bg-slate-50 dark:hover:bg-slate-700/50 rounded-2xl transition-all group">
                         <div className="flex items-center gap-4">
-                            <div className="p-2.5 bg-blue-500/10 text-blue-500 rounded-xl">
+                            <div className="p-2.5 bg-primary/10 text-primary rounded-xl">
                                 <span className="material-symbols-rounded" aria-hidden="true">notifications</span>
                             </div>
                             <span className="font-bold text-slate-700 dark:text-slate-200">Notificações</span>
@@ -348,7 +348,7 @@ const CoachProfile: React.FC = () => {
                     </Link>
                     <Link to="/coach/settings/privacy" className="w-full flex items-center justify-between p-4 hover:bg-slate-50 dark:hover:bg-slate-700/50 rounded-2xl transition-all group">
                         <div className="flex items-center gap-4">
-                            <div className="p-2.5 bg-amber-500/10 text-amber-500 rounded-xl">
+                            <div className="p-2.5 bg-warning/10 text-warning rounded-xl">
                                 <span className="material-symbols-rounded" aria-hidden="true">shield</span>
                             </div>
                             <span className="font-bold text-slate-700 dark:text-slate-200">Privacidade</span>

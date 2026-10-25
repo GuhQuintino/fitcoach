@@ -178,35 +178,36 @@ export async function fetchStudentNotificationContext(
         const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
         const past7Days = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
 
-        // 1. Perfil e Preferências
-        const { data: profile } = await supabase
-            .from('profiles')
-            .select('avatar_url, preferences')
-            .eq('id', userId)
-            .single();
+        // Coleta paralela sem waterfall para latência mínima
+        const [profileRes, studentDataRes, workoutLogsRes, recentNotificationsRes] = await Promise.all([
+            supabase
+                .from('profiles')
+                .select('avatar_url, preferences')
+                .eq('id', userId)
+                .single(),
+            supabase
+                .from('students_data')
+                .select('weight_kg, birth_date, age, height_cm')
+                .eq('id', userId)
+                .single(),
+            supabase
+                .from('workout_logs')
+                .select('id, started_at, completed_at')
+                .eq('student_id', userId)
+                .gte('started_at', past28Days)
+                .order('started_at', { ascending: false }),
+            supabase
+                .from('notification_logs')
+                .select('id, topic, created_at, read_at, clicked_at')
+                .eq('user_id', userId)
+                .gte('created_at', past7Days)
+                .order('created_at', { ascending: false })
+        ]);
 
-        // 2. Dados do Aluno (peso, data nascimento, idade, altura)
-        const { data: studentData } = await supabase
-            .from('students_data')
-            .select('weight_kg, birth_date, age, height_cm')
-            .eq('id', userId)
-            .single();
-
-        // 3. Workout logs dos últimos 28 dias
-        const { data: workoutLogs } = await supabase
-            .from('workout_logs')
-            .select('id, started_at, completed_at')
-            .eq('student_id', userId)
-            .gte('started_at', past28Days)
-            .order('started_at', { ascending: false });
-
-        // 4. Notification logs dos últimos 7 dias
-        const { data: recentNotifications } = await supabase
-            .from('notification_logs')
-            .select('id, topic, created_at, read_at, clicked_at')
-            .eq('user_id', userId)
-            .gte('created_at', past7Days)
-            .order('created_at', { ascending: false });
+        const profile = profileRes.data;
+        const studentData = studentDataRes.data;
+        const workoutLogs = workoutLogsRes.data;
+        const recentNotifications = recentNotificationsRes.data;
 
         // Normalização de preferências
         const rawPrefs = profile?.preferences?.notifications || {};
