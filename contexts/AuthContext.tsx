@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode, useMe
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabaseClient';
 import toast from 'react-hot-toast';
+import { removeActiveWorkout } from '../utils/activeWorkoutStorage';
 
 type Role = 'admin' | 'coach' | 'student' | null;
 
@@ -84,33 +85,52 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     };
 
     useEffect(() => {
+        let isMounted = true;
+
         // Obter sessão inicial
-        supabase.auth.getSession().then(({ data: { session } }) => {
-            setSession(session);
-            setUser(session?.user ?? null);
-            if (session?.user) {
-                // Tenta restaurar do cache imediatamente para render instantâneo mesmo offline
-                applyCachedProfile(session.user.id);
-                fetchUserProfile(session.user.id);
+        supabase.auth.getSession().then(({ data: { session: initialSession } }) => {
+            if (!isMounted) return;
+            setSession(initialSession);
+            const initialUser = initialSession?.user ?? null;
+            setUser(prev => (prev && initialUser && prev.id === initialUser.id ? prev : initialUser));
+
+            if (initialUser) {
+                const alreadyFetched = prevUserId.current === initialUser.id;
+                prevUserId.current = initialUser.id;
+                const hasCache = applyCachedProfile(initialUser.id);
+                if (hasCache) {
+                    // Libera a interface imediatamente com os dados em cache (Stale-While-Revalidate)
+                    setLoading(false);
+                }
+                if (!alreadyFetched) {
+                    fetchUserProfile(initialUser.id);
+                }
             } else {
                 setLoading(false);
             }
         });
 
-        // Escutar mudanças na autenticação
+        // Escutar mudanças na autenticação (inclusive TOKEN_REFRESHED ao desbloquear a tela)
         const {
             data: { subscription },
-        } = supabase.auth.onAuthStateChange((event, session) => {
-            setSession(session);
-            const currentUser = session?.user ?? null;
-            setUser(currentUser);
+        } = supabase.auth.onAuthStateChange((_event, newSession) => {
+            if (!isMounted) return;
+            setSession(newSession);
+            const currentUser = newSession?.user ?? null;
+
+            // CRÍTICO: Preserva a mesma referência de objeto `user` se o `id` não mudou.
+            // Isso impede que desbloquear o celular dispare useEffect([user]) em todas as páginas!
+            setUser(prev => (prev && currentUser && prev.id === currentUser.id ? prev : currentUser));
 
             if (currentUser) {
                 if (currentUser.id !== prevUserId.current) {
-                    // Restaura cache imediatamente ao trocar de usuário
-                    applyCachedProfile(currentUser.id);
-                    setLoading(true);
                     prevUserId.current = currentUser.id;
+                    const hasCache = applyCachedProfile(currentUser.id);
+                    if (hasCache) {
+                        setLoading(false);
+                    } else {
+                        setLoading(true);
+                    }
                     fetchUserProfile(currentUser.id);
                 }
             } else {
@@ -125,7 +145,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             }
         });
 
-        return () => subscription.unsubscribe();
+        return () => {
+            isMounted = false;
+            subscription.unsubscribe();
+        };
     }, []);
 
     const fetchUserProfile = async (userId: string) => {
@@ -266,11 +289,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         return () => {
             supabase.removeChannel(channel);
         };
-    }, [role, user]);
+    }, [role, user?.id]);
 
     const signOut = async () => {
         if (user) {
             removeCachedAuthProfile(user.id);
+            removeActiveWorkout(user.id);
         }
         await supabase.auth.signOut();
         setRole(null);

@@ -6,6 +6,7 @@ import {
     autoFinalizeWorkout,
     getCompletionStats
 } from './staleWorkoutService';
+import { getActiveWorkout } from './activeWorkoutStorage';
 
 interface StaleWorkoutState {
     /** True enquanto o hook está verificando/auto-finalizando */
@@ -28,15 +29,8 @@ export function useStaleWorkoutDetector(userId: string | undefined): StaleWorkou
     useEffect(() => {
         if (!userId || ranRef.current) return;
 
-        const saved = localStorage.getItem('active_workout');
-        if (!saved) return;
-
-        let parsed: SavedWorkout;
-        try {
-            parsed = JSON.parse(saved);
-        } catch {
-            return;
-        }
+        const parsed = getActiveWorkout(userId) as SavedWorkout | null;
+        if (!parsed) return;
 
         if (!isWorkoutStale(parsed)) return;
 

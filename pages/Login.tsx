@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { useNavigate, Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
+import { sanitizeEmail, sanitizePassword } from '../utils/authSanitizer';
 
 const Login: React.FC = () => {
     const [loading, setLoading] = useState(false);
@@ -16,10 +17,13 @@ const Login: React.FC = () => {
         setLoading(true);
         setError(null);
 
+        const cleanEmail = sanitizeEmail(email);
+        const cleanPassword = sanitizePassword(password);
+
         try {
             const { error } = await supabase.auth.signInWithPassword({
-                email,
-                password,
+                email: cleanEmail,
+                password: cleanPassword,
             });
 
             if (error) throw error;
@@ -114,6 +118,10 @@ const Login: React.FC = () => {
                                 id="login-email"
                                 type="email"
                                 required
+                                autoCapitalize="none"
+                                autoCorrect="off"
+                                spellCheck={false}
+                                autoComplete="email"
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
                                 className="w-full bg-slate-100/50 dark:bg-slate-900/50 border border-transparent dark:border-slate-700/50 rounded-2xl pl-12 pr-4 py-3.5 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary/20 focus:border-primary focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-medium min-h-[44px]"
@@ -129,6 +137,10 @@ const Login: React.FC = () => {
                                 id="login-password"
                                 type={showPassword ? "text" : "password"}
                                 required
+                                autoCapitalize="none"
+                                autoCorrect="off"
+                                spellCheck={false}
+                                autoComplete="current-password"
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
                                 className="w-full bg-slate-100/50 dark:bg-slate-900/50 border border-transparent dark:border-slate-700/50 rounded-2xl pl-12 pr-12 py-3.5 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary/20 focus:border-primary focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-medium min-h-[44px]"

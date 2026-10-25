@@ -24,10 +24,10 @@ const History: React.FC = () => {
     const [expandedLog, setExpandedLog] = useState<string | null>(null);
 
     useEffect(() => {
-        if (user) {
+        if (user?.id) {
             fetchLogs();
         }
-    }, [user]);
+    }, [user?.id]);
 
     const fetchLogs = async () => {
         try {

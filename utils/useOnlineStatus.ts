@@ -12,6 +12,8 @@ export interface OnlineStatusState {
 // Estado global compartilhado
 let globalIsOnline = typeof navigator !== 'undefined' ? navigator.onLine : true;
 const listeners = new Set<(online: boolean) => void>();
+let inFlightProbe: Promise<boolean> | null = null;
+let visibilityDebounceTimer: ReturnType<typeof setTimeout> | null = null;
 
 function setGlobalOnline(online: boolean) {
     if (globalIsOnline !== online) {
@@ -20,9 +22,13 @@ function setGlobalOnline(online: boolean) {
     }
 }
 
-/** Notifica imediatamente que uma chamada de rede falhou */
+/** Notifica que uma chamada de rede falhou (só marca offline imediato se navigator.onLine for false, senão confirma via probe) */
 export function notifyNetworkError(): void {
-    setGlobalOnline(false);
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+        setGlobalOnline(false);
+        return;
+    }
+    probeInternetConnection();
 }
 
 /** Notifica imediatamente que uma chamada de rede teve sucesso */
@@ -30,24 +36,14 @@ export function notifyNetworkSuccess(): void {
     setGlobalOnline(true);
 }
 
-/**
- * Realiza uma checagem real de conectividade probe no Supabase ou endpoint sem cache.
- * Evita os falsos-positivos comuns de `navigator.onLine` em dispositivos móveis.
- */
-export async function probeInternetConnection(): Promise<boolean> {
-    if (typeof navigator !== 'undefined' && !navigator.onLine) {
-        setGlobalOnline(false);
-        return false;
-    }
+async function executeSingleProbe(timeoutMs: number = 3500): Promise<boolean> {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
     try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 3000);
-
         const supabaseUrl = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_SUPABASE_URL) || '';
         const supabaseAnonKey = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_SUPABASE_ANON_KEY) || '';
 
-        // Pinging Supabase REST endpoint directly (never cached by SW)
         if (supabaseUrl && !supabaseUrl.includes('mock')) {
             const res = await fetch(`${supabaseUrl}/rest/v1/`, {
                 method: 'HEAD',
@@ -56,9 +52,7 @@ export async function probeInternetConnection(): Promise<boolean> {
                 cache: 'no-store'
             });
             clearTimeout(timeoutId);
-            const isConnected = res.ok || res.status < 500;
-            setGlobalOnline(isConnected);
-            return isConnected;
+            return res.ok || res.status < 500;
         } else {
             const res = await fetch(`/manifest.json?_t=${Date.now()}`, {
                 method: 'HEAD',
@@ -66,13 +60,53 @@ export async function probeInternetConnection(): Promise<boolean> {
                 cache: 'no-store'
             });
             clearTimeout(timeoutId);
-            setGlobalOnline(res.ok);
             return res.ok;
         }
     } catch {
+        clearTimeout(timeoutId);
+        return false;
+    }
+}
+
+/**
+ * Realiza uma checagem real de conectividade deduplicada (singleton in-flight)
+ * e com retentativa curta para evitar falso-negativo ao desbloquear a tela do celular.
+ */
+export async function probeInternetConnection(): Promise<boolean> {
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
         setGlobalOnline(false);
         return false;
     }
+
+    if (inFlightProbe) {
+        return inFlightProbe;
+    }
+
+    inFlightProbe = (async () => {
+        try {
+            const firstTry = await executeSingleProbe(3500);
+            if (firstTry) {
+                setGlobalOnline(true);
+                return true;
+            }
+
+            // Se falhou na primeira tentativa mas o sistema diz que há rede (ex: celular acabou de ser desbloqueado),
+            // aguarda 900ms para o rádio 4G/Wi-Fi reabrir o socket antes de exibir o banner offline.
+            if (typeof navigator === 'undefined' || navigator.onLine) {
+                await new Promise(r => setTimeout(r, 900));
+                const secondTry = await executeSingleProbe(3500);
+                setGlobalOnline(secondTry);
+                return secondTry;
+            }
+
+            setGlobalOnline(false);
+            return false;
+        } finally {
+            inFlightProbe = null;
+        }
+    })();
+
+    return inFlightProbe;
 }
 
 export function useOnlineStatus(onSyncCompleted?: (synced: number) => void): OnlineStatusState {
@@ -85,7 +119,6 @@ export function useOnlineStatus(onSyncCompleted?: (synced: number) => void): Onl
     }, []);
 
     const syncNow = useCallback(async () => {
-        // Primeiro valida se há conexão real antes de tentar o flush
         const hasNet = await probeInternetConnection();
         if (!hasNet) {
             return { syncedCount: 0, failedCount: 0 };
@@ -99,7 +132,6 @@ export function useOnlineStatus(onSyncCompleted?: (synced: number) => void): Onl
                 onSyncCompleted(res.syncedCount);
             }
             if (res.failedCount > 0) {
-                // Se algum item falhou por rede, marca offline
                 probeInternetConnection();
             }
             return { syncedCount: res.syncedCount, failedCount: res.failedCount };
@@ -132,8 +164,12 @@ export function useOnlineStatus(onSyncCompleted?: (synced: number) => void): Onl
 
         const handleVisibilityChange = () => {
             if (document.visibilityState === 'visible') {
-                probeInternetConnection();
                 refreshPending();
+                // Debounce de 1.2s ao voltar ao app para não testar o socket antes do Wi-Fi/4G acordar
+                if (visibilityDebounceTimer) clearTimeout(visibilityDebounceTimer);
+                visibilityDebounceTimer = setTimeout(() => {
+                    probeInternetConnection();
+                }, 1200);
             }
         };
 
@@ -142,17 +178,17 @@ export function useOnlineStatus(onSyncCompleted?: (synced: number) => void): Onl
         window.addEventListener('focus', handleVisibilityChange);
         document.addEventListener('visibilitychange', handleVisibilityChange);
 
-        // Checagem ativa no mount
         refreshPending();
-        probeInternetConnection();
 
-        // Heartbeat probe periódico (a cada 12 segundos)
         const intervalId = setInterval(() => {
-            probeInternetConnection();
-            refreshPending();
-        }, 12000);
+            if (typeof document === 'undefined' || document.visibilityState === 'visible') {
+                probeInternetConnection();
+                refreshPending();
+            }
+        }, 15000);
 
         return () => {
+            if (visibilityDebounceTimer) clearTimeout(visibilityDebounceTimer);
             listeners.delete(updateOnline);
             clearInterval(intervalId);
             window.removeEventListener('online', handleBrowserOnline);

@@ -17,6 +17,7 @@ export interface Database {
                     full_name: string | null
                     avatar_url: string | null
                     status: 'pending' | 'active' | 'rejected' | 'banned'
+                    preferences?: Json | null
                     created_at: string
                     updated_at: string
                 }
@@ -27,6 +28,7 @@ export interface Database {
                     full_name?: string | null
                     avatar_url?: string | null
                     status?: 'pending' | 'active' | 'rejected' | 'banned'
+                    preferences?: Json | null
                     created_at?: string
                     updated_at?: string
                 }
@@ -37,6 +39,7 @@ export interface Database {
                     full_name?: string | null
                     avatar_url?: string | null
                     status?: 'pending' | 'active' | 'rejected' | 'banned'
+                    preferences?: Json | null
                     created_at?: string
                     updated_at?: string
                 }
@@ -501,6 +504,73 @@ export interface Database {
                     execution_mode?: string | null
                     tempo_used?: string | null
                     timer_mode?: string | null
+                }
+            },
+            push_subscriptions: {
+                Row: {
+                    id: string
+                    user_id: string
+                    endpoint: string
+                    p256dh: string
+                    auth: string
+                    user_agent: string | null
+                    created_at: string
+                    updated_at: string
+                }
+                Insert: {
+                    id?: string
+                    user_id: string
+                    endpoint: string
+                    p256dh: string
+                    auth: string
+                    user_agent?: string | null
+                    created_at?: string
+                    updated_at?: string
+                }
+                Update: {
+                    id?: string
+                    user_id?: string
+                    endpoint?: string
+                    p256dh?: string
+                    auth?: string
+                    user_agent?: string | null
+                    created_at?: string
+                    updated_at?: string
+                }
+            },
+            notification_logs: {
+                Row: {
+                    id: string
+                    user_id: string
+                    topic: string
+                    title: string
+                    body: string
+                    action_url: string
+                    read_at: string | null
+                    clicked_at: string | null
+                    created_at: string
+                }
+                Insert: {
+                    id?: string
+                    user_id: string
+                    topic: string
+                    title: string
+                    body: string
+                    action_url?: string
+                    read_at?: string | null
+                    clicked_at?: string | null
+                    created_at?: string
+                }
+                Update: {
+                    id?: string
+                    user_id?: string
+                    topic?: string
+                    title?: string
+                    body?: string
+                    action_url?: string
+                    read_at?: string | null
+                    clicked_at?: string | null
+                    created_at?: string
                 }
             },
             exercise_feedback_logs: {

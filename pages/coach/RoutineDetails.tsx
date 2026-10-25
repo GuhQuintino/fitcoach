@@ -32,12 +32,12 @@ const RoutineDetails: React.FC = () => {
     const [isDragging, setIsDragging] = useState(false);
 
     useEffect(() => {
-        if (user && routineId) {
+        if (user?.id && routineId) {
             fetchRoutineDetails();
         } else if (!routineId) {
             navigate('/coach/library');
         }
-    }, [user, routineId]);
+    }, [user?.id, routineId]);
 
     const fetchRoutineDetails = async (isBackground = false) => {
         try {

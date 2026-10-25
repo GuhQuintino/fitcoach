@@ -111,7 +111,7 @@ const CoachDashboard: React.FC = () => {
         };
 
         fetchDashboardData();
-    }, [user]);
+    }, [user?.id]);
 
     const [coachName, setCoachName] = useState('Treinador');
 
@@ -119,7 +119,7 @@ const CoachDashboard: React.FC = () => {
         if (user?.user_metadata?.name) {
             setCoachName(user.user_metadata.name.split(' ')[0]);
         }
-    }, [user]);
+    }, [user?.id]);
     const currentHour = new Date().getHours();
     let greeting = 'Bom dia';
     if (currentHour >= 12 && currentHour < 18) {

@@ -8,6 +8,7 @@ import toast from 'react-hot-toast';
 import EvolutionGallery from '../../components/student/EvolutionGallery';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import InstallTutorial from '../../components/shared/InstallTutorial';
+import ConfirmDialog from '../../components/shared/ConfirmDialog';
 import { formatToWhatsappUrl } from '../../utils/phoneUtils';
 import { getOptimizedImageUrl } from '../../utils/imageUtils';
 
@@ -34,11 +35,11 @@ const StudentProfile: React.FC = () => {
     const [isEditing, setIsEditing] = useState(false);
 
     useEffect(() => {
-        if (user) {
+        if (user?.id) {
             fetchProfile();
             fetchWeightHistory();
         }
-    }, [user]);
+    }, [user?.id]);
 
     const fetchWeightHistory = async () => {
         try {
@@ -221,13 +222,20 @@ const StudentProfile: React.FC = () => {
         }
     };
 
-    const handleSignOut = async () => {
-        if (!confirm('Deseja realmente sair?')) return;
+    const [isSignOutModalOpen, setIsSignOutModalOpen] = useState(false);
+    const [isSigningOut, setIsSigningOut] = useState(false);
+
+    const handleConfirmSignOut = async () => {
+        setIsSigningOut(true);
         try {
             await signOut();
             navigate('/login');
         } catch (error) {
             console.error('Erro ao sair:', error);
+            toast.error('Erro ao encerrar sessão.');
+        } finally {
+            setIsSigningOut(false);
+            setIsSignOutModalOpen(false);
         }
     };
 
@@ -709,7 +717,7 @@ const StudentProfile: React.FC = () => {
                 <div className="pt-2 pb-6">
                     <button
                         type="button"
-                        onClick={handleSignOut}
+                        onClick={() => setIsSignOutModalOpen(true)}
                         aria-label="Sair da conta e encerrar sessão"
                         className="w-full min-h-[52px] p-4 rounded-2xl border-2 border-danger/20 bg-danger/5 text-danger font-bold flex items-center justify-center gap-2 hover:bg-danger/10 transition-all active:scale-[0.98] cursor-pointer"
                     >
@@ -717,6 +725,18 @@ const StudentProfile: React.FC = () => {
                         Sair da Conta
                     </button>
                 </div>
+
+                <ConfirmDialog
+                    isOpen={isSignOutModalOpen}
+                    title="Deseja realmente sair?"
+                    description="Sua sessão será encerrada e você precisará informar suas credenciais para entrar novamente."
+                    confirmText="Sim, sair da conta"
+                    cancelText="Permanecer logado"
+                    isDestructive={true}
+                    isLoading={isSigningOut}
+                    onConfirm={handleConfirmSignOut}
+                    onClose={() => setIsSignOutModalOpen(false)}
+                />
             </div>
         </MainLayout >
     );

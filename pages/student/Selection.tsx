@@ -7,6 +7,8 @@ import toast from 'react-hot-toast';
 import { useStaleWorkoutDetector } from '../../utils/useStaleWorkoutDetector';
 import { cacheSelectionWorkouts, getCachedSelectionWorkouts } from '../../utils/offlineCacheService';
 import { notifyNetworkSuccess, notifyNetworkError } from '../../utils/useOnlineStatus';
+import ConfirmDialog from '../../components/shared/ConfirmDialog';
+import { getActiveWorkout, removeActiveWorkout } from '../../utils/activeWorkoutStorage';
 
 const Selection: React.FC = () => {
     const { user } = useAuth();
@@ -15,6 +17,7 @@ const Selection: React.FC = () => {
     const [routine, setRoutine] = useState<any>(null);
     const [workouts, setWorkouts] = useState<any[]>([]);
     const [activeWorkout, setActiveWorkout] = useState<any>(null);
+    const [isDiscardModalOpen, setIsDiscardModalOpen] = useState(false);
 
     // Auto-finalização de treinos abandonados
     const { result: autoFinalizeResult } = useStaleWorkoutDetector(user?.id);
@@ -30,31 +33,35 @@ const Selection: React.FC = () => {
     }, [autoFinalizeResult]);
 
     useEffect(() => {
-        if (user) {
+        if (user?.id) {
             fetchRoutineAndWorkouts();
-            const saved = localStorage.getItem('active_workout');
-            if (saved) {
-                try {
-                    setActiveWorkout(JSON.parse(saved));
-                } catch (e) {
-                    console.error("Error parsing saved workout", e);
-                }
-            }
+            const saved = getActiveWorkout(user.id);
+            setActiveWorkout(saved);
         }
-    }, [user]);
+    }, [user?.id]);
 
-    const handleDiscardWorkout = () => {
-        if (confirm('Deseja realmente descartar o progresso do treino atual?')) {
-            localStorage.removeItem('active_workout');
-            setActiveWorkout(null);
-        }
+    const handleConfirmDiscard = () => {
+        removeActiveWorkout(user?.id);
+        setActiveWorkout(null);
+        setIsDiscardModalOpen(false);
+        toast.success('Treino descartado com sucesso.');
     };
 
     const [suggestedIndex, setSuggestedIndex] = useState(0);
 
     const fetchRoutineAndWorkouts = async () => {
+        if (!user?.id) return;
         try {
-            setLoading(true);
+            // 0. Hidrata imediatamente do cache local se existir (Zero Loading Screen!)
+            const cached = getCachedSelectionWorkouts(user.id);
+            if (cached?.data) {
+                setRoutine(cached.data.routine);
+                setWorkouts(cached.data.workouts || []);
+                setSuggestedIndex(cached.data.suggestedIndex || 0);
+                setLoading(false);
+            } else if (workouts.length === 0) {
+                setLoading(true);
+            }
             const { data: assignment, error: aError } = await supabase
                 .from('student_assignments')
                 .select(`
@@ -209,7 +216,7 @@ const Selection: React.FC = () => {
                         <div className="grid grid-cols-2 gap-3 mt-4">
                             <button
                                 type="button"
-                                onClick={handleDiscardWorkout}
+                                onClick={() => setIsDiscardModalOpen(true)}
                                 className="min-h-[44px] py-2.5 rounded-xl text-slate-400 font-bold text-sm bg-slate-800 hover:bg-slate-700 transition-colors border border-white/5 flex items-center justify-center"
                             >
                                 Descartar
@@ -313,6 +320,17 @@ const Selection: React.FC = () => {
                         })
                     )}
                 </div>
+
+                <ConfirmDialog
+                    isOpen={isDiscardModalOpen}
+                    title="Descartar treino em andamento?"
+                    description="O progresso do treino iniciado será descartado permanentemente deste dispositivo."
+                    confirmText="Sim, descartar"
+                    cancelText="Continuar treino"
+                    isDestructive={true}
+                    onConfirm={handleConfirmDiscard}
+                    onClose={() => setIsDiscardModalOpen(false)}
+                />
             </div>
         </MainLayout>
     );

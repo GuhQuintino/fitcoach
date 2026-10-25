@@ -253,14 +253,14 @@ const Feedbacks: React.FC = () => {
                 setLoadingMore(false);
             }
         },
-        [user, filter, fetchUnreadCount]
+        [user?.id, filter, fetchUnreadCount]
     );
 
     useEffect(() => {
-        if (user) {
+        if (user?.id) {
             fetchFeedbacks(true);
         }
-    }, [user, filter, fetchFeedbacks]);
+    }, [user?.id, filter, fetchFeedbacks]);
 
     // Marcar item como lido (otimista)
     const handleMarkAsRead = async (logId: string) => {

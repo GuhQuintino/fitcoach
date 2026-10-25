@@ -4,6 +4,195 @@
 
 ---
 
+## [2026-10-25] — Notificações Inteligentes Baseadas no Padrão do Aluno + Anti-Spam & Onboarding de Perfil (Fase 14 — PASS)
+
+- **Identificador da Fatia:** `smart_notifications` / `feature-smart-notifications-habit-learner`
+- **Perfil Gauntlet:** `full-stack` (React 19 + TypeScript 5.8.2 + Vite 6.4.1 + Tailwind CSS + Supabase Postgres/Auth & Realtime + Web Push PWA & Service Worker + Vitest 5.0.3)
+- **Subagente Executor:** `gauntlet-builder`
+- **Sumário da Fatia:** [`docs/gauntlet/SLICE_SUMMARY_smart_notifications.md`](file:///c:/Users/Gustavo/Desktop/Fitcoach/docs/gauntlet/SLICE_SUMMARY_smart_notifications.md)
+- **Veredito do Gauntlet Critic:** **PASS (3.00 / 3.00 na Rubrica 6D)** — [`QA_REPORT_smart_notifications.md`](file:///c:/Users/Gustavo/Desktop/Fitcoach/docs/gauntlet/QA_REPORT_smart_notifications.md)
+
+### Resumo do Valor Entregue (End-to-End)
+1. **Dados & Modelos Supabase (`supabase/migrations/20261025000000_smart_notifications.sql`):**
+   - Criação das tabelas relacionais `public.push_subscriptions` e `public.notification_logs` no banco de produção do Supabase via session pooler com integridade referencial.
+   - Índice parcial `idx_notification_logs_user_unread` (`WHERE read_at IS NULL`) otimizando a consulta do contador do sino para $O(1)$ sem varredura sequencial.
+   - Índice composto `idx_notification_logs_user_topic_created` para frequency capping e regras de backoff.
+   - Coluna `preferences` JSONB em `profiles` e ativação de RLS estrito com políticas de isolamento por `auth.uid() = user_id`.
+2. **Motor Estatístico de Hábito & Quatro Escudos Anti-Spam (`utils/workoutHabitAnalyzer.ts`):**
+   - Lógica de inferência com cálculo da mediana dos minutos do dia a partir dos treinos em `workout_logs.started_at` para alunos com $\ge 3$ treinos, imune a treinos esporádicos fora de hora.
+   - Cold start suave e previsível às 16:30 nos dias Segunda, Quarta e Sexta ([1, 3, 5]) para alunos com menos de 3 treinos registrados.
+   - Implementação rígida dos 4 Escudos Anti-Spam: (1) silêncio absoluto no dia se o aluno já concluiu qualquer treino; (2) teto diário de 1 notificação por usuário; (3) teto semanal de 3 lembretes de treino; (4) backoff progressivo com 5 dias de pausa completa se o aluno ignorar 2 lembretes consecutivos sem treinar; além de Quiet Hours invioláveis das 21:30 às 07:30 da manhã.
+   - Avaliação de completude de perfil (foto, peso, idade/nasc, altura) com política de no máximo 1 aviso inicial e 1 reforço após 4 dias se continuar incompleto, cessando em seguida.
+3. **Web Push Nativo & Preservação do Service Worker (`public/sw.js`, `utils/pushNotificationService.ts`):**
+   - `public/sw.js` preserva 100% dos listeners existentes `'SCHEDULE_REST_TIMER'` e `'CANCEL_REST_TIMER'`, adicionando listeners puros de `push` com tratamento de erro e `notificationclick` com navegação inteligente em abas abertas ou novas janelas.
+   - `utils/pushNotificationService.ts` implementa conversão de chave pública VAPID RFC 8292 (`urlBase64ToUint8Array`), detecção de PWA Standalone no iOS Safari 16.4+ e sincronização bidirecional de inscrições com `push_subscriptions`.
+4. **Despachante & Edge Function (`utils/smartNotificationDispatcher.ts`, `supabase/functions/smart-notifications/index.ts`):**
+   - Utilitário puro de despacho local e in-app com persistência de leitura individual e em lote.
+   - Edge Function serveless Deno pronta para agendamento diurno horário via `pg_cron` ou webhook externo.
+5. **Componentes do Aluno & Interface (`NotificationBell.tsx`, `ProfileCompletionBanner.tsx`, `Notifications.tsx`):**
+   - `NotificationBell.tsx`: Eliminação da antiga bolinha vermelha estática, implementando badge dinâmico reativo via Supabase Realtime (renderiza exclusivamente quando `unreadCount > 0`).
+   - `ProfileCompletionBanner.tsx`: Aviso esportivo sutil com percentual de preenchimento, dados pendentes e botão dispensar ("Lembrar depois") com CTA direto para `/student/profile`.
+   - `pages/settings/Notifications.tsx`: Centro de controle funcional com toggle de Web Push integrado ao navegador, card de Hábito de Treino Aprendido com badge de precisão e override manual, controle granular por tópico, customização de Quiet Hours e Central de Notificações Recentes com marcação individual e em lote.
+6. **Testes Automatizados & Qualidade Estática:**
+   - Suíte de 19 testes automatizados em `tests/unit/workoutHabitAnalyzer.test.ts` cobrindo mediana, cold start, 4 escudos anti-spam e onboarding.
+   - Testes unitários em `tests/unit/pushNotificationService.test.ts` e `tests/unit/smartNotificationDispatcher.test.ts`.
+   - 155/155 testes aprovados na suíte global Vitest (100% de sucesso em 15 arquivos de teste em ~2.24s).
+   - 0 erros de compilação TypeScript (`tsc --noEmit`) e Vite build 100% limpo em 7.98s gerando 781 módulos.
+   - Conformidade estrita Anti-AI-Slop sem travessões longos `—` em headlines/botões, touch targets $\ge 44\text{px}$ e zero código truncado.
+   - Laudo Gauntlet Critic aprovado com nota máxima **3.00 / 3.00 (Média 6D — PASS)** em [`QA_REPORT_smart_notifications.md`](file:///c:/Users/Gustavo/Desktop/Fitcoach/docs/gauntlet/QA_REPORT_smart_notifications.md).
+
+### Métricas da Rubrica 6D
+| Dimensão | Nota | Status |
+|---|:---:|:---:|
+| **D1. Funcionalidade & Requisitos** | 3.0 / 3.0 | Aprovado |
+| **D2. Robustez & Estabilidade** | 3.0 / 3.0 | Aprovado |
+| **D3. Qualidade de Implementação & Anti-Slop** | 3.0 / 3.0 | Aprovado |
+| **D4. Consistência Arquitetural & Stack Nativa** | 3.0 / 3.0 | Aprovado |
+| **D5. Performance & Eficiência** | 3.0 / 3.0 | Aprovado |
+| **D6. Testabilidade, Segurança & Conformidade** | 3.0 / 3.0 | Aprovado |
+| **Média Consolidada** | **3.00 / 3.00** | **PASS** |
+
+### Arquivos Criados e Modificados
+- `supabase/migrations/20261025000000_smart_notifications.sql`: DDL completo de `push_subscriptions`, `notification_logs`, índices parciais e RLS.
+- `scripts/apply_smart_notifications_migration.mjs`: script de aplicação da migration no pooler Supabase.
+- `types/notifications.ts`: tipagem do domínio de notificações, hábitos e anti-spam.
+- `types/supabase.ts`: extensão das tabelas e preferências de perfil no schema tipado.
+- `utils/workoutHabitAnalyzer.ts`: motor matemático de cálculo de mediana de horário, dias frequentes, cold start e 4 escudos anti-spam.
+- `tests/unit/workoutHabitAnalyzer.test.ts`: suíte de 19 testes automatizados cobrindo todos os cenários de inferência e filtros.
+- `public/sw.js`: suporte a eventos nativos de `push` e `notificationclick` preservando 100% dos timers de descanso em segundo plano.
+- `utils/pushNotificationService.ts`: serviço de conversão VAPID RFC 8292, detecção iOS standalone e sincronização push.
+- `tests/unit/pushNotificationService.test.ts`: testes de compatibilidade de plataforma e decodificação VAPID.
+- `utils/smartNotificationDispatcher.ts`: utilitário de despacho e controle de leitura.
+- `tests/unit/smartNotificationDispatcher.test.ts`: testes com mocks do cliente Supabase.
+- `supabase/functions/smart-notifications/index.ts`: Edge Function serveless em Deno para execução horária.
+- `components/student/NotificationBell.tsx`: sino de notificações reativo em tempo real via Supabase Realtime com badge dinâmico.
+- `components/student/ProfileCompletionBanner.tsx`: banner de incentivo esportivo gentil para preenchimento de perfil.
+- `pages/student/Dashboard.tsx`: integração do `NotificationBell`, `ProfileCompletionBanner` e checagem em background.
+- `pages/settings/Notifications.tsx`: centro de controle de notificações com card de hábito, Web Push real, tópicos e histórico.
+- `docs/gauntlet/QA_REPORT_smart_notifications.md`: laudo formal de avaliação com veredito PASS (3.00 / 3.00).
+- `docs/gauntlet/SLICE_SUMMARY_smart_notifications.md`: sumário de engenharia e entregáveis da fatia vertical.
+- `docs/gauntlet/DECISIONS.md`: registro das ADRs 015 a 017.
+- `.planning/STATE.md`, `.planning/ROADMAP.md`, `ROADMAP.md`, `.planning/PROGRESS.md`, `PROGRESS.md`: governança GSD sincronizada.
+
+---
+
+## [2026-10-18] — Retorno Instantâneo do Segundo Plano & Blindagem do Cronômetro de Descanso (Tela Bloqueada / Outros Apps) (Fase 13 — PASS)
+
+- **Identificador da Fatia:** `background_timer` / `background-lifecycle-rest-timer-hardening`
+- **Perfil Gauntlet:** `full-stack` / PWA Mobile (Vite 6.4.1 + React 19.2.3 + TypeScript 5.8.2 + Tailwind CSS + Supabase Auth & Postgres + Service Worker + Web Audio API + Vitest 5.0.3)
+- **Subagente Executor:** `gauntlet-builder`
+- **Sumário da Fatia:** [`docs/gauntlet/SLICE_SUMMARY.md`](file:///c:/Users/Gustavo/Desktop/Fitcoach/docs/gauntlet/SLICE_SUMMARY.md)
+- **Veredito do Gauntlet Critic:** **PASS (3.00 / 3.00 na Rubrica 6D)** — [`QA_REPORT_background_timer.md`](file:///c:/Users/Gustavo/Desktop/Fitcoach/docs/gauntlet/QA_REPORT_background_timer.md)
+
+### Resumo do Valor Entregue (End-to-End)
+1. **Zero Loading Screen & Stale-While-Revalidate (`AuthContext.tsx`, `WorkoutExecution.tsx`, `Dashboard.tsx`, `Selection.tsx`):**
+   - Implementação de hidratação síncrona `getCachedAuthProfile` no `AuthContext` permitindo renderização imediata sem spinners bloqueantes ao alternar entre apps ou destravar o celular.
+   - Estabilização de referência no `AuthContext` (`prev.id === next.id ? prev : next`), impedindo que eventos `TOKEN_REFRESHED` do Supabase desmontem árvores de componentes de treino em andamento.
+   - Hidratação imediata do treino ativo a partir de `active_workout` no `localStorage`, garantindo zero flickering de tela branca.
+2. **Eliminação de Falso Banner Offline (`useOnlineStatus.ts`):**
+   - Introdução de debounce de 1.2s ao restaurar visibilidade e retentativa com grace period de 900ms para aguardar que as placas de rede 4G/Wi-Fi reestabeleçam sockets após o sleep do aparelho.
+   - Singleton `inFlightProbe` deduplicando chamadas concorrentes de probe de rede sem floodar requisições.
+3. **Tela Acesa Respeitosa via Screen Wake Lock API (`restTimerAudioAndNotification.ts`, `WorkoutExecution.tsx`):**
+   - Aquisição de `navigator.wakeLock.request('screen')` durante a execução do treino, com listener de `visibilitychange` que reativa automaticamente o lock ao desbloquear o aparelho, respeitando desligamentos manuais no botão físico.
+4. **Alerta Triplo em Segundo Plano (Som + Vibração + Notificação Nativa) (`restTimerAudioAndNotification.ts`, `public/sw.js`):**
+   - Criação de canal keep-alive silencioso sintetizado em memória (WAV PCM 40Hz @ volume 0.01) em elemento HTML5 `<audio>`, prevenindo a suspensão de thread em segundo plano pelo sistema operacional sem pausar apps de streaming de música (Spotify).
+   - Reforço sonoro duplo (beep de alta frequência 880Hz via Web Audio API + fallback WAV embutido).
+   - Vibração háptica no aparelho (`navigator.vibrate([300, 150, 300])`).
+   - Integração com o Service Worker através de mensagens estruturadas `SCHEDULE_REST_TIMER` e `CANCEL_REST_TIMER`, disparando notificação nativa na bandeja do sistema operacional com `ServiceWorkerRegistration.showNotification()` contendo som e vibração do sistema no Android e desktops.
+5. **Correção Matemática do `+15s` & Persistência do Timer (`WorkoutExecution.tsx`):**
+   - Cálculo determinístico de acréscimo de tempo via `Math.max(Date.now(), restEndTime) + 15000` quando o cronômetro expirar com a tela bloqueada, impedindo que o cronômetro nasça zerado.
+   - Persistência e restauração atômica de `restEndTime`, `initialTime`, `restTimerLabel` e `timerActive` em `active_workout` no `localStorage`.
+6. **Testes Automatizados & Qualidade Estática:**
+   - Criação da suíte de regressão dedicada `tests/background-lifecycle-timer.regression.test.ts` com 10/10 testes aprovados cobrindo lógica matemática, Service Worker, `showNotification`, debounce de rede e estabilidade de referência de usuário.
+   - 120/120 testes aprovados na suíte global do Vitest (100% de sucesso em 11 arquivos de teste em ~2.15s).
+   - 0 erros de compilação TypeScript (`npx tsc --noEmit`) e Vite build 100% limpo em 7.67s gerando 779 módulos.
+   - Laudo Gauntlet Critic aprovado com nota máxima **3.00 / 3.00 (Média 6D — PASS)** em [`QA_REPORT_background_timer.md`](file:///c:/Users/Gustavo/Desktop/Fitcoach/docs/gauntlet/QA_REPORT_background_timer.md).
+
+### Métricas da Rubrica 6D
+| Dimensão | Nota | Status |
+|---|:---:|:---:|
+| **D1. Funcionalidade & Requisitos** | 3.0 / 3.0 | Aprovado |
+| **D2. Robustez & Estabilidade** | 3.0 / 3.0 | Aprovado |
+| **D3. Qualidade de Implementação & Anti-Slop** | 3.0 / 3.0 | Aprovado |
+| **D4. Consistência Arquitetural & Stack Nativa** | 3.0 / 3.0 | Aprovado |
+| **D5. Performance & Eficiência** | 3.0 / 3.0 | Aprovado |
+| **D6. Testabilidade, Segurança & Conformidade** | 3.0 / 3.0 | Aprovado |
+| **Média Consolidada** | **3.00 / 3.00** | **PASS** |
+
+### Arquivos Criados e Modificados
+- `contexts/AuthContext.tsx`: Stale-While-Revalidate com hidratação síncrona `getCachedAuthProfile` e estabilização de referência de usuário (`prev.id === next.id ? prev : next`).
+- `utils/restTimerAudioAndNotification.ts`: módulo autônomo com sintetizador WAV PCM em memória para keep-alive silencioso e alerta sonoro, vibração, agendamento de Service Worker e Screen Wake Lock.
+- `utils/useOnlineStatus.ts`: debounce de 1.2s ao restaurar visibilidade, grace period de 900ms para reconexão de rádios e singleton `inFlightProbe`.
+- `public/sw.js`: Service Worker com listeners de `SCHEDULE_REST_TIMER`, `CANCEL_REST_TIMER`, agendamento de notificações e atualização para cache v11.
+- `pages/student/WorkoutExecution.tsx`: persistência do cronômetro em `localStorage`, correção matemática do `+15s` via `Math.max(Date.now(), restEndTime) + 15000` e integração com Wake Lock e canal de alerta.
+- `pages/student/Dashboard.tsx` & `pages/student/Selection.tsx`: Stale-While-Revalidate e renderização rápida sem spinners bloqueantes.
+- `tests/background-lifecycle-timer.regression.test.ts`: suíte de 10 testes automatizados cobrindo a lógica de ciclo de vida e timer em segundo plano.
+- `PRODUCT.md`: especificação viva com as regras de negócio B1 a B6 validadas.
+- `docs/gauntlet/CRAFT_AUDIT_background_timer.md`: laudo de auditoria estática, tipos e conformidade Anti-AI-Slop.
+- `docs/gauntlet/TEST_REPORT_background_timer.md`: relatório de 120 testes automatizados aprovados (100% verde).
+- `docs/gauntlet/QA_REPORT_background_timer.md`: laudo formal do Gauntlet Critic com veredito PASS (3.00 / 3.00).
+- `docs/gauntlet/SLICE_SUMMARY.md`: sumário técnico de engenharia da fatia.
+- `docs/gauntlet/DECISIONS.md`: registro das ADRs 010 a 014.
+- `.planning/STATE.md`, `.planning/ROADMAP.md`, `ROADMAP.md`, `.planning/PROGRESS.md`, `PROGRESS.md`: artefatos de governança GSD sincronizados.
+
+---
+
+## [2026-10-17] — Integração do Histórico de Conversas e Áudios do WhatsApp Web nos Dossiês de Alunos (`weekly-workout-adjuster`) (Fase 12 — PASS)
+
+
+- **Identificador da Fatia:** `whatsapp_sync` / `weekly-workout-adjuster-whatsapp-sync`
+- **Perfil Gauntlet:** `data-pipeline` (Node.js v22 ESM `.mjs` + Playwright CDP + PostgreSQL Dual-DB `pg` + Gemini 2.5 Flash Multimodal Audio REST API + Vitest 5.0.3)
+- **Subagente Executor:** `gauntlet-builder`
+- **Sumário da Fatia:** [`docs/gauntlet/SLICE_SUMMARY.md`](file:///c:/Users/Gustavo/Desktop/Fitcoach/docs/gauntlet/SLICE_SUMMARY.md)
+- **Veredito do Gauntlet Critic:** **PASS (3.00 / 3.00 na Rubrica 6D)** — [`QA_REPORT_whatsapp_sync.md`](file:///c:/Users/Gustavo/Desktop/Fitcoach/docs/gauntlet/QA_REPORT_whatsapp_sync.md)
+
+### Resumo do Valor Entregue (End-to-End)
+1. **Núcleo Puro de Utilitários WhatsApp (`whatsapp_utils.mjs`):**
+   - Implementação de `normalizePhoneVariants` gerando variantes brasileiras de busca (com/sem DDI `55`, com/sem 9º dígito móvel e últimos 8 dígitos) e `buildStudentNameSearchVariants`.
+   - Janela temporal incremental inteligente (`resolveSyncWindowDays`): **75 dias** (faixa 60–90 dias) na primeira sincronização (`cold_start`) e **10 dias** (faixa 7–14 dias) nas revisões semanais subsequentes (`incremental`).
+   - Persistência incremental idempotente e deduplicada em `docs/students/.whatsapp_cache/{slug}.json` (`mergeWhatsAppCache`), preservando transcrições de áudio prévias.
+   - Transcrição e resumo clínico de áudios PTT via Gemini 2.5 Flash REST API (`transcribeAudioWithGemini`) com classificação automática de tags (`dor_lesao`, `equipamento_academia`, `carga_pr`, `rotina_viagem`, `sono_recuperacao`, `duvida_execucao`, `nutricao_dieta`).
+   - Formatação da `## 6. Histórico de Conversas & Áudios (WhatsApp)` (`formatWhatsAppSectionMarkdown`) e migração automática em dossiês existentes (`upsertWhatsAppSectionInDossier`), renumerando as diretrizes para `## 7. Diretrizes para Revisões Semanais da Skill`.
+2. **Extrator & Sincronizador via CDP / Playwright (`sync_whatsapp_history.mjs`):**
+   - Conexão via `chromium.connectOverCDP(cdpUrl)`, fallback para perfil persistente (`--launch`), importação determinística de payloads JSON (`--import-file`) e degradação graciosa (`skipped_no_browser`) quando executado offline.
+   - Estratégia híbrida de localização (`locateAndOpenStudentChat`): ativação prioritária do filtro/etiqueta **"Consultoria"** (`toggleConsultoriaFilter`), busca por variantes de telefone e fallback por variantes do nome do aluno.
+   - Extração de mensagens de texto e captura de blobs de áudio (`blob:https://web.whatsapp.com/...`) via `FileReader` (Base64) no contexto da página.
+3. **Integração nos 20 Dossiês Reais e no Fluxo Semanal:**
+   - Regeneração e validação de todas as 20 fichas reais em `docs/students/*.md` via `generate_all_student_dossiers.mjs` com a Seção 6 (WhatsApp) e Seção 7 renumerada.
+   - Enriquecimento do payload JSON semanal em `fetch_weekly_review.mjs` com o bloco `whatsappHistory` (`lastSyncAt`, `matchedVia`, `matchedChatTitle`, `totalCachedMessages`, `recentMessages`, `audioTranscriptionsCount`, `clinicalHighlights`).
+   - Preservação e migração estrutural automática das Seções 6 e 7 em `apply_approved_adjustments.mjs`.
+   - Paridade SHA-256 de 100% entre `.agents/skills/weekly-workout-adjuster/` e `~/.gemini/config/skills/weekly-workout-adjuster/` (9/9 arquivos).
+4. **Testes Automatizados & Qualidade Estática:**
+   - Checagem sintática e estática (`node --check` nos 5 scripts `.mjs` e `npx tsc --noEmit`): 0 erros.
+   - Suíte dedicada [`tests/whatsappDossierSync.test.ts`](file:///c:/Users/Gustavo/Desktop/Fitcoach/tests/whatsappDossierSync.test.ts): 19/19 testes passando (100% em 797ms).
+   - Suíte global Vitest: 107/107 testes passando em 10 arquivos (100% em 1.54s).
+   - Proteção de privacidade e segredos validada no `.gitignore` (`docs/students/` e `docs/students/.whatsapp_cache/`).
+
+### Métricas da Rubrica 6D
+| Dimensão | Nota | Status |
+|---|:---:|:---:|
+| **D1. Funcionalidade & Requisitos** | 3.0 / 3.0 | Aprovado |
+| **D2. Robustez & Estabilidade** | 3.0 / 3.0 | Aprovado |
+| **D3. Qualidade de Implementação & Anti-Slop** | 3.0 / 3.0 | Aprovado |
+| **D4. Consistência Arquitetural & Stack Nativa** | 3.0 / 3.0 | Aprovado |
+| **D5. Performance & Eficiência** | 3.0 / 3.0 | Aprovado |
+| **D6. Testabilidade, Segurança & Conformidade** | 3.0 / 3.0 | Aprovado |
+| **Média Consolidada** | **3.00 / 3.00** | **PASS** |
+
+### Arquivos Criados e Modificados
+- `.agents/skills/weekly-workout-adjuster/scripts/whatsapp_utils.mjs`: núcleo puro de normalização, janela incremental, cache, transcrição Gemini e formatação Markdown.
+- `.agents/skills/weekly-workout-adjuster/scripts/sync_whatsapp_history.mjs`: extrator via Playwright CDP / Browser Harness e importador JSON com atualização dos dossiês.
+- `.agents/skills/weekly-workout-adjuster/scripts/generate_all_student_dossiers.mjs`: integração da Seção 6 (WhatsApp) e Seção 7 nos 20 dossiês em `docs/students/*.md`.
+- `.agents/skills/weekly-workout-adjuster/scripts/fetch_weekly_review.mjs`: inclusão de `whatsappHistory` e filtro de atividade recente na revisão semanal.
+- `.agents/skills/weekly-workout-adjuster/scripts/apply_approved_adjustments.mjs`: preservação e migração automática das Seções 6 e 7 nos dossiês.
+- `.agents/skills/weekly-workout-adjuster/SKILL.md`, `references/dossier_template.md`, `references/progression_rules.md` e `references/report_template.md`: documentação e templates atualizados e espelhados em `~/.gemini/config/skills/weekly-workout-adjuster/`.
+- `tests/whatsappDossierSync.test.ts`: suíte de 19 testes automatizados cobrindo todas as regras W1 a W5.
+- `PRODUCT.md` e `.gitignore`: especificação das Regras W1 a W5 e proteção de cache/dossiês.
+- `docs/gauntlet/QA_REPORT_whatsapp_sync.md`: laudo formal do Gauntlet Critic com veredito PASS (3.00 / 3.00).
+- `.planning/STATE.md`, `.planning/ROADMAP.md`, `ROADMAP.md`, `.planning/PROGRESS.md`, `PROGRESS.md` e `docs/gauntlet/DECISIONS.md`: artefatos de governança GSD sincronizados.
+
+---
+
 ## [2026-10-15] — Otimização de Chunks do Recharts no Rollup / Vite & Atualização Caniuse-Lite (Fase 11 — PASS)
 
 - **Identificador da Fatia:** `rollup_and_caniuse` / `infra-rollup-chunks-caniuse-update`

@@ -1,6 +1,7 @@
 import { supabase } from '../lib/supabaseClient';
 import { saveOfflineWorkout, OfflineWorkoutPayload } from './offlineSyncService';
 import { sanitizeSetType } from './specialSetTokens';
+import { removeActiveWorkout } from './activeWorkoutStorage';
 
 // ─── Constantes configuráveis ───────────────────────────────────────
 export const AUTO_FINALIZE_THRESHOLD = 0.6;   // 60% das séries completadas
@@ -260,8 +261,8 @@ export async function autoFinalizeWorkout(
             if (feedbackError) throw feedbackError;
         }
 
-        // 4. Limpar localStorage
-        localStorage.removeItem('active_workout');
+        // 4. Limpar armazenamento do treino ativo
+        removeActiveWorkout(userId);
 
         return { success: true, completedSets, totalSets };
     } catch (error: any) {
@@ -402,7 +403,7 @@ export async function autoFinalizeWorkout(
 
             const offlineRes = saveOfflineWorkout(offlinePayload);
             if (offlineRes.success) {
-                localStorage.removeItem('active_workout');
+                removeActiveWorkout(userId);
                 return {
                     success: true,
                     completedSets,

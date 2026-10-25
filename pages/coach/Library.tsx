@@ -34,10 +34,10 @@ const Library: React.FC = () => {
     const [assignLoading, setAssignLoading] = useState(false);
 
     useEffect(() => {
-        if (user) {
+        if (user?.id) {
             fetchRoutines();
         }
-    }, [user]);
+    }, [user?.id]);
 
     const fetchRoutines = async (isBackground = false) => {
         try {

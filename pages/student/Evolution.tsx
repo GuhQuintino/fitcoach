@@ -51,8 +51,8 @@ const Evolution: React.FC = () => {
 
     // --- Fetch Data ---
     useEffect(() => {
-        if (user) fetchEvolutionData();
-    }, [user]);
+        if (user?.id) fetchEvolutionData();
+    }, [user?.id]);
 
     const fetchEvolutionData = async () => {
         try {

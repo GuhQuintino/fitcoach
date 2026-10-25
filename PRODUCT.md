@@ -9,6 +9,26 @@
 
 ---
 
+## Feature: Notificações Inteligentes Baseadas no Padrão do Aluno + Anti-Spam & Onboarding de Perfil (2026-10-25)
+
+### Problema
+1. O botão de notificações na dashboard do aluno (`pages/student/Dashboard.tsx`) possui uma bolinha vermelha estática (`bg-red-500`) que nunca apaga, e leva para uma tela (`pages/settings/Notifications.tsx`) que é 100% mockup (estado volátil, checkboxes sem `onChange`, nenhuma integração Web Push nem salvamento no Supabase).
+2. Lembretes fixos diários incomodam alunos e causam cancelamento/desativação de notificações. O sistema precisa aprender os dias e horários habituais reais de treino de cada aluno a partir do histórico (`workout_logs`).
+3. Alunos novos criados automaticamente muitas vezes não preenchem foto de perfil, peso, data de nascimento/idade e altura, prejudicando o acompanhamento do coach.
+
+### Regras de Negócio Validadas com o Treinador (Discovery Q&A)
+| # | Regra |
+|---|---|
+| N1 | **Inferência de Hábito de Treino (Alunos com >= 3 treinos):** Identificar dias habituais da semana (frequência >= 35% nas últimas 4 semanas) e calcular o **horário mediano** de início de treino do aluno. O lembrete é agendado no horário mediano habitual apenas nos dias habituais e apenas se ele ainda não treinou no dia. |
+| N2 | **Alunos Novos (Cold Start < 3 treinos):** Disparar lembrete gentil à tarde, por volta das **16:30**, caso o aluno ainda não tenha registrado treino no dia. |
+| N3 | **Blindagem Anti-Spam Estrita:**<br>- **Já treinou hoje:** Silêncio absoluto (zero lembretes se houver `workout_log` hoje).<br>- **Teto:** Máximo de 1 notificação por dia por aluno; máximo de 3 lembretes de treino por semana.<br>- **Regra de Backoff:** Se o aluno ignorar 2 lembretes consecutivos em dias diferentes sem abrir o app ou treinar, **pausar automaticamente novos lembretes por 5 dias**.<br>- **Quiet Hours:** Nenhuma notificação automática entre **21:30 e 07:30** (salvo treino noturno habitual). |
+| N4 | **Lembrete de Onboarding / Perfil Incompleto:** Se o aluno novo ainda não preencheu foto de perfil, peso, data de nascimento/idade ou altura, enviar um lembrete gentil convidando a completar o perfil (máximo de 1 aviso inicial e 1 reforço após 4 dias se continuar incompleto). |
+| N5 | **Central de Notificações Real e Badge Dinâmico:** A bolinha vermelha no sino da Dashboard só aparece quando houver notificações não lidas reais (`read_at IS NULL`). O aluno e o coach podem visualizar os últimos avisos e marcar como lidos. |
+| N6 | **Web Push Nativo (PWA / VAPID):** O Service Worker (`public/sw.js`) escuta eventos de `push` com payload seguro e aciona `self.registration.showNotification`. As assinaturas (`push_subscriptions`) e preferências ficam sincronizadas no Supabase com RLS. |
+| N7 | **Controle Autoral de Tópicos e Horário Personalizado:** A tela de configurações permite ativar/desativar tópicos individuais, visualizar o padrão aprendido pelo app e opcionalmente fixar um horário de preferência manual. |
+
+---
+
 ## Feature: Séries Especiais & Métodos de Intensificação (Taxonomia em 4 Camadas) (2026-10-12)
 
 ### Problema

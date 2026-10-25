@@ -51,10 +51,10 @@ const CoachStudents: React.FC = () => {
     const [actionFeedback, setActionFeedback] = useState<string | null>(null);
 
     useEffect(() => {
-        if (user) {
+        if (user?.id) {
             loadStudentsData();
         }
-    }, [user]);
+    }, [user?.id]);
 
     // Limpa feedback após 3 segundos
     useEffect(() => {

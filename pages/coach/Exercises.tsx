@@ -66,11 +66,11 @@ const Exercises: React.FC<ExercisesProps> = ({ isModal, onSelect }) => {
     }, [filterMuscle]);
 
     useEffect(() => {
-        if (user) {
+        if (user?.id) {
             // When page is 0, we treat it as a fresh load or reset
             fetchExercises(page === 0);
         }
-    }, [user, page, debouncedSearch, filterMuscle]);
+    }, [user?.id, page, debouncedSearch, filterMuscle]);
 
     const fetchExercises = async (isReset = false) => {
         try {

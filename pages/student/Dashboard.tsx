@@ -11,6 +11,12 @@ import { useStaleWorkoutDetector } from '../../utils/useStaleWorkoutDetector';
 import { cacheStudentDashboard, getCachedStudentDashboard } from '../../utils/offlineCacheService';
 import { notifyNetworkSuccess, notifyNetworkError } from '../../utils/useOnlineStatus';
 import OfflineSyncStatus from '../../components/shared/OfflineSyncStatus';
+import ConfirmDialog from '../../components/shared/ConfirmDialog';
+import { getActiveWorkout, removeActiveWorkout } from '../../utils/activeWorkoutStorage';
+import { NotificationBell } from '../../components/student/NotificationBell';
+import { ProfileCompletionBanner } from '../../components/student/ProfileCompletionBanner';
+import { checkProfileCompleteness } from '../../utils/workoutHabitAnalyzer';
+import { runStudentSmartNotificationCheck } from '../../utils/smartNotificationDispatcher';
 import toast from 'react-hot-toast';
 
 const StudentDashboard: React.FC = () => {
@@ -24,6 +30,7 @@ const StudentDashboard: React.FC = () => {
     const [workoutCount, setWorkoutCount] = useState(0);
     const [gamification, setGamification] = useState({ streak: 0, level: 1, current_xp: 0, next_level_xp: 1000 });
     const [activeWorkout, setActiveWorkout] = useState<any>(null);
+    const [isDiscardModalOpen, setIsDiscardModalOpen] = useState(false);
 
     // Auto-finalização de treinos abandonados
     const { result: autoFinalizeResult } = useStaleWorkoutDetector(user?.id);
@@ -39,29 +46,41 @@ const StudentDashboard: React.FC = () => {
     }, [autoFinalizeResult]);
 
     useEffect(() => {
-        if (user) {
+        if (user?.id) {
             fetchStudentData();
-            const saved = localStorage.getItem('active_workout');
-            if (saved) {
-                try {
-                    setActiveWorkout(JSON.parse(saved));
-                } catch (e) {
-                    console.error("Error parsing saved workout", e);
-                }
-            }
+            const saved = getActiveWorkout(user.id);
+            setActiveWorkout(saved);
+            runStudentSmartNotificationCheck(user.id).catch(err => {
+                console.warn('[Dashboard] Checagem de notificações em background:', err);
+            });
         }
-    }, [user]);
+    }, [user?.id]);
 
-    const handleDiscardWorkout = () => {
-        if (confirm('Deseja realmente descartar o progresso do treino atual?')) {
-            localStorage.removeItem('active_workout');
-            setActiveWorkout(null);
-        }
+    const handleConfirmDiscard = () => {
+        removeActiveWorkout(user?.id);
+        setActiveWorkout(null);
+        setIsDiscardModalOpen(false);
+        toast.success('Treino descartado com sucesso.');
     };
 
     const fetchStudentData = async () => {
+        if (!user?.id) return;
         try {
-            setLoading(true);
+            // 0. Hidrata imediatamente do cache local se existir (Zero Loading Screen!)
+            const cached = getCachedStudentDashboard(user.id);
+            if (cached?.data) {
+                setProfile(cached.data.profile);
+                setCoach(cached.data.coach);
+                setStudentData(cached.data.studentData);
+                setRoutine(cached.data.routine);
+                setWorkoutCount(cached.data.workoutCount || 0);
+                if (cached.data.gamification) {
+                    setGamification(cached.data.gamification);
+                }
+                setLoading(false);
+            } else if (!profile) {
+                setLoading(true);
+            }
 
             // 1. Fetch Profile
             const { data: profileData, error: pErr } = await supabase
@@ -205,6 +224,9 @@ const StudentDashboard: React.FC = () => {
 
     const daysRemaining = calculateDaysRemaining();
     const isExpired = daysRemaining !== null && daysRemaining < 0; // Blocks after 24h grace period
+    const profileCompleteness = React.useMemo(() => {
+        return checkProfileCompleteness(profile, studentData);
+    }, [profile, studentData]);
 
     if (loading) return (
         <MainLayout>
@@ -318,14 +340,7 @@ const StudentDashboard: React.FC = () => {
                             </div>
                         )}
                         <ThemeToggle />
-                        <Link
-                            to="/student/settings/notifications"
-                            aria-label="Notificações"
-                            className="min-w-[44px] min-h-[44px] w-11 h-11 rounded-full bg-slate-50 dark:bg-slate-700/50 flex items-center justify-center text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors relative active:scale-95"
-                        >
-                            <span className="material-symbols-rounded" aria-hidden="true">notifications</span>
-                            <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-red-500 rounded-full border border-white dark:border-slate-800"></span>
-                        </Link>
+                        <NotificationBell userId={user?.id} />
                     </div>
                 </div>
 
@@ -368,6 +383,7 @@ const StudentDashboard: React.FC = () => {
             <div className="px-6 -mt-4 space-y-6 relative z-20">
                 <PWAInstallPrompt />
                 <OfflineSyncStatus />
+                <ProfileCompletionBanner completeness={profileCompleteness} />
                 {/* Active Workout Banner */}
                 {activeWorkout && (
                     <div className="bg-slate-900 dark:bg-slate-800 rounded-3xl p-5 shadow-xl border border-white/5 animate-slide-up">
@@ -384,7 +400,7 @@ const StudentDashboard: React.FC = () => {
                         <div className="grid grid-cols-2 gap-3 mt-4">
                             <button
                                 type="button"
-                                onClick={handleDiscardWorkout}
+                                onClick={() => setIsDiscardModalOpen(true)}
                                 aria-label="Descartar treino em andamento"
                                 className="min-h-[44px] py-2.5 rounded-xl text-slate-400 font-bold text-sm bg-slate-800 hover:bg-slate-700 transition-colors border border-white/5 flex items-center justify-center"
                             >
@@ -509,6 +525,17 @@ const StudentDashboard: React.FC = () => {
                         </div>
                     </div>
                 </div>
+
+                <ConfirmDialog
+                    isOpen={isDiscardModalOpen}
+                    title="Descartar treino em andamento?"
+                    description="O progresso do treino iniciado será descartado permanentemente deste dispositivo."
+                    confirmText="Sim, descartar"
+                    cancelText="Continuar treino"
+                    isDestructive={true}
+                    onConfirm={handleConfirmDiscard}
+                    onClose={() => setIsDiscardModalOpen(false)}
+                />
             </div>
         </MainLayout>
     );

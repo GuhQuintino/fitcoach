@@ -23,6 +23,17 @@ import {
     getMethodTheme,
     sanitizeSetType
 } from '../../utils/specialSetTokens';
+import {
+    unlockAndStartBackgroundTimerAudio,
+    stopBackgroundTimerAudio,
+    playRestFinishedAlert,
+    scheduleServiceWorkerRestNotification,
+    cancelServiceWorkerRestNotification,
+    triggerImmediateRestNotification,
+    acquireWorkoutWakeLock,
+    releaseWorkoutWakeLock
+} from '../../utils/restTimerAudioAndNotification';
+import { getActiveWorkout, setActiveWorkout as persistActiveWorkout, removeActiveWorkout } from '../../utils/activeWorkoutStorage';
 
 const getYouTubeId = (url: string) => {
     if (!url) return null;
@@ -159,32 +170,26 @@ const WorkoutExecution: React.FC = () => {
     const audioContextRef = useRef<AudioContext | null>(null);
     const notificationSentRef = useRef(false);
 
-    // Sound beep quando timer termina
-    const playBeep = () => {
-        try {
-            if (!audioContextRef.current) {
-                audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+    // Mantém a tela acesa durante o treino, mas se o aluno bloquear no botão físico
+    // e voltar depois, reativa o Wake Lock automaticamente.
+    useEffect(() => {
+        acquireWorkoutWakeLock();
+        const handleVisibility = () => {
+            if (document.visibilityState === 'visible') {
+                acquireWorkoutWakeLock();
             }
-            const ctx = audioContextRef.current;
-            // Resume se estiver suspenso (iOS requer interação)
-            if (ctx.state === 'suspended') ctx.resume();
+        };
+        document.addEventListener('visibilitychange', handleVisibility);
+        return () => {
+            document.removeEventListener('visibilitychange', handleVisibility);
+            releaseWorkoutWakeLock();
+            stopBackgroundTimerAudio();
+        };
+    }, []);
 
-            // Beep triplo
-            [0, 0.15, 0.3].forEach(delay => {
-                const oscillator = ctx.createOscillator();
-                const gain = ctx.createGain();
-                oscillator.connect(gain);
-                gain.connect(ctx.destination);
-                oscillator.frequency.value = 800;
-                oscillator.type = 'sine';
-                gain.gain.setValueAtTime(1.0, ctx.currentTime + delay);
-                gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + delay + 0.12);
-                oscillator.start(ctx.currentTime + delay);
-                oscillator.stop(ctx.currentTime + delay + 0.12);
-            });
-        } catch (e) {
-            console.error('Audio error:', e);
-        }
+    // Sound beep + vibração quando timer termina
+    const playBeep = () => {
+        playRestFinishedAlert();
     };
 
     const playTransitionBeep = (type: 'to_work' | 'to_rest' | 'finished') => {
@@ -238,16 +243,9 @@ const WorkoutExecution: React.FC = () => {
         }
     };
 
-    // Notificação push (funciona em background)
+    // Notificação nativa via Service Worker (funciona no Android e em tela bloqueada)
     const sendRestNotification = () => {
-        if ('Notification' in window && Notification.permission === 'granted') {
-            new Notification('FitCoach Pro', {
-                body: 'Descanso finalizado! Hora da próxima série 💪',
-                icon: '/icon-192.png',
-                tag: 'rest-timer',
-                requireInteraction: false
-            });
-        }
+        triggerImmediateRestNotification(restTimerLabel);
     };
 
     // HIIT Modal
@@ -313,10 +311,10 @@ const WorkoutExecution: React.FC = () => {
     const duration = formatWorkoutDuration(workoutSeconds);
 
     useEffect(() => {
-        if (user && workoutId) {
+        if (user?.id && workoutId) {
             fetchWorkoutData();
         }
-    }, [user, workoutId]);
+    }, [user?.id, workoutId]);
 
     const exercisesRef = useRef(exercises);
     useEffect(() => {
@@ -338,6 +336,26 @@ const WorkoutExecution: React.FC = () => {
         isWorkoutPausedRef.current = isWorkoutPaused;
     }, [isWorkoutPaused]);
 
+    const restEndTimeRef = useRef(restEndTime);
+    useEffect(() => {
+        restEndTimeRef.current = restEndTime;
+    }, [restEndTime]);
+
+    const initialTimeRef = useRef(initialTime);
+    useEffect(() => {
+        initialTimeRef.current = initialTime;
+    }, [initialTime]);
+
+    const restTimerLabelRef = useRef(restTimerLabel);
+    useEffect(() => {
+        restTimerLabelRef.current = restTimerLabel;
+    }, [restTimerLabel]);
+
+    const timerActiveRef = useRef(timerActive);
+    useEffect(() => {
+        timerActiveRef.current = timerActive;
+    }, [timerActive]);
+
     // Duration Timer (otimizado sem teardown desnecessário a cada digitação)
     useEffect(() => {
         if (isWorkoutPaused || loading) return;
@@ -352,9 +370,13 @@ const WorkoutExecution: React.FC = () => {
                         startTime: startTimeRef.current.toISOString(),
                         workoutSeconds: next,
                         isWorkoutPaused: isWorkoutPausedRef.current,
+                        restEndTime: timerActiveRef.current ? restEndTimeRef.current : null,
+                        initialTime: initialTimeRef.current,
+                        restTimerLabel: restTimerLabelRef.current,
+                        timerActive: timerActiveRef.current,
                         lastUpdate: new Date().toISOString()
                     };
-                    localStorage.setItem('active_workout', JSON.stringify(sessionData));
+                    persistActiveWorkout(user?.id, sessionData);
                 }
                 return next;
             });
@@ -477,8 +499,53 @@ const WorkoutExecution: React.FC = () => {
 
 
     const fetchWorkoutData = async () => {
+        // 0. Cache-First Imediato (Zero Loading Screen!)
+        // Se houver active_workout em andamento ou cache offline do treino, hidrata na hora
+        const data = getActiveWorkout(user?.id);
+        let hasImmediateData = false;
+
+        if (data) {
+            try {
+                if (data.workoutId === workoutId && data.exercises && data.exercises.length > 0) {
+                    setExercises(data.exercises);
+                    if (data.exerciseGroups) setExerciseGroups(data.exerciseGroups);
+                    if (data.startTime) setStartTime(new Date(data.startTime));
+                    if (data.workoutSeconds !== undefined) setWorkoutSeconds(data.workoutSeconds);
+                    if (data.isWorkoutPaused !== undefined) setIsWorkoutPaused(data.isWorkoutPaused);
+
+                    // Restaurar timer de descanso se estiver ativo
+                    if (data.timerActive && data.restEndTime && data.restEndTime > Date.now()) {
+                        setRestEndTime(data.restEndTime);
+                        setInitialTime(data.initialTime || 60);
+                        setRestTimerLabel(data.restTimerLabel || 'Descanso');
+                        setTimeLeft(Math.ceil((data.restEndTime - Date.now()) / 1000));
+                        setTimerActive(true);
+                        setToastVisible(true);
+                    }
+
+                    hasImmediateData = true;
+                    setLoading(false);
+                }
+            } catch (e) {
+                console.error("Error reading saved workout in initial pass", e);
+            }
+        }
+
+        if (!hasImmediateData) {
+            const cached = getCachedWorkoutExecution(workoutId!);
+            if (cached?.data) {
+                setWorkout(cached.data.workout);
+                setExercises(cached.data.exercises);
+                if (cached.data.exerciseGroups) setExerciseGroups(cached.data.exerciseGroups);
+                hasImmediateData = true;
+                setLoading(false);
+            }
+        }
+
         try {
-            setLoading(true);
+            if (!hasImmediateData && exercises.length === 0) {
+                setLoading(true);
+            }
 
             // 1. Fetch Workout Details, Items & Groups
             const [wRes, itemsRes, groupsRes] = await Promise.all([
@@ -657,11 +724,10 @@ const WorkoutExecution: React.FC = () => {
                 });
             }
 
-            // Check localStorage for progress
-            const saved = localStorage.getItem('active_workout');
-            if (saved) {
+            // Check active workout storage for progress
+            const data = getActiveWorkout(user?.id);
+            if (data) {
                 try {
-                    const data = JSON.parse(saved);
                     if (data.workoutId === workoutId) {
                         setStartTime(new Date(data.startTime));
                         // Merge saved set completion/data with fresh exercise info
@@ -696,6 +762,14 @@ const WorkoutExecution: React.FC = () => {
                         if (data.exerciseGroups) setExerciseGroups(data.exerciseGroups);
                         if (data.workoutSeconds !== undefined) setWorkoutSeconds(data.workoutSeconds);
                         if (data.isWorkoutPaused !== undefined) setIsWorkoutPaused(data.isWorkoutPaused);
+                        if (data.timerActive && data.restEndTime && data.restEndTime > Date.now()) {
+                            setRestEndTime(data.restEndTime);
+                            setInitialTime(data.initialTime || 60);
+                            setRestTimerLabel(data.restTimerLabel || 'Descanso');
+                            setTimeLeft(Math.ceil((data.restEndTime - Date.now()) / 1000));
+                            setTimerActive(true);
+                            setToastVisible(true);
+                        }
                         setLoading(false);
                         return;
                     } else if (user && isWorkoutStale(data as SavedWorkout)) {
@@ -725,11 +799,10 @@ const WorkoutExecution: React.FC = () => {
                 setWorkout(cached.data.workout);
                 let finalExercises = cached.data.exercises;
 
-                // Merge com localStorage se houver progresso ativo
-                const saved = localStorage.getItem('active_workout');
-                if (saved) {
+                // Merge com active workout storage se houver progresso ativo
+                const data = getActiveWorkout(user?.id);
+                if (data) {
                     try {
-                        const data = JSON.parse(saved);
                         if (data.workoutId === workoutId) {
                             setStartTime(new Date(data.startTime));
                             finalExercises = finalExercises.map((ex: any) => {
@@ -748,6 +821,14 @@ const WorkoutExecution: React.FC = () => {
                             });
                             if (data.workoutSeconds !== undefined) setWorkoutSeconds(data.workoutSeconds);
                             if (data.isWorkoutPaused !== undefined) setIsWorkoutPaused(data.isWorkoutPaused);
+                            if (data.timerActive && data.restEndTime && data.restEndTime > Date.now()) {
+                                setRestEndTime(data.restEndTime);
+                                setInitialTime(data.initialTime || 60);
+                                setRestTimerLabel(data.restTimerLabel || 'Descanso');
+                                setTimeLeft(Math.ceil((data.restEndTime - Date.now()) / 1000));
+                                setTimerActive(true);
+                                setToastVisible(true);
+                            }
                         }
                     } catch (e) {
                         console.error('Error merging saved workout with cache:', e);
@@ -783,9 +864,13 @@ const WorkoutExecution: React.FC = () => {
             startTime: startTime.toISOString(),
             workoutSeconds: secs !== undefined ? secs : workoutSeconds,
             isWorkoutPaused: paused !== undefined ? paused : isWorkoutPaused,
+            restEndTime: timerActive ? restEndTime : null,
+            initialTime,
+            restTimerLabel,
+            timerActive,
             lastUpdate: new Date().toISOString()
         };
-        localStorage.setItem('active_workout', JSON.stringify(sessionData));
+        persistActiveWorkout(user?.id, sessionData);
     };
 
     const handleDropChange = (
@@ -1155,28 +1240,49 @@ const WorkoutExecution: React.FC = () => {
         }
     };
 
-    // Monitorar fim do timer
+    // Monitorar fim do timer (com suporte a retorno imediato de tela bloqueada)
     useEffect(() => {
         if (!timerActive || !restEndTime) return;
 
-        const interval = setInterval(() => {
+        const evaluateTimer = () => {
             const now = Date.now();
             const diff = Math.ceil((restEndTime - now) / 1000);
 
             if (diff <= 0) {
                 setTimeLeft(0);
                 if (!notificationSentRef.current) {
-                    playBeep();
-                    try { sendRestNotification(); } catch (e) { }
                     notificationSentRef.current = true;
+                    playRestFinishedAlert();
+                    // Se a aba estava visível, cancela o agendamento do SW e dispara a notificação;
+                    // se estava em background, o próprio SW já disparou ou disparará no timestamp exato.
+                    if (document.visibilityState === 'visible') {
+                        cancelServiceWorkerRestNotification();
+                    } else {
+                        triggerImmediateRestNotification(restTimerLabel);
+                    }
                 }
             } else {
                 setTimeLeft(diff);
             }
-        }, 200);
+        };
 
-        return () => clearInterval(interval);
-    }, [timerActive, restEndTime]);
+        evaluateTimer();
+        const interval = setInterval(evaluateTimer, 200);
+
+        const handleVisibilityWake = () => {
+            if (document.visibilityState === 'visible') {
+                evaluateTimer();
+            }
+        };
+        document.addEventListener('visibilitychange', handleVisibilityWake);
+        window.addEventListener('pageshow', handleVisibilityWake);
+
+        return () => {
+            clearInterval(interval);
+            document.removeEventListener('visibilitychange', handleVisibilityWake);
+            window.removeEventListener('pageshow', handleVisibilityWake);
+        };
+    }, [timerActive, restEndTime, restTimerLabel]);
 
     const startRestTimer = (duration: number, label: string = 'Descanso') => {
         const end = Date.now() + (duration * 1000);
@@ -1188,29 +1294,36 @@ const WorkoutExecution: React.FC = () => {
         setToastVisible(true);
         notificationSentRef.current = false;
 
-        // Pedir permissão de notificação de forma segura
-        try {
-            if ('Notification' in window && Notification.permission === 'default') {
-                Notification.requestPermission().catch(err => console.log('Notification permission error:', err));
-            }
-        } catch (e) {
-            console.log('Notification API not supported');
-        }
+        // Desbloqueia áudio no gesto do usuário e mantém canal keep-alive para tela bloqueada
+        unlockAndStartBackgroundTimerAudio();
+        // Agenda a notificação nativa no Service Worker para tocar na barra superior do Android
+        scheduleServiceWorkerRestNotification(end, label);
     };
 
     const stopRestTimer = () => {
         setTimerActive(false);
         setRestEndTime(null);
         setToastVisible(false);
+        cancelServiceWorkerRestNotification();
     };
 
     const addTime = (seconds: number) => {
         if (!restEndTime) return;
-        const newEnd = restEndTime + (seconds * 1000);
+        const now = Date.now();
+        // CORREÇÃO CRÍTICA: Se o cronômetro já tinha zerado (restEndTime no passado),
+        // soma os +15s a partir de `Date.now()` e não a partir do timestamp antigo vencido!
+        const baseTime = seconds > 0 ? Math.max(now, restEndTime) : restEndTime;
+        const newEnd = Math.max(now, baseTime + (seconds * 1000));
+        const newDiff = Math.max(0, Math.ceil((newEnd - now) / 1000));
+
         setRestEndTime(newEnd);
-        // Reset notification flag if we add time to a finished timer
-        if (timeLeft <= 0) {
+        setTimeLeft(newDiff);
+
+        if (newDiff > 0) {
+            setInitialTime(prev => Math.max(prev, newDiff));
             notificationSentRef.current = false;
+            unlockAndStartBackgroundTimerAudio();
+            scheduleServiceWorkerRestNotification(newEnd, restTimerLabel);
         }
     };
 
@@ -1399,7 +1512,7 @@ const WorkoutExecution: React.FC = () => {
             if (toastId) toast.dismiss(toastId);
             toast.success('Treino finalizado! Mandou bem!');
             notifyNetworkSuccess();
-            localStorage.removeItem('active_workout');
+            removeActiveWorkout(user?.id);
             navigate('/student/dashboard');
         } catch (error: any) {
             notifyNetworkError();
@@ -1546,7 +1659,7 @@ const WorkoutExecution: React.FC = () => {
                     if (toastId) toast.dismiss(toastId);
                     else toast.dismiss();
                     toast.success('Treino salvo no aparelho! Sincronizará ao reconectar 📶', { duration: 5000 });
-                    localStorage.removeItem('active_workout');
+                    removeActiveWorkout(user?.id);
                     navigate('/student/dashboard');
                     return;
                 }
