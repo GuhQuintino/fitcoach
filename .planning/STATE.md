@@ -1,8 +1,8 @@
 # STATE — Fitcoach Pro
 
 **Última Atualização:** 25 de Outubro de 2026  
-**Fase Ativa:** Fase 14 — Notificações Inteligentes Baseadas no Padrão do Aluno + Anti-Spam & Onboarding de Perfil (Concluída com Sucesso)  
-**Status Global:** Saúde excelente e blindada, 0 erros TypeScript (`tsc --noEmit`), build de produção Vite 100% aprovado (10.61s), 155 testes automatizados Vitest passando (100% em 15 arquivos de teste, incluindo 19/19 em `tests/unit/workoutHabitAnalyzer.test.ts` e 10/10 na suíte de regressão `tests/background-lifecycle-timer.regression.test.ts`), conformidade estrita Anti-AI-Slop sem truncamentos ou código placeholder, e Laudo de Auditoria Gauntlet Critic com nota máxima **3.00 / 3.00 (Média 6D — PASS)** ([`QA_REPORT_smart_notifications.md`](file:///c:/Users/Gustavo/Desktop/Fitcoach/docs/gauntlet/QA_REPORT_smart_notifications.md)).
+**Fase Ativa:** Fase 14 — Notificações Inteligentes Baseadas no Padrão do Aluno + Anti-Spam & Onboarding de Perfil (Concluída com Sucesso) — com Refinamento de Expansão e Responsividade Mobile do ProfileCompletionBanner Aprovado  
+**Status Global:** Saúde excelente e blindada, 0 erros TypeScript (`tsc --noEmit`), build de produção Vite 100% aprovado (10.04s, 788 módulos), 160 testes automatizados Vitest passando (100% em 16 arquivos de teste, incluindo 5/5 na suíte de regressão dedicada `tests/regression/profileCompletionBanner.regression.test.tsx`, 19/19 em `tests/unit/workoutHabitAnalyzer.test.ts` e 10/10 na suíte de regressão `tests/background-lifecycle-timer.regression.test.ts`), conformidade estrita Anti-AI-Slop sem truncamentos ou código placeholder, e Laudos de Auditoria Gauntlet Critic com nota máxima **3.00 / 3.00 (Média 6D — PASS)** ([`QA_REPORT_smart_notifications.md`](file:///c:/Users/Gustavo/Desktop/Fitcoach/docs/gauntlet/QA_REPORT_smart_notifications.md) e [`QA_REPORT_profile_banner_expansion.md`](file:///c:/Users/Gustavo/Desktop/Fitcoach/docs/gauntlet/QA_REPORT_profile_banner_expansion.md)).
 
 ---
 
@@ -27,17 +27,19 @@
     - Edge Function em Deno pronta para execução agendada diurna via `pg_cron` ou webhook externo.
   - **Componentes do Aluno & Interface ([`components/student/NotificationBell.tsx`](file:///c:/Users/Gustavo/Desktop/Fitcoach/components/student/NotificationBell.tsx), [`components/student/ProfileCompletionBanner.tsx`](file:///c:/Users/Gustavo/Desktop/Fitcoach/components/student/ProfileCompletionBanner.tsx), [`pages/student/Dashboard.tsx`](file:///c:/Users/Gustavo/Desktop/Fitcoach/pages/student/Dashboard.tsx), [`pages/settings/Notifications.tsx`](file:///c:/Users/Gustavo/Desktop/Fitcoach/pages/settings/Notifications.tsx))**:
     - Substituição da bolinha vermelha estática pelo `NotificationBell`, exibindo badge dinâmico animado e contagem real via Supabase Realtime (apenas renderiza quando `unreadCount > 0`).
-    - `ProfileCompletionBanner` renderizando alerta esportivo não invasivo com percentual de preenchimento, dados faltantes e link para `/student/profile`.
+    - `ProfileCompletionBanner` renderizando alerta esportivo não invasivo com percentual de preenchimento, arquitetura de acordeão expansível ("Ver mais" / "Ver menos" com chevron dinâmico animado em 180°), proteção total contra truncamento de texto em telas compactas (~360px), painel colapsável `#profile-banner-details` exibindo chips visuais ricos com ícones para pendências (Foto, Peso, Idade, Altura), botões táteis ergonômicos (touch targets >= 44x44px), botão dispensar com snooze de 3 dias via `localStorage` e Supabase `updatePreferences`, e CTA direto para `/student/profile`.
     - Centro de configurações funcional em `/student/settings/notifications` com ativação de Web Push, card de Padrão de Treino Aprendido com badge de precisão e override manual, controle granular de tópicos, customização de Quiet Hours e histórico de alertas recentes.
   - **Validação Automatizada Abrangente**:
+    - Suíte de regressão dedicada em [`tests/regression/profileCompletionBanner.regression.test.tsx`](file:///c:/Users/Gustavo/Desktop/Fitcoach/tests/regression/profileCompletionBanner.regression.test.tsx) com 5/5 testes passando, validando montagem no mobile, título não truncado, acessibilidade ARIA (`aria-expanded`, `aria-controls`), toggle interativo e política de snooze/opt-out.
     - Suíte de 19 testes automatizados em [`tests/unit/workoutHabitAnalyzer.test.ts`](file:///c:/Users/Gustavo/Desktop/Fitcoach/tests/unit/workoutHabitAnalyzer.test.ts) cobrindo todos os cenários e escudos anti-spam.
     - Suítes de serviço em [`tests/unit/pushNotificationService.test.ts`](file:///c:/Users/Gustavo/Desktop/Fitcoach/tests/unit/pushNotificationService.test.ts) e [`tests/unit/smartNotificationDispatcher.test.ts`](file:///c:/Users/Gustavo/Desktop/Fitcoach/tests/unit/smartNotificationDispatcher.test.ts).
-    - 155/155 testes aprovados na suíte global Vitest (15 arquivos, 100% de sucesso).
-    - Laudo Gauntlet Critic aprovado com nota máxima **3.00 / 3.00 (Média 6D — PASS)** ([`QA_REPORT_smart_notifications.md`](file:///c:/Users/Gustavo/Desktop/Fitcoach/docs/gauntlet/QA_REPORT_smart_notifications.md)).
+    - 160/160 testes aprovados na suíte global Vitest (16 arquivos, 100% de sucesso em ~2.91s).
+    - Laudos Gauntlet Critic aprovados com nota máxima **3.00 / 3.00 (Média 6D — PASS)** ([`QA_REPORT_smart_notifications.md`](file:///c:/Users/Gustavo/Desktop/Fitcoach/docs/gauntlet/QA_REPORT_smart_notifications.md) e [`QA_REPORT_profile_banner_expansion.md`](file:///c:/Users/Gustavo/Desktop/Fitcoach/docs/gauntlet/QA_REPORT_profile_banner_expansion.md)).
 
 ---
 
 ## 🔒 Decisões Travadas (Locked Decisions)
+- **ADR-018: Expansão Não Intrusiva e Resiliência em Telas Estreitas no ProfileCompletionBanner (Fase 14):** Arquitetura em padrão acordeão expansível (`isExpanded` padrão `false`), mantendo o estado recolhido enxuto com título sem truncar (`whitespace-nowrap`, remoção de `truncate`), percentual em pill e botão tátil expansor ("Ver mais" / "Ver menos" com chevron animado e touch target >= 44x44px). Ao expandir, exibe chips visuais dos campos pendentes (Foto, Peso, Idade, Altura) com ícones dedicados e botões ergonômicos de ação, preservando a lógica de adiamento (snooze de 3 dias via `localStorage` e Supabase) e coberto por teste de regressão dedicado.
 - **ADR-015: Inferência de Horário de Treino Baseada em Mediana e Cold Start (Regras N2/N3):** O cálculo do horário habitual utiliza a mediana de minutos do dia dos treinos realizados em `workout_logs.started_at` para alunos com $\ge 3$ treinos, impedindo distorções por outliers. Alunos com $< 3$ treinos iniciam com cold start conservador às 16:30 nos dias Segunda, Quarta e Sexta ([1, 3, 5]), migrando automaticamente para o padrão estatístico após o 3º treino.
 - **ADR-016: Quatro Escudos Anti-Spam e Políticas de Backoff em Notificações (Regra N4):** Prevenção matemática estrita de fadiga de alertas: (1) silêncio absoluto no dia se o aluno já concluiu qualquer treino; (2) teto rígido de 1 notificação diária por usuário; (3) teto semanal de 3 lembretes de treino; (4) backoff progressivo com 5 dias de pausa completa se o aluno ignorar 2 lembretes consecutivos sem treinar; e Quiet Hours invioláveis das 21:30 às 07:30 da manhã. Para onboarding de perfil, limita-se a 1 aviso inicial e 1 reforço após 4 dias se continuar incompleto.
 - **ADR-017: Arquitetura Híbrida Web Push RFC 8292 com Preservação de Listeners de Timer no Service Worker (Regras N5/N6):** Manipuladores de `push` e `notificationclick` em `public/sw.js` são desacoplados e mantêm 100% de isolamento em relação aos timers de descanso em segundo plano (`SCHEDULE_REST_TIMER`/`CANCEL_REST_TIMER`) da Fase 13. O serviço `pushNotificationService.ts` converte chaves VAPID no formato RFC 8292 (`urlBase64ToUint8Array`) e detecta compatibilidade de PWA Standalone no iOS Safari 16.4+.
@@ -69,7 +71,7 @@
 
 ## 📊 Métricas de Qualidade
 - **TypeScript:** 0 erros de tipagem estática (`tsc --noEmit`)
-- **Testes Automatizados (Vitest):** 155 passed / 155 total (100% de sucesso em 15 arquivos de teste em ~2.24s)
+- **Testes Automatizados (Vitest):** 160 passed / 160 total (100% de sucesso em 16 arquivos de teste em ~2.91s)
   - `tests/whatsappDossierSync.test.ts`: 22/22 passed
   - `utils/studentStatus.test.ts`: 20/20 passed
   - `tests/unit/workoutHabitAnalyzer.test.ts`: 19/19 passed
@@ -81,14 +83,17 @@
   - `tests/unit/staleWorkoutService.test.ts`: 8/8 passed
   - `tests/regression/activeWorkoutAndAuthSafety.regression.test.ts`: 7/7 passed
   - `tests/regression/workoutFinalizationEnum.regression.test.ts`: 6/6 passed
+  - `tests/regression/profileCompletionBanner.regression.test.tsx`: 5/5 passed
   - `utils/workoutHistoryGrouper.test.ts`: 5/5 passed
   - `tests/unit/offlineCacheService.test.ts`: 5/5 passed
   - `tests/unit/smartNotificationDispatcher.test.ts`: 5/5 passed
   - `tests/unit/pushNotificationService.test.ts`: 4/4 passed
-- **Build de Produção:** Vite build 100% concluído em 7.98s gerando 781 módulos sem erros ou warnings (`npm run build`)
-- **Acessibilidade:** 0 violações críticas P0 (WAI-ARIA `role="dialog"`, touch targets $\ge 44\text{px}$, suporte a tecla `Escape` em 100% dos modais)
+- **Build de Produção:** Vite build 100% concluído em 10.04s gerando 788 módulos sem erros ou warnings (`npm run build`)
+- **Acessibilidade:** 0 violações críticas P0 (WAI-ARIA `role="dialog"`, touch targets $\ge 44\text{px}$, suporte a tecla `Escape` em 100% dos modais, `aria-expanded` e `aria-controls` no banner)
 - **Conformidade Anti-AI-Slop:** 0 violações (zero travessões longos `—` em botões/títulos, sem emojis em badges, sem gradientes artificiais "AI purple")
-- **Laudo Gauntlet Critic (smart_notifications):** **3.00 / 3.00 (Média 6D — PASS)** documentado em [`QA_REPORT_smart_notifications.md`](file:///c:/Users/Gustavo/Desktop/Fitcoach/docs/gauntlet/QA_REPORT_smart_notifications.md)
+- **Laudos Gauntlet Critic:**
+  - **3.00 / 3.00 (Média 6D — PASS)** em [`QA_REPORT_smart_notifications.md`](file:///c:/Users/Gustavo/Desktop/Fitcoach/docs/gauntlet/QA_REPORT_smart_notifications.md)
+  - **3.00 / 3.00 (Média 6D — PASS)** em [`QA_REPORT_profile_banner_expansion.md`](file:///c:/Users/Gustavo/Desktop/Fitcoach/docs/gauntlet/QA_REPORT_profile_banner_expansion.md)
 
 ---
 

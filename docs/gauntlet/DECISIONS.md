@@ -102,3 +102,10 @@
 - **Contexto:** A inclusão de notificações push nativas via Service Worker (`push` e `notificationclick`) corria risco de conflitar com os timers de descanso em segundo plano previamente blindados na Fase 13 (`SCHEDULE_REST_TIMER` e `CANCEL_REST_TIMER`), além da necessidade de suportar iOS Standalone PWA (iOS 16.4+).
 - **Decisão:** Os manipuladores de eventos em `public/sw.js` foram desacoplados em listeners puros isolados, garantindo que eventos de push não interfiram no canal de áudio keep-alive ou nos timers locais de descanso. O serviço `pushNotificationService.ts` converte chaves VAPID no padrão RFC 8292 (`urlBase64ToUint8Array`) e valida os pré-requisitos de `window.navigator.standalone` no Safari iOS antes de solicitar permissão.
 
+## ADR-018: Expansão Não Intrusiva e Resiliência em Telas Estreitas no ProfileCompletionBanner (Fase 14)
+- **Data:** 25/10/2026
+- **Status:** Aceito e Implementado
+- **Contexto:** Em viewports mobile compactos (~360px), o título do banner de completude de perfil sofria truncamento para "Co..." devido à classe `truncate` e layout rígido horizontal, além de ocupar espaço vertical desproporcional caso todos os detalhes fossem exibidos de forma estática permanente.
+- **Decisão:** O componente foi arquitetado em padrão de acordeão expansível (`isExpanded` padrão `false`), mantendo o estado recolhido enxuto com título legível sem truncar (`whitespace-nowrap`, remoção de `truncate`), percentual em pill e botão tátil expansor ("Ver mais" / "Ver menos" com chevron animado e touch target >= 44x44px). Ao expandir, exibe chips visuais dos campos pendentes (Foto, Peso, Idade, Altura) com ícones dedicados e botões ergonômicos de ação, preservando a lógica de adiamento (snooze de 3 dias via `localStorage` e Supabase) e cobrindo integralmente o comportamento com teste de regressão dedicado passando 100%.
+
+

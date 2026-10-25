@@ -4,6 +4,52 @@
 
 ---
 
+## [2026-10-25] — Expansão e Responsividade Mobile do ProfileCompletionBanner (Fase 14 — PASS)
+
+- **Identificador da Fatia:** `profile_banner_expansion` / `feature-profile-banner-mobile-accordion`
+- **Perfil Gauntlet:** `frontend-framework` (React 19.2.3 + TypeScript 5.8.2 + Vite 6.4.1 + Tailwind CSS + Lucide/Material Symbols + Vitest 5.0.3)
+- **Subagente Executor:** `gauntlet-builder`
+- **Sumário da Fatia:** [`docs/gauntlet/SLICE_SUMMARY.md`](file:///c:/Users/Gustavo/Desktop/Fitcoach/docs/gauntlet/SLICE_SUMMARY.md)
+- **Veredito do Gauntlet Critic:** **PASS (3.00 / 3.00 na Rubrica 6D)** — [`QA_REPORT_profile_banner_expansion.md`](file:///c:/Users/Gustavo/Desktop/Fitcoach/docs/gauntlet/QA_REPORT_profile_banner_expansion.md)
+
+### Resumo do Valor Entregue (End-to-End)
+1. **Dados & Modelos:**
+   - Consumo estrito da interface `ProfileCompletenessResult` de `types/notifications.ts`, mantendo tipagem estática e desacoplamento sem duplicação de estruturas.
+2. **Serviços & Contratos de Persistência:**
+   - Preservação da regra de adiamento (snooze de 3 dias) no `localStorage` e Supabase via `updatePreferences({ profile_snooze_until: ... })`.
+   - Respeito integral ao opt-out do usuário em preferências de notificação (`profile_completion !== false`) e auto-ocultação determinística quando `isComplete: true` (100% preenchido).
+3. **Interface & Responsividade Mobile (Acordeão Ergonômico):**
+   - **Eliminação de Truncamento:** Remoção da classe `truncate` do cabeçalho que reduzia o título a "Co..." em telas estreitas (~360px). Título agora estruturado com `shrink-0` e `whitespace-nowrap`, garantindo leitura limpa em qualquer viewport mobile.
+   - **Padrão de Acordeão com Chevron Animado:** Estado recolhido enxuto exibindo badge âmbar de perfil, percentual de completude em pill contrastante, botão expansor tátil com rótulo dinâmico ("Ver mais" / "Ver menos") e ícone chevron giratório com animação suave de 180° (`rotate-180`, `duration-200`, respeitando `motion-reduce:transition-none`).
+   - **Painel Colapsável de Pendências (`#profile-banner-details`):** Exibição sob demanda de mensagem explicativa contextual, chips visuais dedicados com ícones individuais para os dados faltantes (`Foto`, `Peso`, `Idade`, `Altura`) e botões ergonômicos de ação rápida ("Lembrar depois" e "Preencher perfil").
+   - **Acessibilidade WCAG 2.1 AA:** Alvos táteis $\ge 44\text{px}$ em todos os botões (`min-h-[44px] min-w-[44px]`), atributos WAI-ARIA semânticos completos (`aria-expanded`, `aria-controls="profile-banner-details"`, `aria-label`), e anéis de foco visíveis (`focus-visible:ring-2 focus-visible:ring-primary`).
+4. **Testes Automatizados & Blindagem por Regressão:**
+   - Criação de suíte de regressão dedicada em [`tests/regression/profileCompletionBanner.regression.test.tsx`](file:///c:/Users/Gustavo/Desktop/Fitcoach/tests/regression/profileCompletionBanner.regression.test.tsx) com 5/5 testes passando em 29ms, validando: renderização sem truncamento, atributos ARIA, expansão/recolhimento interativo com clique, exibição dos chips de dados faltantes e respeito ao snooze/opt-out.
+   - 160/160 testes aprovados na suíte global Vitest (16 arquivos de teste, 100% de sucesso em ~2.91s).
+   - Compilação TypeScript limpa com 0 erros (`tsc --noEmit`) e Vite build 100% concluído em 10.04s gerando 788 módulos.
+   - Laudo Gauntlet Critic aprovado com nota máxima **3.00 / 3.00 (Média 6D — PASS)** em [`QA_REPORT_profile_banner_expansion.md`](file:///c:/Users/Gustavo/Desktop/Fitcoach/docs/gauntlet/QA_REPORT_profile_banner_expansion.md).
+
+### Métricas da Rubrica 6D
+| Dimensão | Nota | Status |
+|---|:---:|:---:|
+| **D1. Funcionalidade & Requisitos** | 3.0 / 3.0 | Aprovado |
+| **D2. Robustez & Estabilidade** | 3.0 / 3.0 | Aprovado |
+| **D3. Qualidade de Implementação & Anti-Slop** | 3.0 / 3.0 | Aprovado |
+| **D4. Consistência Arquitetural & Stack Nativa** | 3.0 / 3.0 | Aprovado |
+| **D5. Performance & Eficiência** | 3.0 / 3.0 | Aprovado |
+| **D6. Testabilidade, Segurança & Conformidade** | 3.0 / 3.0 | Aprovado |
+| **Média Consolidada** | **3.00 / 3.00** | **PASS** |
+
+### Arquivos Criados e Modificados
+- `components/student/ProfileCompletionBanner.tsx`: componente refatorado com padrão de acordeão expansível, chips visuais de campos pendentes com ícones, chevron animado, proteção contra truncamento de texto e touch targets $\ge 44\text{px}$.
+- `tests/regression/profileCompletionBanner.regression.test.tsx`: suíte de 5 testes de regressão automatizados cobrindo renderização, atributos de acessibilidade ARIA, interações de expansão/recolhimento e regras de desativação/snooze.
+- `docs/gauntlet/QA_REPORT_profile_banner_expansion.md`: laudo formal de avaliação do Gauntlet Critic com nota máxima 3.00/3.00 (PASS).
+- `docs/gauntlet/SLICE_SUMMARY.md`: sumário de engenharia e entregáveis da fatia vertical.
+- `docs/gauntlet/DECISIONS.md`: registro da ADR-018.
+- `.planning/STATE.md`, `.planning/ROADMAP.md`, `ROADMAP.md`, `.planning/PROGRESS.md`, `PROGRESS.md`: governança GSD sincronizada.
+
+---
+
 ## [2026-10-25] — Notificações Inteligentes Baseadas no Padrão do Aluno + Anti-Spam & Onboarding de Perfil (Fase 14 — PASS)
 
 - **Identificador da Fatia:** `smart_notifications` / `feature-smart-notifications-habit-learner`
