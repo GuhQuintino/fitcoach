@@ -51,6 +51,7 @@ const NotificationsSettings: React.FC = () => {
             profile_completion: raw.profile_completion ?? true,
             profile_completion_snoozed_until: raw.profile_completion_snoozed_until ?? null,
             evolution_photos: raw.evolution_photos ?? true,
+            coach_feedback: raw.coach_feedback ?? true,
             plan_expiration: raw.plan_expiration ?? true,
             system_updates: raw.system_updates ?? true,
             quiet_hours_start: raw.quiet_hours_start || '21:30',
@@ -329,9 +330,14 @@ const NotificationsSettings: React.FC = () => {
 
     const coachTopics = [
         {
-            key: 'evolution_photos' as const,
+            key: 'coach_feedback' as const,
             label: 'Novos Feedbacks de Alunos',
             desc: 'Alertas quando alunos registrarem avaliações ou comentários em exercícios.'
+        },
+        {
+            key: 'evolution_photos' as const,
+            label: 'Fotos de Evolução de Alunos',
+            desc: 'Avisos quando alunos enviarem novas fotos na galeria de evolução.'
         },
         {
             key: 'plan_expiration' as const,
@@ -374,7 +380,7 @@ const NotificationsSettings: React.FC = () => {
                 </button>
                 <div className="flex flex-col">
                     <h1 className="font-display text-xl font-black text-slate-900 dark:text-white">Notificações</h1>
-                    <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mt-0.5">Centro de Alertas e Hábitos</p>
+                    <p className="text-[10px] font-bold text-slate-600 dark:text-slate-300 uppercase tracking-widest mt-0.5">Centro de Alertas e Hábitos</p>
                 </div>
             </header>
 
@@ -408,7 +414,7 @@ const NotificationsSettings: React.FC = () => {
                             </div>
                             <div>
                                 <h2 className="font-bold text-base text-slate-900 dark:text-white">Push Notifications</h2>
-                                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                                <p className="text-xs text-slate-600 dark:text-slate-300 mt-0.5">
                                     {permissionStatus === 'denied'
                                         ? 'Permissão bloqueada no navegador'
                                         : 'Alertas no celular mesmo com o app fechado'}
@@ -429,7 +435,7 @@ const NotificationsSettings: React.FC = () => {
                     {/* Botão de Teste de Notificação Local (quando push estiver ativo e concedido) */}
                     {notifPrefs.push && permissionStatus === 'granted' && (
                         <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-700/60 flex items-center justify-between gap-3 flex-wrap">
-                            <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Validar alertas neste aparelho</p>
+                            <p className="text-xs text-slate-600 dark:text-slate-300 font-medium">Validar alertas neste aparelho</p>
                             <button
                                 type="button"
                                 onClick={handleSendTestNotification}
@@ -470,7 +476,7 @@ const NotificationsSettings: React.FC = () => {
                         <div className="grid grid-cols-2 gap-4 bg-white/5 p-4 rounded-2xl border border-white/5">
                             <div>
                                 <p className="text-[11px] font-bold text-slate-300 uppercase tracking-wider">Horário Usual</p>
-                                <p className="text-2xl font-black text-white mt-1">
+                                <p className="text-2xl font-black text-white mt-1 tabular-nums">
                                     {habitResult.medianTime}
                                 </p>
                             </div>
@@ -503,7 +509,7 @@ const NotificationsSettings: React.FC = () => {
                                     value={customTimeInput}
                                     onChange={(e) => setCustomTimeInput(e.target.value)}
                                     aria-label="Definir horário preferido de treino"
-                                    className="min-h-[44px] px-3.5 py-2.5 bg-slate-950/60 border border-white/20 rounded-xl text-white font-bold text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all"
+                                    className="min-h-[44px] px-3.5 py-2.5 bg-slate-950/60 border border-white/20 rounded-xl text-white font-bold text-sm tabular-nums focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all"
                                 />
                                 <button
                                     type="button"
@@ -519,7 +525,7 @@ const NotificationsSettings: React.FC = () => {
 
                 {/* Tópicos de Alertas */}
                 <section className="space-y-4">
-                    <h3 className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em] ml-2">
+                    <h3 className="text-[10px] font-black text-slate-600 dark:text-slate-300 uppercase tracking-[0.2em] ml-2">
                         Tópicos de Notificação
                     </h3>
                     <div className="space-y-3">
@@ -537,7 +543,7 @@ const NotificationsSettings: React.FC = () => {
                                     <div className="flex items-center justify-between gap-4">
                                         <div className="flex-1 pr-2">
                                             <h4 className="font-bold text-slate-800 dark:text-slate-200 text-sm">{topic.label}</h4>
-                                            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">{topic.desc}</p>
+                                            <p className="text-xs text-slate-600 dark:text-slate-300 mt-1 leading-relaxed">{topic.desc}</p>
                                         </div>
                                         <ToggleSwitch
                                             id={`topic-${topic.key}`}
@@ -551,14 +557,14 @@ const NotificationsSettings: React.FC = () => {
                                     {/* Indicador de Snooze de 3 dias com botão de reativação imediata */}
                                     {isSnoozed && (
                                         <div className="pt-2.5 border-t border-slate-100 dark:border-slate-700/60 flex items-center justify-between text-xs">
-                                            <span className="text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                                            <span className="text-slate-600 dark:text-slate-300 flex items-center gap-1.5 tabular-nums">
                                                 <span className="material-symbols-rounded text-sm text-amber-500" aria-hidden="true">schedule</span>
                                                 Adiado por 3 dias (até {new Date(notifPrefs.profile_completion_snoozed_until!).toLocaleDateString('pt-BR')})
                                             </span>
                                             <button
                                                 type="button"
                                                 onClick={handleResetProfileSnooze}
-                                                className="text-primary hover:underline font-bold text-xs"
+                                                className="text-primary hover:underline font-bold text-xs min-h-[44px] px-2 inline-flex items-center rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                                             >
                                                 Reativar agora
                                             </button>
@@ -578,7 +584,7 @@ const NotificationsSettings: React.FC = () => {
                         </div>
                         <div>
                             <h3 className="font-bold text-sm text-slate-900 dark:text-white">Horário de Silêncio</h3>
-                            <p className="text-xs text-slate-500 dark:text-slate-400">Nenhum alerta automático será disparado neste intervalo.</p>
+                            <p className="text-xs text-slate-600 dark:text-slate-300">Nenhum alerta automático será disparado neste intervalo.</p>
                         </div>
                     </div>
 
@@ -593,7 +599,7 @@ const NotificationsSettings: React.FC = () => {
                                 value={quietStartInput}
                                 onChange={(e) => setQuietStartInput(e.target.value)}
                                 onBlur={(e) => handleQuietHoursBlur('quiet_hours_start', e.target.value)}
-                                className="w-full min-h-[44px] px-3.5 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-800 dark:text-white font-bold text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                                className="w-full min-h-[44px] px-3.5 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-800 dark:text-white font-bold text-sm tabular-nums focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
                             />
                         </div>
                         <div>
@@ -606,7 +612,7 @@ const NotificationsSettings: React.FC = () => {
                                 value={quietEndInput}
                                 onChange={(e) => setQuietEndInput(e.target.value)}
                                 onBlur={(e) => handleQuietHoursBlur('quiet_hours_end', e.target.value)}
-                                className="w-full min-h-[44px] px-3.5 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-800 dark:text-white font-bold text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                                className="w-full min-h-[44px] px-3.5 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-800 dark:text-white font-bold text-sm tabular-nums focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
                             />
                         </div>
                     </div>
@@ -615,7 +621,7 @@ const NotificationsSettings: React.FC = () => {
                 {/* Central de Notificações Recentes */}
                 <section className="space-y-4">
                     <div className="flex items-center justify-between px-2">
-                        <h3 className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em]">
+                        <h3 className="text-[10px] font-black text-slate-600 dark:text-slate-300 uppercase tracking-[0.2em]">
                             Notificações Recentes
                         </h3>
                         {recentNotifs.some(n => !n.read_at) && (
@@ -687,7 +693,7 @@ const NotificationsSettings: React.FC = () => {
                                                 <h4 className={`text-xs truncate ${isUnread ? 'font-bold text-slate-900 dark:text-white' : 'font-medium text-slate-700 dark:text-slate-300'}`}>
                                                     {notif.title}
                                                 </h4>
-                                                <span className="text-[10px] text-slate-500 dark:text-slate-400 shrink-0 font-medium">
+                                                <span className="text-[10px] text-slate-600 dark:text-slate-300 shrink-0 font-medium tabular-nums">
                                                     {dateFormatted}
                                                 </span>
                                             </div>

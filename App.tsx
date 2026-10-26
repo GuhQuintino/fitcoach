@@ -21,8 +21,6 @@ const Library = lazy(() => import('./pages/coach/Library'));
 const Editor = lazy(() => import('./pages/coach/Editor'));
 const Students = lazy(() => import('./pages/coach/Students'));
 const StudentProfileView = lazy(() => import('./pages/coach/StudentProfileView'));
-const Plans = lazy(() => import('./pages/coach/Plans'));
-const SubscriptionDetails = lazy(() => import('./pages/coach/SubscriptionDetails'));
 const RoutineDetails = lazy(() => import('./pages/coach/RoutineDetails'));
 const CoachProfile = lazy(() => import('./pages/coach/Profile'));
 const InviteStudent = lazy(() => import('./pages/coach/InviteStudent'));
@@ -147,8 +145,6 @@ const AppContent = () => {
                             <Route path="editor" element={<Editor />} />
                             <Route path="students" element={<Students />} />
                             <Route path="student/:id" element={<StudentProfileView />} />
-                            <Route path="plans" element={<Plans />} />
-                            <Route path="subscription" element={<SubscriptionDetails />} />
                             <Route path="routine-details" element={<RoutineDetails />} />
                             <Route path="profile" element={<CoachProfile />} />
                             <Route path="invite" element={<InviteStudent />} />

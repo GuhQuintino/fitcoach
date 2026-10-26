@@ -10,6 +10,35 @@ interface Photo {
     created_at: string;
 }
 
+/**
+ * Extrai o caminho relativo do objeto dentro do bucket do Supabase Storage
+ * a partir de uma URL pública ou caminho relativo.
+ */
+export const extractStoragePath = (url: string, bucketName: string = 'evolution-photos'): string | null => {
+    if (!url || typeof url !== 'string') return null;
+    const trimmed = url.trim();
+    if (!trimmed) return null;
+
+    const cleanUrl = trimmed.split('?')[0].split('#')[0];
+    const marker = `/${bucketName}/`;
+    const markerIdx = cleanUrl.indexOf(marker);
+
+    if (markerIdx !== -1) {
+        const extracted = decodeURIComponent(cleanUrl.slice(markerIdx + marker.length)).replace(/^\/+/, '');
+        return extracted || null;
+    }
+
+    // Se já for um path relativo direto (ex: "user-id/17123456.jpg") sem protocolo http
+    if (!/^https?:\/\//i.test(cleanUrl)) {
+        const cleanedRelative = cleanUrl.replace(/^\/+/, '');
+        return cleanedRelative || null;
+    }
+
+    return null;
+};
+
+export const extractStoragePathFromPublicUrl = extractStoragePath;
+
 const EvolutionGallery: React.FC<{ studentId?: string; isCoachView?: boolean }> = ({ studentId, isCoachView = false }) => {
     const { user } = useAuth();
     const [photos, setPhotos] = useState<Photo[]>([]);
@@ -49,7 +78,7 @@ const EvolutionGallery: React.FC<{ studentId?: string; isCoachView?: boolean }> 
             // 1. Upload para o Storage
             const fileExt = file.name.split('.').pop();
             const fileName = `${user.id}/${Date.now()}.${fileExt}`;
-            const { error: uploadError, data } = await supabase.storage
+            const { error: uploadError } = await supabase.storage
                 .from('evolution-photos')
                 .upload(fileName, file);
 
@@ -85,7 +114,19 @@ const EvolutionGallery: React.FC<{ studentId?: string; isCoachView?: boolean }> 
         if (!window.confirm('Tem certeza que deseja excluir esta foto?')) return;
 
         try {
-            // 1. Deletar do banco
+            // 1. Extrair caminho do arquivo e deletar do bucket Supabase Storage ('evolution-photos')
+            const storagePath = extractStoragePath(url, 'evolution-photos');
+            if (storagePath) {
+                const { error: storageError } = await supabase.storage
+                    .from('evolution-photos')
+                    .remove([storagePath]);
+
+                if (storageError) {
+                    console.warn('[EvolutionGallery] Aviso ao remover objeto do Storage:', storageError);
+                }
+            }
+
+            // 2. Deletar registro do banco
             const { error: dbError } = await supabase
                 .from('evolution_photos')
                 .delete()
@@ -93,12 +134,10 @@ const EvolutionGallery: React.FC<{ studentId?: string; isCoachView?: boolean }> 
 
             if (dbError) throw dbError;
 
-            // 2. Tentar deletar do storage (opcional, URL pública é difícil de extrair o path exato sem complexidade)
-            // Aqui simplificamos deletando apenas do banco para o MVP
-
-            toast.success('Foto removida');
-            setPhotos(photos.filter(p => p.id !== id));
+            toast.success('Foto removida com sucesso!');
+            setPhotos(prev => prev.filter(p => p.id !== id));
         } catch (error) {
+            console.error('Erro ao excluir foto:', error);
             toast.error('Erro ao excluir foto');
         }
     };
@@ -110,22 +149,22 @@ const EvolutionGallery: React.FC<{ studentId?: string; isCoachView?: boolean }> 
             {!isCoachView && (
                 <div className="flex items-center justify-between mb-2">
                     <h3 className="text-lg font-bold text-slate-900 dark:text-white">Minha Evolução</h3>
-                    <label className="cursor-pointer bg-primary dark:bg-primary/90 text-white px-4 py-2 rounded-xl text-sm font-bold shadow-lg shadow-primary/20 hover:scale-105 transition-transform flex items-center gap-2">
+                    <label className="cursor-pointer min-h-[44px] bg-primary dark:bg-primary/90 text-white px-4 py-2 rounded-xl text-sm font-bold shadow-lg shadow-primary/20 hover:scale-105 transition-transform flex items-center gap-2 whitespace-nowrap focus-within:ring-2 focus-within:ring-primary focus-within:ring-offset-2">
                         {uploading ? (
                             <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
                         ) : (
-                            <span className="material-symbols-rounded text-lg">add_a_photo</span>
+                            <span className="material-symbols-rounded text-lg" aria-hidden="true">add_a_photo</span>
                         )}
                         Subir Foto
-                        <input type="file" className="hidden" accept="image/*" onChange={handleUpload} disabled={uploading} />
+                        <input type="file" className="sr-only" accept="image/*" onChange={handleUpload} disabled={uploading} />
                     </label>
                 </div>
             )}
 
             {photos.length === 0 ? (
                 <div className="bg-slate-50 dark:bg-slate-900/50 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-[2rem] p-12 text-center">
-                    <span className="material-symbols-rounded text-5xl text-slate-300 mb-4 font-light">photo_library</span>
-                    <p className="text-slate-500 dark:text-slate-400 font-medium">Nenhuma foto adicionada ainda.</p>
+                    <span className="material-symbols-rounded text-5xl text-slate-400 dark:text-slate-500 mb-4 font-light" aria-hidden="true">photo_library</span>
+                    <p className="text-slate-600 dark:text-slate-300 font-medium">Nenhuma foto adicionada ainda.</p>
                 </div>
             ) : (
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
@@ -137,8 +176,8 @@ const EvolutionGallery: React.FC<{ studentId?: string; isCoachView?: boolean }> 
                                 loading="lazy"
                                 className="w-full h-full object-cover"
                             />
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-4">
-                                <p className="text-[10px] text-white/80 font-medium">
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity flex flex-col justify-end p-4">
+                                <p className="text-[10px] text-white/90 font-medium tabular-nums">
                                     {new Date(photo.created_at).toLocaleDateString('pt-BR')}
                                 </p>
                                 {!isCoachView && (
@@ -146,7 +185,7 @@ const EvolutionGallery: React.FC<{ studentId?: string; isCoachView?: boolean }> 
                                         type="button"
                                         onClick={() => deletePhoto(photo.id, photo.image_url)}
                                         aria-label={`Excluir foto do dia ${new Date(photo.created_at).toLocaleDateString('pt-BR')}`}
-                                        className="absolute top-2 right-2 w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center bg-red-500/80 text-white rounded-xl hover:bg-red-500 transition-colors shadow-sm"
+                                        className="absolute top-2 right-2 w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center bg-red-500/80 text-white rounded-xl hover:bg-red-500 transition-colors shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
                                     >
                                         <span className="material-symbols-rounded text-base" aria-hidden="true">delete</span>
                                     </button>

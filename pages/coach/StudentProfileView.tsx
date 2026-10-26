@@ -7,6 +7,7 @@ import EvolutionGallery from '../../components/student/EvolutionGallery';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Cell } from 'recharts';
 import { formatToWhatsappUrl } from '../../utils/phoneUtils';
 import { SUB_MUSCLE_LABELS, normalizeMuscleWeights } from '../../utils/muscleUtils';
+import { calculateAgeFromBirthDate, calculateMetabolicProfile, sanitizeHeightCm } from '../../utils/metabolicCalculator';
 
 const StudentProfileView: React.FC = () => {
     const { id } = useParams<{ id: string }>();
@@ -262,24 +263,7 @@ const StudentProfileView: React.FC = () => {
 
     const formatAge = (birthDate: string) => {
         if (!birthDate) return '--';
-        const ageDifMs = Date.now() - new Date(birthDate).getTime();
-        const ageDate = new Date(ageDifMs);
-        return Math.abs(ageDate.getUTCFullYear() - 1970);
-    };
-
-    const calculateTMB = () => {
-        if (!studentData?.weight_kg || !studentData?.height_cm || !studentData?.birth_date) return 0;
-        const w = studentData.weight_kg;
-        const h = studentData.height_cm;
-        const birth = new Date(studentData.birth_date);
-        const age = Math.abs(new Date(Date.now() - birth.getTime()).getUTCFullYear() - 1970);
-        const gender = studentData.gender || 'male';
-
-        if (gender === 'male') {
-            return Math.round((10 * w) + (6.25 * h) - (5 * age) + 5);
-        } else {
-            return Math.round((10 * w) + (6.25 * h) - (5 * age) - 161);
-        }
+        return calculateAgeFromBirthDate(birthDate);
     };
 
     const getWeeklyVolumeData = () => {
@@ -321,8 +305,16 @@ const StudentProfileView: React.FC = () => {
         }));
     };
 
-    const tmb = calculateTMB();
-    const maintenance = Math.round(tmb * 1.35);
+    const metabolic = calculateMetabolicProfile({
+        weightKg: studentData?.weight_kg,
+        heightCm: studentData?.height_cm,
+        birthDate: studentData?.birth_date,
+        gender: studentData?.gender || 'male',
+        activityLevel: (profile?.preferences as any)?.activity_level || studentData?.activity_level,
+        weeklyFrequency: workouts?.length || null
+    });
+    const tmb = metabolic.tmb;
+    const maintenance = metabolic.maintenance;
 
     const weeklyData = React.useMemo(() => {
         return getWeeklyVolumeData();
@@ -533,7 +525,7 @@ const StudentProfileView: React.FC = () => {
                                                             onClick={() => handleReorderWorkout(idx, 'up')}
                                                             disabled={idx === 0}
                                                             aria-label={`Mover treino ${w.name} para cima`}
-                                                            className="w-9 h-9 min-w-[36px] min-h-[36px] flex items-center justify-center text-slate-400 hover:text-primary disabled:opacity-20 transition-colors cursor-pointer"
+                                                            className="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-primary disabled:opacity-20 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-lg"
                                                             title="Mover para cima"
                                                         >
                                                             <span className="material-symbols-rounded text-base" aria-hidden="true">keyboard_arrow_up</span>
@@ -544,7 +536,7 @@ const StudentProfileView: React.FC = () => {
                                                             onClick={() => handleReorderWorkout(idx, 'down')}
                                                             disabled={idx === workouts.length - 1}
                                                             aria-label={`Mover treino ${w.name} para baixo`}
-                                                            className="w-9 h-9 min-w-[36px] min-h-[36px] flex items-center justify-center text-slate-400 hover:text-primary disabled:opacity-20 transition-colors cursor-pointer"
+                                                            className="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-primary disabled:opacity-20 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-lg"
                                                             title="Mover para baixo"
                                                         >
                                                             <span className="material-symbols-rounded text-base" aria-hidden="true">keyboard_arrow_down</span>
@@ -777,12 +769,12 @@ const StudentProfileView: React.FC = () => {
                     {tmb > 0 && (
                         <div className="grid grid-cols-2 gap-3">
                             <div className="bg-gradient-to-br from-orange-500 to-rose-600 p-5 rounded-[2rem] text-white shadow-lg shadow-orange-500/20">
-                                <p className="text-[10px] font-black uppercase tracking-widest opacity-70 mb-1">Gasto Basal</p>
-                                <p className="text-2xl font-black">{tmb} <span className="text-xs font-bold opacity-80">kcal</span></p>
+                                <p className="text-[10px] font-black uppercase tracking-widest opacity-80 mb-1">Gasto Basal</p>
+                                <p className="text-2xl font-black tabular-nums">{tmb} <span className="text-xs font-bold opacity-80">kcal</span></p>
                             </div>
                             <div className="bg-emerald-500 p-5 rounded-[2rem] text-white shadow-lg shadow-emerald-500/20">
-                                <p className="text-[10px] font-black uppercase tracking-widest opacity-70 mb-1">Manutenção</p>
-                                <p className="text-2xl font-black">~{maintenance} <span className="text-xs font-bold opacity-80">kcal</span></p>
+                                <p className="text-[10px] font-black uppercase tracking-widest opacity-80 mb-1">Manutenção</p>
+                                <p className="text-2xl font-black tabular-nums">~{maintenance} <span className="text-xs font-bold opacity-80">kcal</span></p>
                             </div>
                         </div>
                     )}
@@ -790,15 +782,15 @@ const StudentProfileView: React.FC = () => {
                     {/* Personal Info Grid */}
                     <div className="grid grid-cols-3 gap-3">
                         <div className="flex flex-col items-center justify-center gap-1 rounded-2xl p-4 bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 shadow-sm">
-                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Idade</span>
-                            <p className="text-slate-900 dark:text-white font-bold">{formatAge(studentData?.birth_date)} anos</p>
+                            <span className="text-[10px] font-bold text-slate-600 dark:text-slate-300 uppercase tracking-widest">Idade</span>
+                            <p className="text-slate-900 dark:text-white font-bold tabular-nums">{formatAge(studentData?.birth_date)} anos</p>
                         </div>
                         <div className="flex flex-col items-center justify-center gap-1 rounded-2xl p-4 bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 shadow-sm">
-                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Altura</span>
-                            <p className="text-slate-900 dark:text-white font-bold">{studentData?.height_cm || '--'} cm</p>
+                            <span className="text-[10px] font-bold text-slate-600 dark:text-slate-300 uppercase tracking-widest">Altura</span>
+                            <p className="text-slate-900 dark:text-white font-bold tabular-nums">{sanitizeHeightCm(studentData?.height_cm) || studentData?.height_cm || '--'} cm</p>
                         </div>
                         <div className="flex flex-col items-center justify-center gap-1 rounded-2xl p-4 bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 shadow-sm">
-                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Sexo</span>
+                            <span className="text-[10px] font-bold text-slate-600 dark:text-slate-300 uppercase tracking-widest">Sexo</span>
                             <p className="text-slate-900 dark:text-white font-bold">
                                 {studentData?.gender === 'female' ? 'Fem' : 'Masc'}
                             </p>
@@ -916,7 +908,7 @@ const StudentProfileView: React.FC = () => {
                                                     </div>
                                                     <div>
                                                         <h4 className="font-bold text-slate-900 dark:text-white text-base line-clamp-1">{log.workout?.name || 'Treino s/ nome'}</h4>
-                                                        <div className="flex items-center gap-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">
+                                                        <div className="flex items-center gap-3 text-[10px] font-bold text-slate-600 dark:text-slate-300 uppercase tracking-widest mt-0.5 tabular-nums">
                                                             <span className="flex items-center gap-1">
                                                                 <span className="material-symbols-rounded text-sm" aria-hidden="true">schedule</span>
                                                                 {Math.floor((new Date(log.finished_at).getTime() - new Date(log.started_at).getTime()) / 60000)} min
@@ -938,15 +930,15 @@ const StudentProfileView: React.FC = () => {
 
                                             {/* Set Summary */}
                                             {log.set_logs && log.set_logs.length > 0 && (
-                                                <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-100 dark:border-slate-700/50">
+                                                <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-100 dark:border-slate-700/50 tabular-nums">
                                                     <div className="flex flex-col">
-                                                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider">Média de Carga</span>
+                                                        <span className="text-[9px] font-black text-slate-600 dark:text-slate-300 uppercase tracking-wider">Média de Carga</span>
                                                         <span className="text-sm font-bold text-slate-700 dark:text-slate-300">
                                                             {(log.set_logs.reduce((acc: number, s: any) => acc + (s.weight_kg || 0), 0) / log.set_logs.length).toFixed(1)} kg
                                                         </span>
                                                     </div>
                                                     <div className="flex flex-col">
-                                                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider">Total de Séries</span>
+                                                        <span className="text-[9px] font-black text-slate-600 dark:text-slate-300 uppercase tracking-wider">Total de Séries</span>
                                                         <span className="text-sm font-bold text-slate-700 dark:text-slate-300">{log.set_logs.length} séries</span>
                                                     </div>
                                                 </div>

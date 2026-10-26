@@ -187,12 +187,12 @@ export async function fetchStudentNotificationContext(
                 .single(),
             supabase
                 .from('students_data')
-                .select('weight_kg, birth_date, age, height_cm')
+                .select('weight_kg, birth_date, height_cm')
                 .eq('id', userId)
                 .single(),
             supabase
                 .from('workout_logs')
-                .select('id, started_at, completed_at')
+                .select('id, started_at, finished_at')
                 .eq('student_id', userId)
                 .gte('started_at', past28Days)
                 .order('started_at', { ascending: false }),
@@ -218,14 +218,19 @@ export async function fetchStudentNotificationContext(
             profile_completion: rawPrefs.profile_completion ?? true,
             profile_completion_snoozed_until: rawPrefs.profile_completion_snoozed_until ?? null,
             evolution_photos: rawPrefs.evolution_photos ?? true,
+            coach_feedback: rawPrefs.coach_feedback ?? true,
             plan_expiration: rawPrefs.plan_expiration ?? true,
+            system_updates: rawPrefs.system_updates ?? true,
             quiet_hours_start: rawPrefs.quiet_hours_start || '21:30',
             quiet_hours_end: rawPrefs.quiet_hours_end || '07:30',
             preferred_training_time: rawPrefs.preferred_training_time || null
         };
 
-        // Cálculos de Treino
-        const logs = workoutLogs || [];
+        // Cálculos de Treino (mapeando finished_at -> completed_at para compatibilidade)
+        const logs = (workoutLogs || []).map((l: any) => ({
+            ...l,
+            completed_at: l.finished_at ?? l.completed_at ?? null
+        }));
         const hasTrainedToday = logs.some(l => l.started_at >= startOfToday);
 
         // Inferência de Hábitos

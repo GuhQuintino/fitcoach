@@ -4,6 +4,54 @@
 
 ---
 
+## [2026-10-25] — Consolidação Single-Coach, Eliminação de Mockups e Blindagem de Bugs Silenciosos (C1 a C13) (Fase 15 — COMPLETE / PASS 3.00/3.00)
+
+- **Identificador da Fatia:** `SINGLE_COACH_CONSOLIDATION` / `single-coach-consolidation-c1-c13`
+- **Perfil Gauntlet:** `full-stack` (`frontend-framework` + Supabase Backend/Storage/Edge Functions — Vite 6.4.1 + React 19 + TypeScript 5.8 + Tailwind CSS + Supabase Postgres/Auth/Storage/Edge Functions Deno + Vitest 5.0.3)
+- **Subagente Executor:** `gauntlet-builder`
+- **Sumário da Fatia:** [`docs/gauntlet/SLICE_SUMMARY.md`](file:///c:/Users/Gustavo/Desktop/Fitcoach/docs/gauntlet/SLICE_SUMMARY.md)
+- **Veredito do Gauntlet Critic:** **PASS (3.00 / 3.00 na Rubrica 6D | 94.4% Similaridade | 19 suítes / 179 testes)** — [`QA_REPORT_SINGLE_COACH_CONSOLIDATION.md`](file:///c:/Users/Gustavo/Desktop/Fitcoach/docs/gauntlet/QA_REPORT_SINGLE_COACH_CONSOLIDATION.md)
+
+### Resumo do Valor Entregue (End-to-End — Slices 1, 2 e 3)
+1. **Slice 1 — Limpeza Estrutural Single-Coach, Auth/LGPD via WhatsApp e Painel do Coach (C1, C2, C6, C7, C12):**
+   - **Extinção de Rotas Comerciais Multi-Coach:** Remoção física de `pages/coach/Plans.tsx`, `pages/coach/SubscriptionDetails.tsx` e `contexts/RoleContext.tsx`, extinção das rotas `/coach/plans` e `/coach/subscription` em [`App.tsx`](file:///c:/Users/Gustavo/Desktop/Fitcoach/App.tsx) e remoção do botão `"Planos"` em [`BottomNav.tsx`](file:///c:/Users/Gustavo/Desktop/Fitcoach/components/BottomNav.tsx).
+   - **Recuperação de Senha via WhatsApp (`Login.tsx`):** Modal acessível (`role="dialog"`, `aria-modal="true"`) em `"Esqueceu a senha?"` que pré-preenche o login `@fitcoach.com` e aciona `https://wa.me/5511992616777` com mensagem formatada para o Treinador Gustavo.
+   - **Privacidade LGPD Funcional (`Privacy.tsx`):** Remoção dos 4 switches cosméticos sem efeito, preservando a alteração real de senha (`supabase.auth.updateUser`) e o botão `"Solicitar Exclusão de Todos os Dados"` conectado ao WhatsApp `5511992616777`.
+   - **Perfil & Changelog do Coach (`pages/coach/Profile.tsx`, `Updates.tsx`):** Exibição do e-mail do treinador e adição da seção `"Novidades da Plataforma"` (Changelog V2.4.0 a V2.1.0).
+2. **Slice 2 — Experiência do Aluno: Seleção, Dashboard XP, Histórico Interativo, TMB Mifflin-St Jeor e Storage (C3, C4, C5, C9, C10):**
+   - **Seleção de Treinos & Preservação na Clonagem (`Selection.tsx`, `Library.tsx`):** Funções `parseRoutineMeta`, `formatRoutineInfoToast` e `resolveWorkoutDurationLabel` formatando descrições JSON sem expor JSON cru, exibindo a duração real do treino e preservando `duration_minutes` e `description` no `handleAssign` de `Library.tsx`.
+   - **Dashboard do Aluno (`Dashboard.tsx`):** Remoção de `"Plano Atual / Consultoria Pro"` e do card `"Dica do dia"`, destacando `Nível X • Y XP`, barra de progresso, regra explícita de progressão e validade da consultoria (`Expira em: DD/MM/AAAA`).
+   - **Histórico Interativo (`History.tsx`):** Query da rotina ativa corrigida via `student_assignments` (`.eq('student_id', user.id).eq('is_active', true)`) e dias com treino no calendário mensal transformados em botões interativos com expansão, destaque (`ring-2 ring-primary`) e scroll suave.
+   - **Calculadora Metabólica Mifflin-St Jeor (`metabolicCalculator.ts`, `Profile.tsx`, `StudentProfileView.tsx`):** Sanitização de peso (`750 -> 75.0 kg`, `75000 -> 75.0 kg`) e altura (`1.75 -> 175 cm`, `1750 -> 175 cm`), cálculo de idade exata por `birth_date` e cálculo de TMB e Manutenção calórica com seletor de Nível de Atividade Física persistido em `profiles.preferences.activity_level`.
+   - **Exclusão Física no Storage (`EvolutionGallery.tsx`):** Remoção do arquivo físico no bucket `evolution-photos` via `extractStoragePath` antes de deletar o registro no banco.
+3. **Slice 3 — Ferramentas do Coach, Motor de Notificações e Blindagem de 4 Bugs Silenciosos (C8, C11, C13):**
+   - **Templates de Séries (`SetTemplateManager.tsx`):** `serializeSetForTemplate` e `deserializeTemplateSet` preservando todos os 23 campos das Camadas 1–4 e Cardio/HIIT.
+   - **Upload Direto de Mídia (`ExerciseFormModal.tsx`):** Suporte a envio direto de GIF, WebP, PNG, JPG, MP4 e WebM para o Supabase Storage com preview imediato.
+   - **Eliminação de 4 Bugs Silenciosos:** (1) remoção das colunas inexistentes `age` e `completed_at` em `smartNotificationDispatcher.ts`; (2) fuso `America/Sao_Paulo`, Quiet Hours, backoff de 5 dias e Web Push na Edge Function `supabase/functions/smart-notifications/index.ts`; (3) separação das chaves `coach_feedback` e `evolution_photos` em `Notifications.tsx`; e (4) eliminação da query N+1 em `WorkoutImportModal.tsx` com busca em lote `.in('student_id', studentIds)`.
+4. **Pendências / Backlog Futuro e Integrações Externas Registradas:**
+   - **Pendência / Backlog Futuro (Item 2.11):** Camada 4 de Séries Especiais `timer_mode` (seletor EMOM/AMRAP/Tabata no editor e cronômetro dedicado no player de musculação).
+   - **Pendência Externa / Integrações (`C:\Users\Gustavo\Desktop\Consultoria`):** Diagnóstico completo da duplicação de contas na renovação via Webhook InfinitePay em `src/lib/fitcoach/provisioning.ts` e `src/app/api/webhooks/infinitepay/route.ts` (divergência de e-mail pessoal vs `@fitcoach.com`, ausência de reconciliação por `payments`/telefone e falta de paginação em `listUsers()`).
+
+### Métricas da Rubrica 6D & Matriz de Similaridade
+| Dimensão | Nota | Status |
+|---|:---:|:---:|
+| **D1. Funcionalidade & Requisitos** | 3.0 / 3.0 | Aprovado |
+| **D2. Robustez & Estabilidade** | 3.0 / 3.0 | Aprovado |
+| **D3. Qualidade de Implementação & Anti-Slop** | 3.0 / 3.0 | Aprovado |
+| **D4. Consistência Arquitetural & Stack Nativa** | 3.0 / 3.0 | Aprovado |
+| **D5. Performance & Eficiência** | 3.0 / 3.0 | Aprovado |
+| **D6. Testabilidade, Segurança & Conformidade** | 3.0 / 3.0 | Aprovado |
+| **Média Consolidada** | **3.00 / 3.00** | **PASS** |
+| **Matriz de Similaridade Multidimensional** | **94.4%** | **PASS (>= 85%)** |
+| **Suíte de Testes Automatizados (Vitest)** | **19 suítes / 179 testes** | **100% PASS** |
+
+### Arquivos Criados, Modificados e Removidos
+- **Removidos:** `pages/coach/Plans.tsx`, `pages/coach/SubscriptionDetails.tsx`, `contexts/RoleContext.tsx`.
+- **Criados:** `utils/metabolicCalculator.ts`, `utils/__tests__/metabolicCalculator.regression.test.ts`, `utils/__tests__/smartNotificationDispatcher.regression.test.ts`, `utils/__tests__/selectionAndTemplates.regression.test.ts`, `docs/gauntlet/QA_REPORT_SINGLE_COACH_CONSOLIDATION.md`.
+- **Modificados:** `App.tsx`, `components/BottomNav.tsx`, `types/supabase.ts`, `types/notifications.ts`, `pages/Login.tsx`, `pages/settings/Privacy.tsx`, `pages/settings/Notifications.tsx`, `pages/student/Dashboard.tsx`, `pages/student/Selection.tsx`, `pages/student/History.tsx`, `pages/student/Profile.tsx`, `pages/coach/StudentProfileView.tsx`, `pages/coach/Profile.tsx`, `pages/coach/Updates.tsx`, `pages/coach/Library.tsx`, `pages/coach/Exercises.tsx`, `components/student/EvolutionGallery.tsx`, `components/coach/editor/SetTemplateManager.tsx`, `components/coach/editor/WorkoutImportModal.tsx`, `components/coach/exercises/ExerciseFormModal.tsx`, `utils/smartNotificationDispatcher.ts`, `supabase/functions/smart-notifications/index.ts`, `PRODUCT.md`, `.planning/STATE.md`, `.planning/ROADMAP.md`, `ROADMAP.md`, `.planning/PROGRESS.md`, `PROGRESS.md`.
+
+---
+
 ## [2026-10-25] — Expansão e Responsividade Mobile do ProfileCompletionBanner (Fase 14 — PASS)
 
 - **Identificador da Fatia:** `profile_banner_expansion` / `feature-profile-banner-mobile-accordion`

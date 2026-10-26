@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import MainLayout from '../../components/Layout/MainLayout';
 import { supabase } from '../../lib/supabaseClient';
 import { useAuth } from '../../contexts/AuthContext';
-import { Link } from 'react-router-dom';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { SUB_MUSCLE_LABELS, normalizeMuscleWeights } from '../../utils/muscleUtils';
 
@@ -15,6 +14,14 @@ const formatTime = (seconds: number | string | null | undefined) => {
     return `${m}:${s.toString().padStart(2, '0')}`;
 };
 
+const formatLocalDateKey = (dateInput: string | Date): string => {
+    const d = typeof dateInput === 'string' ? new Date(dateInput) : dateInput;
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+};
+
 const History: React.FC = () => {
     const { user } = useAuth();
     const [loading, setLoading] = useState(true);
@@ -22,6 +29,7 @@ const History: React.FC = () => {
     const [workouts, setWorkouts] = useState<any[]>([]);
     const [selectedDate, setSelectedDate] = useState<Date>(new Date());
     const [expandedLog, setExpandedLog] = useState<string | null>(null);
+    const [highlightedLogId, setHighlightedLogId] = useState<string | null>(null);
 
     useEffect(() => {
         if (user?.id) {
@@ -51,15 +59,15 @@ const History: React.FC = () => {
             if (error) throw error;
             setLogs(data || []);
 
-            // Buscar rotina ativa e treinos para cálculo de volume planejado
-            const { data: routineData, error: routineError } = await supabase
-                .from('routines')
-                .select('*')
+            // Buscar rotina ativa via student_assignments e treinos para cálculo de volume planejado
+            const { data: assignmentData, error: assignmentError } = await supabase
+                .from('student_assignments')
+                .select('routine_id, routines(*)')
                 .eq('student_id', user!.id)
                 .eq('is_active', true)
                 .maybeSingle();
 
-            if (!routineError && routineData) {
+            if (!assignmentError && assignmentData?.routine_id) {
                 const { data: workoutsData, error: workoutsError } = await supabase
                     .from('workouts')
                     .select(`
@@ -70,7 +78,7 @@ const History: React.FC = () => {
                             workout_sets (*)
                         )
                     `)
-                    .eq('routine_id', routineData.id)
+                    .eq('routine_id', assignmentData.routine_id)
                     .order('order_index');
 
                 if (!workoutsError) {
@@ -85,11 +93,6 @@ const History: React.FC = () => {
         }
     };
 
-    const formatDuration = (seconds: number) => {
-        const m = Math.floor(seconds / 60);
-        return `${m} min`;
-    };
-
     // Calendar logic
     const daysInMonth = (year: number, month: number) => new Date(year, month + 1, 0).getDate();
     const firstDayOfMonth = (year: number, month: number) => new Date(year, month, 1).getDay();
@@ -99,11 +102,31 @@ const History: React.FC = () => {
     const totalDays = daysInMonth(currentYear, currentMonth);
     const startOffset = firstDayOfMonth(currentYear, currentMonth);
 
-    const hasWorkout = (day: number) => {
-        return logs.some(log => {
+    const findLogForDay = (day: number) => {
+        return logs.find(log => {
             const d = new Date(log.started_at);
             return d.getFullYear() === currentYear && d.getMonth() === currentMonth && d.getDate() === day;
         });
+    };
+
+    const hasWorkout = (day: number) => Boolean(findLogForDay(day));
+
+    const handleCalendarDayClick = (day: number) => {
+        const targetLog = findLogForDay(day);
+        if (!targetLog) return;
+
+        setExpandedLog(targetLog.id);
+        setHighlightedLogId(targetLog.id);
+
+        const dateStr = formatLocalDateKey(new Date(currentYear, currentMonth, day));
+        const el = document.getElementById(`history-log-${dateStr}`) || document.getElementById(`workout-log-card-${targetLog.id}`);
+        if (el) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+
+        window.setTimeout(() => {
+            setHighlightedLogId(prev => (prev === targetLog.id ? null : prev));
+        }, 2000);
     };
 
     const getWeeklyVolumeData = () => {
@@ -140,7 +163,7 @@ const History: React.FC = () => {
             }
         });
 
-        return Object.entries(weeks).map(([key, value], index) => ({
+        return Object.entries(weeks).map(([, value], index) => ({
             name: index === 4 ? 'Atual' : `Sem ${index + 1}`,
             volume: value
         }));
@@ -234,9 +257,9 @@ const History: React.FC = () => {
             <header className="relative sticky top-0 z-30 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-b border-slate-100/50 dark:border-slate-800/50 shadow-sm px-6 py-4 flex items-center justify-between">
                 <div>
                     <h1 className="text-xl font-bold text-slate-900 dark:text-white font-display">Histórico</h1>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-0.5">Seus treinos realizados</p>
+                    <p className="text-xs text-slate-600 dark:text-slate-300 font-medium mt-0.5">Seus treinos realizados</p>
                 </div>
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-500/20 to-sky-500/20 flex items-center justify-center text-emerald-600 dark:text-emerald-400 font-bold border border-emerald-200/50 dark:border-emerald-700/50">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-500/20 to-sky-500/20 flex items-center justify-center text-emerald-600 dark:text-emerald-400 font-bold border border-emerald-200/50 dark:border-emerald-700/50 tabular-nums">
                     {logs.length}
                 </div>
             </header>
@@ -246,11 +269,11 @@ const History: React.FC = () => {
                 <section className="bg-white dark:bg-slate-800 p-6 rounded-[2.5rem] shadow-soft border border-slate-100 dark:border-slate-700 animate-slide-up">
                     <div className="flex items-center justify-between mb-6">
                         <div>
-                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Volume Total semanal</p>
+                            <p className="text-[10px] font-black text-slate-600 dark:text-slate-300 uppercase tracking-widest mb-1">Volume Total semanal</p>
                             <h3 className="text-xl font-black text-slate-900 dark:text-white">Evolução 30 dias</h3>
                         </div>
                         {diffPercent && (
-                            <div className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-[10px] font-black ${parseFloat(diffPercent) >= 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>
+                            <div className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-[10px] font-black tabular-nums ${parseFloat(diffPercent) >= 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>
                                 <span className="material-symbols-rounded text-sm" aria-hidden="true">{parseFloat(diffPercent) >= 0 ? 'trending_up' : 'trending_down'}</span>
                                 {parseFloat(diffPercent) >= 0 ? '+' : ''}{diffPercent}%
                             </div>
@@ -275,8 +298,8 @@ const History: React.FC = () => {
                                         if (active && payload && payload.length) {
                                             return (
                                                 <div className="bg-white dark:bg-slate-800 p-2.5 rounded-2xl shadow-elevated border border-slate-100 dark:border-slate-700 text-xs">
-                                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">{label}</p>
-                                                    <p className="font-black text-slate-900 dark:text-white flex items-center gap-1.5">
+                                                    <p className="text-[10px] font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider mb-0.5">{label}</p>
+                                                    <p className="font-black text-slate-900 dark:text-white flex items-center gap-1.5 tabular-nums">
                                                         <span className="w-2 h-2 rounded-full bg-primary inline-block"></span>
                                                         {Math.round(Number(payload[0].value)).toLocaleString()} kg
                                                     </p>
@@ -287,7 +310,7 @@ const History: React.FC = () => {
                                     }}
                                 />
                                 <Bar dataKey="volume" radius={[6, 6, 6, 6]} barSize={40}>
-                                    {weeklyData.map((entry, index) => (
+                                    {weeklyData.map((_, index) => (
                                         <Cell
                                             key={`cell-${index}`}
                                             fill={index === weeklyData.length - 1 ? 'var(--color-primary, #0ea5e9)' : 'var(--color-primary-light, #bae6fd)'}
@@ -302,9 +325,9 @@ const History: React.FC = () => {
                 {/* Volume Semanal por Músculo Card */}
                 <section className="bg-white dark:bg-slate-800 p-6 rounded-[2.5rem] shadow-soft border border-slate-100 dark:border-slate-700">
                     <div className="mb-4">
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Volume de Séries de Trabalho</p>
+                        <p className="text-[10px] font-black text-slate-600 dark:text-slate-300 uppercase tracking-widest mb-1">Volume de Séries de Trabalho</p>
                         <h3 className="text-xl font-black text-slate-900 dark:text-white">Volume Semanal por Músculo</h3>
-                        <p className="text-xs text-slate-500 mt-1">
+                        <p className="text-xs text-slate-600 dark:text-slate-300 mt-1">
                             {workouts && workouts.length > 0
                                 ? "Séries de trabalho prescritas por semana na rotina ativa"
                                 : "Média de séries por semana no mês selecionado"}
@@ -312,7 +335,7 @@ const History: React.FC = () => {
                     </div>
                     
                     {muscleVolumeData.length === 0 ? (
-                        <p className="text-xs text-slate-400 dark:text-slate-500 italic py-2">Nenhum volume registrado para este período.</p>
+                        <p className="text-xs text-slate-600 dark:text-slate-400 italic py-2">Nenhum volume registrado para este período.</p>
                     ) : (
                         <div className="space-y-3 mt-4">
                             {muscleVolumeData.map(({ muscle, label, sets }) => {
@@ -322,7 +345,7 @@ const History: React.FC = () => {
                                     <div key={muscle} className="space-y-1">
                                         <div className="flex justify-between text-xs font-bold text-slate-700 dark:text-slate-300">
                                             <span>{label}</span>
-                                            <span className="text-sky-500">{sets} {sets === 1 ? 'série' : 'séries'}</span>
+                                            <span className="text-sky-600 dark:text-sky-400 tabular-nums">{sets} {sets === 1 ? 'série' : 'séries'}</span>
                                         </div>
                                         <div className="w-full bg-slate-100 dark:bg-slate-700 h-2.5 rounded-full overflow-hidden">
                                             <div 
@@ -340,15 +363,18 @@ const History: React.FC = () => {
                 {/* Calendar Card */}
                 <div className="bg-white dark:bg-slate-800 rounded-3xl p-5 shadow-soft border border-slate-100 dark:border-slate-700">
                     <div className="flex items-center justify-between mb-6 px-1">
-                        <h2 className="font-bold text-slate-800 dark:text-white capitalize">
-                            {selectedDate.toLocaleString('pt-BR', { month: 'long', year: 'numeric' })}
-                        </h2>
+                        <div>
+                            <h2 className="font-bold text-slate-800 dark:text-white capitalize">
+                                {selectedDate.toLocaleString('pt-BR', { month: 'long', year: 'numeric' })}
+                            </h2>
+                            <p className="text-[11px] text-slate-600 dark:text-slate-300">Toque em um dia com treino para abrir o registro</p>
+                        </div>
                         <div className="flex gap-2">
                             <button
                                 type="button"
                                 onClick={() => setSelectedDate(new Date(currentYear, currentMonth - 1, 1))}
                                 aria-label="Mês anterior"
-                                className="w-11 h-11 min-w-[44px] min-h-[44px] rounded-xl bg-slate-50 dark:bg-slate-700 text-slate-400 hover:text-primary transition-colors flex items-center justify-center"
+                                className="w-11 h-11 min-w-[44px] min-h-[44px] rounded-xl bg-slate-50 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:text-primary transition-colors flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                             >
                                 <span className="material-symbols-rounded" aria-hidden="true">chevron_left</span>
                             </button>
@@ -356,7 +382,7 @@ const History: React.FC = () => {
                                 type="button"
                                 onClick={() => setSelectedDate(new Date(currentYear, currentMonth + 1, 1))}
                                 aria-label="Próximo mês"
-                                className="w-11 h-11 min-w-[44px] min-h-[44px] rounded-xl bg-slate-50 dark:bg-slate-700 text-slate-400 hover:text-primary transition-colors flex items-center justify-center"
+                                className="w-11 h-11 min-w-[44px] min-h-[44px] rounded-xl bg-slate-50 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:text-primary transition-colors flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                             >
                                 <span className="material-symbols-rounded" aria-hidden="true">chevron_right</span>
                             </button>
@@ -365,13 +391,13 @@ const History: React.FC = () => {
 
                     <div className="grid grid-cols-7 gap-1 text-center mb-2">
                         {['D', 'S', 'T', 'Q', 'Q', 'S', 'S'].map((d, i) => (
-                            <span key={i} className="text-[10px] font-bold text-slate-400">{d}</span>
+                            <span key={i} className="text-[10px] font-bold text-slate-600 dark:text-slate-300">{d}</span>
                         ))}
                     </div>
 
                     <div className="grid grid-cols-7 gap-1">
                         {Array.from({ length: startOffset }).map((_, i) => (
-                            <div key={`empty-${i}`} className="h-9"></div>
+                            <div key={`empty-${i}`} className="h-10"></div>
                         ))}
                         {Array.from({ length: totalDays }).map((_, i) => {
                             const day = i + 1;
@@ -381,18 +407,30 @@ const History: React.FC = () => {
                             const dayThemeClass = isToday
                                 ? 'bg-primary text-white shadow-lg shadow-primary/30'
                                 : active
-                                    ? 'bg-sky-50 dark:bg-sky-900/20 text-sky-700 dark:text-sky-300'
+                                    ? 'bg-sky-50 dark:bg-sky-900/20 text-sky-700 dark:text-sky-300 hover:bg-sky-100 dark:hover:bg-sky-900/40 cursor-pointer active:scale-95 transition-all'
                                     : 'text-slate-700 dark:text-slate-300';
+
+                            if (active) {
+                                return (
+                                    <button
+                                        key={day}
+                                        type="button"
+                                        onClick={() => handleCalendarDayClick(day)}
+                                        aria-label={`Ver treino do dia ${day}`}
+                                        className={`h-10 min-h-[40px] flex items-center justify-center rounded-xl text-sm font-bold relative tabular-nums focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${dayThemeClass}`}
+                                    >
+                                        {day}
+                                        <span className={`absolute bottom-1 w-1 h-1 rounded-full ${isToday ? 'bg-white' : 'bg-sky-500'}`}></span>
+                                    </button>
+                                );
+                            }
 
                             return (
                                 <div
                                     key={day}
-                                    className={`h-9 flex items-center justify-center rounded-xl text-sm font-bold relative ${dayThemeClass}`}
+                                    className={`h-10 flex items-center justify-center rounded-xl text-sm font-bold relative tabular-nums ${dayThemeClass}`}
                                 >
                                     {day}
-                                    {active && (
-                                        <div className={`absolute bottom-1 w-1 h-1 rounded-full ${isToday ? 'bg-white' : 'bg-sky-500'}`}></div>
-                                    )}
                                 </div>
                             );
                         })}
@@ -412,130 +450,144 @@ const History: React.FC = () => {
                 ) : (
                     <div className="space-y-4">
                         <h3 className="font-bold text-slate-900 dark:text-white px-1">Treinos Recentes</h3>
-                        {logs.map(log => (
-                            <div key={log.id} className="bg-white dark:bg-slate-800 rounded-3xl overflow-hidden shadow-soft border border-slate-100 dark:border-slate-700 transition-all">
-                                <button
-                                    type="button"
-                                    aria-expanded={expandedLog === log.id}
-                                    aria-controls={`log-details-${log.id}`}
-                                    aria-label={`Ver detalhes do treino ${log.workout?.name || 'sem nome'}`}
-                                    onClick={() => setExpandedLog(expandedLog === log.id ? null : log.id)}
-                                    className="w-full p-5 flex items-center gap-4 text-left cursor-pointer"
+                        {logs.map((log, logIdx) => {
+                            const dateKey = formatLocalDateKey(log.started_at);
+                            const isFirstOfDate = logs.findIndex(l => formatLocalDateKey(l.started_at) === dateKey) === logIdx;
+                            const isHighlighted = highlightedLogId === log.id;
+
+                            return (
+                                <div
+                                    key={log.id}
+                                    id={isFirstOfDate ? `history-log-${dateKey}` : `workout-log-card-${log.id}`}
+                                    data-log-card-id={`workout-log-card-${log.id}`}
+                                    className={`bg-white dark:bg-slate-800 rounded-3xl overflow-hidden shadow-soft border transition-all duration-300 ${
+                                        isHighlighted
+                                            ? 'border-primary ring-2 ring-primary/40'
+                                            : 'border-slate-100 dark:border-slate-700'
+                                    }`}
                                 >
-                                    <div className="w-12 h-12 rounded-2xl bg-slate-50 dark:bg-slate-900 flex flex-col items-center justify-center text-slate-500 dark:text-slate-400">
-                                        <span className="text-[10px] font-black uppercase leading-none">{new Date(log.started_at).toLocaleString('pt-BR', { month: 'short' }).replace('.', '')}</span>
-                                        <span className="text-lg font-black leading-tight text-slate-900 dark:text-white">{new Date(log.started_at).getDate()}</span>
-                                    </div>
-
-                                    <div className="flex-1 min-w-0">
-                                        <h3 className="font-bold text-slate-900 dark:text-white truncate">{log.workout?.name || 'Treino s/ nome'}</h3>
-                                        <div className="flex items-center gap-3 mt-1 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">
-                                            <span className="flex items-center gap-1">
-                                                <span className="material-symbols-rounded text-[14px]" aria-hidden="true">schedule</span>
-                                                {log.finished_at && log.started_at
-                                                    ? `${Math.floor((new Date(log.finished_at).getTime() - new Date(log.started_at).getTime()) / 60000)} min`
-                                                    : '-'}
-                                            </span>
-                                            <span className="flex items-center gap-1">
-                                                <span className="material-symbols-rounded text-[14px]" aria-hidden="true">fitness_center</span>
-                                                {log.effort_rating || 0}/10 Esforço
-                                            </span>
+                                    <button
+                                        type="button"
+                                        aria-expanded={expandedLog === log.id}
+                                        aria-controls={`log-details-${log.id}`}
+                                        aria-label={`Ver detalhes do treino ${log.workout?.name || 'sem nome'}`}
+                                        onClick={() => setExpandedLog(expandedLog === log.id ? null : log.id)}
+                                        className="w-full p-5 flex items-center gap-4 text-left cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                                    >
+                                        <div className="w-12 h-12 rounded-2xl bg-slate-50 dark:bg-slate-900 flex flex-col items-center justify-center text-slate-600 dark:text-slate-300">
+                                            <span className="text-[10px] font-black uppercase leading-none">{new Date(log.started_at).toLocaleString('pt-BR', { month: 'short' }).replace('.', '')}</span>
+                                            <span className="text-lg font-black leading-tight text-slate-900 dark:text-white tabular-nums">{new Date(log.started_at).getDate()}</span>
                                         </div>
-                                    </div>
 
-                                    <div className={`text-slate-400 transition-transform duration-300 ${expandedLog === log.id ? 'rotate-90' : ''}`}>
-                                        <span className="material-symbols-rounded" aria-hidden="true">chevron_right</span>
-                                    </div>
-                                </button>
-
-                                {expandedLog === log.id && (
-                                    <div id={`log-details-${log.id}`} className="px-5 pb-6 pt-2 space-y-4 border-t border-slate-50 dark:border-slate-700/50 animate-fade-in">
-                                        {/* Feedback Note */}
-                                        {log.feedback_notes && (
-                                            <div className="bg-sky-50 dark:bg-sky-900/10 p-4 rounded-2xl border border-sky-100 dark:border-sky-900/20">
-                                                <span className="text-[10px] font-black text-sky-500 uppercase tracking-widest block mb-1">Seu Feedback</span>
-                                                <p className="text-sm text-slate-600 dark:text-slate-300 italic">"{log.feedback_notes}"</p>
+                                        <div className="flex-1 min-w-0">
+                                            <h3 className="font-bold text-slate-900 dark:text-white truncate">{log.workout?.name || 'Treino s/ nome'}</h3>
+                                            <div className="flex items-center gap-3 mt-1 text-[10px] font-bold text-slate-600 dark:text-slate-300 uppercase tracking-widest tabular-nums">
+                                                <span className="flex items-center gap-1">
+                                                    <span className="material-symbols-rounded text-[14px]" aria-hidden="true">schedule</span>
+                                                    {log.finished_at && log.started_at
+                                                        ? `${Math.floor((new Date(log.finished_at).getTime() - new Date(log.started_at).getTime()) / 60000)} min`
+                                                        : '-'}
+                                                </span>
+                                                <span className="flex items-center gap-1">
+                                                    <span className="material-symbols-rounded text-[14px]" aria-hidden="true">fitness_center</span>
+                                                    {log.effort_rating || 0}/10 Esforço
+                                                </span>
                                             </div>
-                                        )}
+                                        </div>
 
-                                        {/* Exercises Breakdown */}
-                                        <div className="space-y-4">
-                                            {(() => {
-                                                const grouped = log.set_logs.reduce((acc: any, set: any) => {
-                                                    const key = set.exercise.name;
-                                                    if (!acc[key]) acc[key] = [];
-                                                    acc[key].push(set);
-                                                    return acc;
-                                                }, {});
+                                        <div className={`text-slate-500 dark:text-slate-400 transition-transform duration-300 ${expandedLog === log.id ? 'rotate-90' : ''}`}>
+                                            <span className="material-symbols-rounded" aria-hidden="true">chevron_right</span>
+                                        </div>
+                                    </button>
 
-                                                return Object.entries(grouped).map(([exerciseName, sets]: [string, any]) => (
-                                                    <div key={exerciseName}>
-                                                        <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2 px-1">{exerciseName}</h4>
-                                                        <div className="space-y-1">
-                                                            {sets.map((set: any, idx: number) => (
-                                                                <div key={set.id} className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-slate-900/30 text-sm">
-                                                                    <div className="flex items-center gap-3">
-                                                                        <span className="w-5 h-5 rounded-md bg-white dark:bg-slate-700 flex items-center justify-center text-[10px] font-bold text-slate-400">{idx + 1}</span>
-                                                                        {set.exercise?.exercise_type === 'cardio' ? (
-                                                                            <span className="font-bold text-slate-700 dark:text-slate-200">
-                                                                                {set.hiit_cycles_completed ? (
-                                                                                    <span className="text-slate-400 font-normal">HIIT: {set.hiit_cycles_completed} ciclos em {formatTime(set.time_completed)}</span>
-                                                                                ) : (
-                                                                                    <>
-                                                                                        {set.distance_completed !== null && set.distance_completed !== undefined ? `${set.distance_completed}km` : '-'} 
-                                                                                        <span className="text-slate-400 font-normal">
-                                                                                            {set.speed_actual ? ` a ${set.speed_actual}km/h` : ''}
-                                                                                            {set.time_completed ? ` em ${formatTime(set.time_completed)}` : ''}
-                                                                                        </span>
-                                                                                    </>
-                                                                                )}
-                                                                            </span>
-                                                                        ) : set.exercise?.exercise_type === 'time' ? (
-                                                                            <span className="font-bold text-slate-700 dark:text-slate-200">
-                                                                                {formatTime(set.time_completed)} 
-                                                                                {set.weight_kg ? <span className="text-slate-400 font-normal"> com {set.weight_kg}kg</span> : ''}
-                                                                            </span>
-                                                                        ) : (
-                                                                            <span className="font-bold text-slate-700 dark:text-slate-200">
-                                                                                {set.weight_kg}kg <span className="text-slate-400 font-normal">x {set.reps_completed}</span>
-                                                                            </span>
+                                    {expandedLog === log.id && (
+                                        <div id={`log-details-${log.id}`} className="px-5 pb-6 pt-2 space-y-4 border-t border-slate-50 dark:border-slate-700/50 animate-fade-in">
+                                            {/* Feedback Note */}
+                                            {log.feedback_notes && (
+                                                <div className="bg-sky-50 dark:bg-sky-900/10 p-4 rounded-2xl border border-sky-100 dark:border-sky-900/20">
+                                                    <span className="text-[10px] font-black text-sky-600 dark:text-sky-400 uppercase tracking-widest block mb-1">Seu Feedback</span>
+                                                    <p className="text-sm text-slate-600 dark:text-slate-300 italic">"{log.feedback_notes}"</p>
+                                                </div>
+                                            )}
+
+                                            {/* Exercises Breakdown */}
+                                            <div className="space-y-4">
+                                                {(() => {
+                                                    const grouped = log.set_logs.reduce((acc: any, set: any) => {
+                                                        const key = set.exercise.name;
+                                                        if (!acc[key]) acc[key] = [];
+                                                        acc[key].push(set);
+                                                        return acc;
+                                                    }, {});
+
+                                                    return Object.entries(grouped).map(([exerciseName, sets]: [string, any]) => (
+                                                        <div key={exerciseName}>
+                                                            <h4 className="text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-widest mb-2 px-1">{exerciseName}</h4>
+                                                            <div className="space-y-1">
+                                                                {sets.map((set: any, idx: number) => (
+                                                                    <div key={set.id} className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-slate-900/30 text-sm tabular-nums">
+                                                                        <div className="flex items-center gap-3">
+                                                                            <span className="w-5 h-5 rounded-md bg-white dark:bg-slate-700 flex items-center justify-center text-[10px] font-bold text-slate-600 dark:text-slate-300">{idx + 1}</span>
+                                                                            {set.exercise?.exercise_type === 'cardio' ? (
+                                                                                <span className="font-bold text-slate-700 dark:text-slate-200">
+                                                                                    {set.hiit_cycles_completed ? (
+                                                                                        <span className="text-slate-600 dark:text-slate-300 font-normal">HIIT: {set.hiit_cycles_completed} ciclos em {formatTime(set.time_completed)}</span>
+                                                                                    ) : (
+                                                                                        <>
+                                                                                            {set.distance_completed !== null && set.distance_completed !== undefined ? `${set.distance_completed}km` : '-'} 
+                                                                                            <span className="text-slate-600 dark:text-slate-300 font-normal">
+                                                                                                {set.speed_actual ? ` a ${set.speed_actual}km/h` : ''}
+                                                                                                {set.time_completed ? ` em ${formatTime(set.time_completed)}` : ''}
+                                                                                            </span>
+                                                                                        </>
+                                                                                    )}
+                                                                                </span>
+                                                                            ) : set.exercise?.exercise_type === 'time' ? (
+                                                                                <span className="font-bold text-slate-700 dark:text-slate-200">
+                                                                                    {formatTime(set.time_completed)} 
+                                                                                    {set.weight_kg ? <span className="text-slate-600 dark:text-slate-300 font-normal"> com {set.weight_kg}kg</span> : ''}
+                                                                                </span>
+                                                                            ) : (
+                                                                                <span className="font-bold text-slate-700 dark:text-slate-200">
+                                                                                    {set.weight_kg}kg <span className="text-slate-600 dark:text-slate-300 font-normal">x {set.reps_completed}</span>
+                                                                                </span>
+                                                                            )}
+                                                                        </div>
+                                                                        {set.rpe_actual && (
+                                                                            <span className="text-[10px] font-black text-slate-600 dark:text-slate-300">@{set.rpe_actual}</span>
                                                                         )}
                                                                     </div>
-                                                                    {set.rpe_actual && (
-                                                                        <span className="text-[10px] font-black text-slate-400">@{set.rpe_actual}</span>
-                                                                    )}
-                                                                </div>
-                                                            ))}
-                                                        </div>
-                                                        {/* Feedback individual do exercício */}
-                                                        {(() => {
-                                                            const feedback = log.exercise_feedback_logs?.find(
-                                                                (f: any) => f.exercise_id === sets[0]?.exercise_id
-                                                            );
-                                                            if (!feedback) return null;
-                                                            return (
-                                                                <div className="mt-2 p-3 rounded-xl bg-amber-50/50 dark:bg-amber-500/10 border border-amber-100/50 dark:border-amber-500/20 text-xs flex items-start gap-2">
-                                                                    <span className="material-symbols-rounded text-sm text-amber-500 mt-0.5" aria-hidden="true">comment</span>
-                                                                    <div className="flex-1">
-                                                                        <span className="font-bold text-amber-600 dark:text-amber-400 block mb-0.5">Feedback do Exercício:</span>
-                                                                        <p className="text-slate-600 dark:text-slate-300 italic">"{feedback.feedback_text}"</p>
+                                                                ))}
+                                                            </div>
+                                                            {/* Feedback individual do exercício */}
+                                                            {(() => {
+                                                                const feedback = log.exercise_feedback_logs?.find(
+                                                                    (f: any) => f.exercise_id === sets[0]?.exercise_id
+                                                                );
+                                                                if (!feedback) return null;
+                                                                return (
+                                                                    <div className="mt-2 p-3 rounded-xl bg-amber-50/50 dark:bg-amber-500/10 border border-amber-100/50 dark:border-amber-500/20 text-xs flex items-start gap-2">
+                                                                        <span className="material-symbols-rounded text-sm text-amber-500 mt-0.5" aria-hidden="true">comment</span>
+                                                                        <div className="flex-1">
+                                                                            <span className="font-bold text-amber-600 dark:text-amber-400 block mb-0.5">Feedback do Exercício:</span>
+                                                                            <p className="text-slate-600 dark:text-slate-300 italic">"{feedback.feedback_text}"</p>
+                                                                        </div>
                                                                     </div>
-                                                                </div>
-                                                            );
-                                                        })()}
-                                                    </div>
-                                                ));
-                                            })()}
+                                                                );
+                                                            })()}
+                                                        </div>
+                                                    ));
+                                                })()}
+                                            </div>
                                         </div>
-                                    </div>
-                                )}
-                            </div>
-                        ))}
+                                    )}
+                                </div>
+                            );
+                        })}
                     </div>
-                )
-                }
+                )}
             </div>
-        </MainLayout >
+        </MainLayout>
     );
 };
 

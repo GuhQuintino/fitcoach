@@ -12,6 +12,13 @@ import ConfirmDialog from '../../components/shared/ConfirmDialog';
 import ToggleSwitch from '../../components/shared/ToggleSwitch';
 import { formatToWhatsappUrl } from '../../utils/phoneUtils';
 import { getOptimizedImageUrl } from '../../utils/imageUtils';
+import {
+    ACTIVITY_LEVEL_OPTIONS,
+    calculateAgeFromBirthDate,
+    calculateMetabolicProfile,
+    sanitizeHeightCm,
+    sanitizeWeightKg
+} from '../../utils/metabolicCalculator';
 
 const StudentProfile: React.FC = () => {
     const { user, signOut, preferences, updatePreferences } = useAuth();
@@ -31,6 +38,8 @@ const StudentProfile: React.FC = () => {
     const [age, setAge] = useState('');
     const [birthDate, setBirthDate] = useState('');
     const [gender, setGender] = useState('male');
+    const [activityLevel, setActivityLevel] = useState<string>('light');
+    const [weeklyWorkoutFreq, setWeeklyWorkoutFreq] = useState<number | null>(null);
     const [goal, setGoal] = useState('');
     const [coachProfile, setCoachProfile] = useState<any>(null);
     const [weightHistory, setWeightHistory] = useState<any[]>([]);
@@ -61,7 +70,7 @@ const StudentProfile: React.FC = () => {
     const fetchProfile = async () => {
         try {
             setLoading(true);
-            // 1. Fetch Profile (Name, Avatar)
+            // 1. Fetch Profile (Name, Avatar, Preferences)
             const { data: pData, error: pError } = await supabase
                 .from('profiles')
                 .select('*')
@@ -79,13 +88,43 @@ const StudentProfile: React.FC = () => {
 
             if (sError && sError.code !== 'PGRST116') {
                 console.error(sError);
-                // Don't throw if just missing row
+            }
+
+            // 3. Fetch Active Routine Workouts Count for Frequency Fallback
+            let inferredFreq: number | null = null;
+            const { data: activeAssign } = await supabase
+                .from('student_assignments')
+                .select('routine_id')
+                .eq('student_id', user!.id)
+                .eq('is_active', true)
+                .maybeSingle();
+
+            if (activeAssign?.routine_id) {
+                const { count } = await supabase
+                    .from('workouts')
+                    .select('id', { count: 'exact', head: true })
+                    .eq('routine_id', activeAssign.routine_id);
+                if (typeof count === 'number' && count > 0) {
+                    inferredFreq = count;
+                    setWeeklyWorkoutFreq(count);
+                }
+            }
+
+            const prefActivity = (pData?.preferences as any)?.activity_level || (sData as any)?.activity_level;
+            if (prefActivity) {
+                setActivityLevel(prefActivity);
+            } else if (inferredFreq) {
+                if (inferredFreq <= 2) setActivityLevel('light');
+                else if (inferredFreq <= 4) setActivityLevel('moderate');
+                else setActivityLevel('active');
             }
 
             if (sData) {
                 setStudentData(sData);
-                setWeight(sData.weight_kg?.toString() || '');
-                setHeight(sData.height_cm?.toString() || '');
+                const cleanW = sanitizeWeightKg(sData.weight_kg);
+                const cleanH = sanitizeHeightCm(sData.height_cm);
+                setWeight(cleanW !== null ? cleanW.toString() : (sData.weight_kg?.toString() || ''));
+                setHeight(cleanH !== null ? cleanH.toString() : (sData.height_cm?.toString() || ''));
                 setGender(sData.gender || 'male');
                 setBirthDate(sData.birth_date || '');
                 setGoal(sData.goal || '');
@@ -99,12 +138,9 @@ const StudentProfile: React.FC = () => {
                     setCoachProfile(cData);
                 }
 
-                // Age calc if dob exists
                 if (sData.birth_date) {
-                    const dob = new Date(sData.birth_date);
-                    const diff = Date.now() - dob.getTime();
-                    const ageDate = new Date(diff);
-                    setAge(Math.abs(ageDate.getUTCFullYear() - 1970).toString());
+                    const calculatedAge = calculateAgeFromBirthDate(sData.birth_date);
+                    setAge(calculatedAge.toString());
                 } else {
                     setAge('');
                 }
@@ -121,18 +157,30 @@ const StudentProfile: React.FC = () => {
     const handleSave = async () => {
         try {
             setSaving(true);
-            const numWeight = weight ? parseFloat(weight.toString().replace(',', '.')) : null;
-            const numHeight = height ? parseFloat(height.toString().replace(',', '.')) : null;
+            const sanitizedWeight = weight ? sanitizeWeightKg(weight) : null;
+            const sanitizedHeight = height ? sanitizeHeightCm(height) : null;
+
+            if (weight && sanitizedWeight === null) {
+                toast.error('Informe um peso válido entre 25 kg e 250 kg.');
+                setSaving(false);
+                return;
+            }
+
+            if (height && sanitizedHeight === null) {
+                toast.error('Informe uma altura válida entre 100 cm e 250 cm.');
+                setSaving(false);
+                return;
+            }
 
             // Update 'students_data'
-            const updates = {
+            const updates: Record<string, any> = {
                 id: user!.id,
-                weight_kg: numWeight,
-                height_cm: numHeight,
+                weight_kg: sanitizedWeight,
+                height_cm: sanitizedHeight,
                 gender: gender,
                 birth_date: birthDate || null,
                 goal: goal,
-                updated_at: new Date()
+                updated_at: new Date().toISOString()
             };
 
             const { error } = await supabase
@@ -141,11 +189,14 @@ const StudentProfile: React.FC = () => {
 
             if (error) throw error;
 
+            // Persist activity_level in profiles.preferences
+            await updatePreferences({ activity_level: activityLevel });
+
             // Save to weight history if weight changed
-            if (numWeight && (!studentData || studentData.weight_kg !== numWeight)) {
+            if (sanitizedWeight && (!studentData || studentData.weight_kg !== sanitizedWeight)) {
                 await supabase.from('weight_history').insert({
                     student_id: user!.id,
-                    weight_kg: numWeight
+                    weight_kg: sanitizedWeight
                 });
                 fetchWeightHistory();
             }
@@ -162,27 +213,24 @@ const StudentProfile: React.FC = () => {
         }
     };
 
-    const calculateTMB = () => {
-        const w = parseFloat(weight.toString().replace(',', '.'));
-        const h = parseFloat(height.toString().replace(',', '.'));
-        const a = parseInt(age);
-        if (isNaN(w) || isNaN(h) || isNaN(a)) return 0;
+    const metabolic = calculateMetabolicProfile({
+        weightKg: weight,
+        heightCm: height,
+        birthDate: birthDate || null,
+        age: age || null,
+        gender,
+        activityLevel,
+        weeklyFrequency: weeklyWorkoutFreq
+    });
 
-        if (gender === 'male') {
-            return Math.round((10 * w) + (6.25 * h) - (5 * a) + 5);
-        } else {
-            return Math.round((10 * w) + (6.25 * h) - (5 * a) - 161);
-        }
-    };
+    const tmb = metabolic.tmb;
+    const maintenance = metabolic.maintenance;
 
     const getWhatsappUrl = () => {
         if (!coachProfile?.phone) return '#';
         const message = `Olá ${coachProfile.full_name}, sou o aluno ${profile?.full_name} e gostaria de tirar uma dúvida.`;
         return formatToWhatsappUrl(coachProfile.phone, message) || '#';
     };
-
-    const tmb = calculateTMB();
-    const maintenance = Math.round(tmb * 1.35);
 
     const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
         try {
@@ -257,7 +305,7 @@ const StudentProfile: React.FC = () => {
                 <div className="flex items-center justify-between mb-8">
                     <div className="flex flex-col">
                         <h1 className="font-display text-2xl font-black text-slate-900 dark:text-white leading-tight">Perfil</h1>
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mt-1">Sua Conta e Progresso</p>
+                        <p className="text-[10px] font-bold text-slate-600 dark:text-slate-300 uppercase tracking-[0.2em] mt-1">Sua Conta e Progresso</p>
                     </div>
                     <div className="flex items-center gap-2">
                         {isEditing ? (
@@ -266,7 +314,7 @@ const StudentProfile: React.FC = () => {
                                     type="button"
                                     onClick={() => setIsEditing(false)}
                                     aria-label="Cancelar edição do perfil"
-                                    className="min-h-[44px] px-4 py-2 text-slate-500 font-bold text-xs hover:bg-white dark:hover:bg-slate-600 rounded-xl transition-all flex items-center justify-center cursor-pointer"
+                                    className="min-h-[44px] px-4 py-2 text-slate-600 dark:text-slate-300 font-bold text-xs hover:bg-white dark:hover:bg-slate-600 rounded-xl transition-all flex items-center justify-center cursor-pointer whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                                 >
                                     Cancelar
                                 </button>
@@ -275,7 +323,7 @@ const StudentProfile: React.FC = () => {
                                     onClick={handleSave}
                                     disabled={saving}
                                     aria-label="Salvar alterações do perfil"
-                                    className="min-h-[44px] px-6 py-2 bg-primary text-white font-bold text-xs hover:bg-primary-dark rounded-xl transition-all shadow-lg shadow-primary/20 active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer"
+                                    className="min-h-[44px] px-6 py-2 bg-primary text-white font-bold text-xs hover:bg-primary-dark rounded-xl transition-all shadow-lg shadow-primary/20 active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                                 >
                                     {saving ? (
                                         <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" aria-hidden="true"></div>
@@ -290,7 +338,7 @@ const StudentProfile: React.FC = () => {
                                 type="button"
                                 onClick={() => setIsEditing(true)}
                                 aria-label="Editar informações do perfil"
-                                className="w-12 h-12 min-w-[44px] min-h-[44px] flex items-center justify-center bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-2xl border border-slate-100 dark:border-slate-600 shadow-soft hover:border-primary hover:text-primary transition-all active:scale-95 group cursor-pointer"
+                                className="w-12 h-12 min-w-[44px] min-h-[44px] flex items-center justify-center bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-2xl border border-slate-100 dark:border-slate-600 shadow-soft hover:border-primary hover:text-primary transition-all active:scale-95 group cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                             >
                                 <span className="material-symbols-rounded text-2xl group-hover:rotate-12 transition-transform" aria-hidden="true">edit_note</span>
                             </button>
@@ -345,11 +393,11 @@ const StudentProfile: React.FC = () => {
                         </button>
                     </div>
                     <h2 className="font-display text-2xl font-bold text-slate-900 dark:text-white">{profile?.full_name || 'Usuário'}</h2>
-                    <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">Aluno desde {new Date(profile?.created_at).toLocaleDateString(undefined, { month: 'short', year: 'numeric' })}</p>
+                    <p className="text-slate-600 dark:text-slate-300 text-sm mt-1">Aluno desde {new Date(profile?.created_at).toLocaleDateString(undefined, { month: 'short', year: 'numeric' })}</p>
 
                     {coachProfile && (
                         <div className="mt-6 w-full max-w-xs">
-                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center mb-2">Seu Coach</p>
+                            <p className="text-[10px] font-bold text-slate-600 dark:text-slate-300 uppercase tracking-widest text-center mb-2">Seu Coach</p>
                             <a
                                 href={coachProfile.phone ? getWhatsappUrl() : '#'}
                                 target={coachProfile.phone ? "_blank" : undefined}
@@ -361,7 +409,7 @@ const StudentProfile: React.FC = () => {
                                     }
                                 }}
                                 aria-label={`Conversar com coach ${coachProfile.full_name || ''} no WhatsApp`}
-                                className="w-full min-h-[44px] px-5 py-3 bg-whatsapp text-white rounded-2xl font-bold text-sm flex items-center justify-center gap-3 hover:bg-whatsapp-dark transition-all active:scale-95 shadow-lg shadow-whatsapp/20"
+                                className="w-full min-h-[44px] px-5 py-3 bg-whatsapp text-white rounded-2xl font-bold text-sm flex items-center justify-center gap-3 hover:bg-whatsapp-dark transition-all active:scale-95 shadow-lg shadow-whatsapp/20 whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-whatsapp"
                             >
                                 <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24" aria-hidden="true">
                                     <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.414 0 .018 5.393 0 12.029c0 2.119.554 4.188 1.604 6.04L0 24l6.097-1.6c1.789.976 3.805 1.491 5.948 1.493h.005c6.634 0 12.032-5.396 12.036-12.033a11.83 11.83 0 00-3.479-8.502z" />
@@ -377,67 +425,77 @@ const StudentProfile: React.FC = () => {
                 {/* Personal Info Grid - Unified & Organized */}
                 <section className="animate-slide-up bg-white dark:bg-slate-800 p-6 rounded-[2.5rem] shadow-soft border border-slate-100 dark:border-slate-700">
                     <div className="flex items-center gap-2 mb-6">
-                        <span className="material-symbols-rounded text-primary">person</span>
+                        <span className="material-symbols-rounded text-primary" aria-hidden="true">person</span>
                         <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-wider">Dados Pessoais</h3>
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
                         <div className="flex flex-col gap-1.5 p-4 rounded-3xl bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-700/50">
-                            <label htmlFor="profile-birthdate" className="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest">Data de Nascimento</label>
+                            <label htmlFor="profile-birthdate" className="text-[10px] font-black text-slate-600 dark:text-slate-300 uppercase tracking-widest">Data de Nascimento</label>
                             <input
                                 id="profile-birthdate"
-                                className="p-0 border-none bg-transparent font-display font-bold text-lg text-slate-900 dark:text-white focus:ring-0 w-full min-h-[44px]"
+                                className="p-0 border-none bg-transparent font-display font-bold text-lg text-slate-900 dark:text-white focus:ring-0 w-full min-h-[44px] tabular-nums"
                                 type="date"
                                 value={birthDate}
-                                onChange={e => setBirthDate(e.target.value)}
+                                onChange={e => {
+                                    setBirthDate(e.target.value);
+                                    if (e.target.value) {
+                                        setAge(calculateAgeFromBirthDate(e.target.value).toString());
+                                    }
+                                }}
                                 readOnly={!isEditing}
                             />
                         </div>
 
                         <div className="flex flex-col gap-1.5 p-4 rounded-3xl bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-700/50">
-                            <label htmlFor="profile-weight" className="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest">Peso (kg)</label>
+                            <label htmlFor="profile-weight" className="text-[10px] font-black text-slate-600 dark:text-slate-300 uppercase tracking-widest">Peso (kg)</label>
                             <div className="flex items-baseline gap-1">
                                 <input
                                     id="profile-weight"
                                     type="number"
+                                    step="0.1"
+                                    min="25"
+                                    max="250"
                                     placeholder="0.0"
                                     value={weight}
                                     onChange={(e) => setWeight(e.target.value)}
                                     disabled={!isEditing}
-                                    className="bg-transparent border-none p-0 text-xl font-black text-slate-900 dark:text-white focus:ring-0 w-20 disabled:opacity-70 min-h-[44px]"
+                                    className="bg-transparent border-none p-0 text-xl font-black text-slate-900 dark:text-white focus:ring-0 w-20 disabled:opacity-70 min-h-[44px] tabular-nums"
                                 />
-                                <span className="text-[10px] text-slate-400 font-bold uppercase">kg</span>
+                                <span className="text-[10px] text-slate-600 dark:text-slate-300 font-bold uppercase">kg</span>
                             </div>
                         </div>
 
                         <div className="flex flex-col gap-1.5 p-4 rounded-3xl bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-700/50">
-                            <label htmlFor="profile-height" className="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest">Altura (cm)</label>
+                            <label htmlFor="profile-height" className="text-[10px] font-black text-slate-600 dark:text-slate-300 uppercase tracking-widest">Altura (cm)</label>
                             <div className="flex items-baseline gap-1">
                                 <input
                                     id="profile-height"
                                     type="number"
+                                    min="100"
+                                    max="250"
                                     placeholder="0"
                                     value={height}
                                     onChange={(e) => setHeight(e.target.value)}
                                     disabled={!isEditing}
-                                    className="bg-transparent border-none p-0 text-xl font-black text-slate-900 dark:text-white focus:ring-0 w-20 disabled:opacity-70 min-h-[44px]"
+                                    className="bg-transparent border-none p-0 text-xl font-black text-slate-900 dark:text-white focus:ring-0 w-20 disabled:opacity-70 min-h-[44px] tabular-nums"
                                 />
-                                <span className="text-[10px] text-slate-400 font-bold uppercase">cm</span>
+                                <span className="text-[10px] text-slate-600 dark:text-slate-300 font-bold uppercase">cm</span>
                             </div>
                         </div>
 
                         <div className="flex flex-col gap-1.5 p-4 rounded-3xl bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-700/50">
-                            <span className="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest">Idade</span>
+                            <span className="text-[10px] font-black text-slate-600 dark:text-slate-300 uppercase tracking-widest">Idade</span>
                             <div className="flex items-baseline gap-1">
-                                <span className="text-xl font-black text-slate-900 dark:text-white">{age || '--'}</span>
-                                <span className="text-[10px] text-slate-400 font-bold uppercase">anos</span>
+                                <span className="text-xl font-black text-slate-900 dark:text-white tabular-nums">{birthDate ? metabolic.resolvedAge : (age || '--')}</span>
+                                <span className="text-[10px] text-slate-600 dark:text-slate-300 font-bold uppercase">anos</span>
                             </div>
                         </div>
                     </div>
 
                     {/* Gender Selection */}
                     <div className="flex flex-col gap-3 mt-6">
-                        <span className="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-[0.2em] ml-2">Gênero</span>
+                        <span className="text-[10px] font-black text-slate-600 dark:text-slate-300 uppercase tracking-[0.2em] ml-2">Gênero</span>
                         <div className="grid grid-cols-3 gap-2 bg-slate-100/50 dark:bg-slate-900/80 p-1.5 rounded-3xl border border-slate-200 dark:border-slate-800" role="radiogroup" aria-label="Seleção de gênero">
                             {[
                                 { id: 'male', label: 'Masc', icon: 'male' },
@@ -452,7 +510,7 @@ const StudentProfile: React.FC = () => {
                                     aria-label={`Gênero ${g.label}`}
                                     disabled={!isEditing}
                                     onClick={() => isEditing && setGender(g.id)}
-                                    className={`py-3 px-2 rounded-2xl flex flex-col items-center gap-1 transition-all min-h-[44px] justify-center ${gender === g.id ? 'bg-white dark:bg-slate-700 text-primary shadow-soft' : 'text-slate-500 opacity-50'}`}
+                                    className={`py-3 px-2 rounded-2xl flex flex-col items-center gap-1 transition-all min-h-[44px] justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${gender === g.id ? 'bg-white dark:bg-slate-700 text-primary shadow-soft' : 'text-slate-600 dark:text-slate-400 opacity-70'}`}
                                 >
                                     <span className="material-symbols-rounded text-xl" aria-hidden="true">{g.icon}</span>
                                     <span className="text-[9px] font-black uppercase tracking-wider">{g.label}</span>
@@ -461,9 +519,29 @@ const StudentProfile: React.FC = () => {
                         </div>
                     </div>
 
+                    {/* Physical Activity Level Selection */}
+                    <div className="flex flex-col gap-3 mt-6">
+                        <label htmlFor="profile-activity-level" className="text-[10px] font-black text-slate-600 dark:text-slate-300 uppercase tracking-[0.2em] ml-2">
+                            Nível de Atividade Física
+                        </label>
+                        <select
+                            id="profile-activity-level"
+                            value={activityLevel}
+                            disabled={!isEditing}
+                            onChange={(e) => setActivityLevel(e.target.value)}
+                            className="w-full min-h-[48px] px-4 py-3 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700 text-sm font-bold text-slate-900 dark:text-white tabular-nums focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-70"
+                        >
+                            {ACTIVITY_LEVEL_OPTIONS.map((opt) => (
+                                <option key={opt.id} value={opt.id}>
+                                    {opt.label} - Fator {opt.multiplier}x
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+
                     {/* Goal Selection */}
                     <div className="flex flex-col gap-3 mt-6">
-                        <span className="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-[0.2em] ml-2">Foco Atual</span>
+                        <span className="text-[10px] font-black text-slate-600 dark:text-slate-300 uppercase tracking-[0.2em] ml-2">Foco Atual</span>
                         {isEditing ? (
                             <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label="Foco e objetivo atual">
                                 {[
@@ -479,7 +557,7 @@ const StudentProfile: React.FC = () => {
                                         aria-checked={goal === g.id}
                                         aria-label={`Objetivo ${g.label}`}
                                         onClick={() => setGoal(g.id)}
-                                        className={`p-3 rounded-2xl border-2 flex items-center gap-2 transition-all min-h-[44px] ${goal === g.id ? 'border-primary bg-primary/5 text-primary' : 'border-slate-100 dark:border-slate-800 text-slate-400'}`}
+                                        className={`p-3 rounded-2xl border-2 flex items-center gap-2 transition-all min-h-[44px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${goal === g.id ? 'border-primary bg-primary/5 text-primary' : 'border-slate-100 dark:border-slate-800 text-slate-600 dark:text-slate-300'}`}
                                     >
                                         <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${goal === g.id ? 'bg-primary text-white' : 'bg-slate-100 dark:bg-slate-800'}`}>
                                             <span className="material-symbols-rounded text-lg" aria-hidden="true">{g.icon}</span>
@@ -491,7 +569,7 @@ const StudentProfile: React.FC = () => {
                         ) : (
                             <div className="bg-gradient-to-br from-primary/10 to-sky-500/10 p-5 rounded-[2rem] border border-primary/20 flex items-center gap-4">
                                 <div className="w-14 h-14 rounded-2xl bg-white dark:bg-slate-800 flex items-center justify-center text-primary shadow-soft">
-                                    <span className="material-symbols-rounded text-3xl">
+                                    <span className="material-symbols-rounded text-3xl" aria-hidden="true">
                                         {goal === 'Emagrecimento' ? 'fitness_center' : goal === 'Hipertrofia' ? 'bolt' : goal === 'Performance' ? 'speed' : 'monitor_heart'}
                                     </span>
                                 </div>
@@ -510,19 +588,19 @@ const StudentProfile: React.FC = () => {
                 {tmb > 0 && (
                     <section className="bg-gradient-to-br from-orange-500 to-rose-600 p-6 rounded-[2.5rem] text-white shadow-xl shadow-orange-500/20 relative overflow-hidden animate-slide-up">
                         <div className="absolute top-0 right-0 p-8 opacity-10">
-                            <span className="material-symbols-rounded text-8xl">local_fire_department</span>
+                            <span className="material-symbols-rounded text-8xl" aria-hidden="true">local_fire_department</span>
                         </div>
                         <div className="relative z-10">
                             <div className="flex items-center gap-2 mb-4">
-                                <span className="material-symbols-rounded text-rose-200">bolt</span>
+                                <span className="material-symbols-rounded text-rose-200" aria-hidden="true">bolt</span>
                                 <h3 className="font-bold text-lg">Metabolismo Basal</h3>
                             </div>
                             <div className="flex items-baseline gap-2">
-                                <span className="text-4xl font-black">{tmb}</span>
+                                <span className="text-4xl font-black tabular-nums">{tmb}</span>
                                 <span className="text-sm font-bold opacity-80">kcal/dia</span>
                             </div>
-                            <p className="text-xs opacity-70 mt-4 leading-relaxed bg-white/10 p-3 rounded-2xl">
-                                Valor estimado via fórmula Mifflin-St Jeor. Consulte um nutricionista para um plano personalizado.
+                            <p className="text-xs opacity-90 mt-4 leading-relaxed bg-white/10 p-3 rounded-2xl tabular-nums">
+                                Calculado via equação de Mifflin-St Jeor ({metabolic.sanitizedWeightKg} kg, {metabolic.sanitizedHeightCm} cm, {metabolic.resolvedAge} anos).
                             </p>
                         </div>
                     </section>
@@ -532,24 +610,26 @@ const StudentProfile: React.FC = () => {
                 {tmb > 0 && (
                     <section className="bg-emerald-500 dark:bg-emerald-600 p-6 rounded-[2.5rem] text-white shadow-xl shadow-emerald-500/20 relative overflow-hidden animate-slide-up">
                         <div className="absolute top-0 right-0 p-8 opacity-10">
-                            <span className="material-symbols-rounded text-8xl">favorite</span>
+                            <span className="material-symbols-rounded text-8xl" aria-hidden="true">favorite</span>
                         </div>
                         <div className="relative z-10">
                             <div className="flex items-center gap-2 mb-2">
-                                <span className="material-symbols-rounded text-emerald-200">restaurant</span>
+                                <span className="material-symbols-rounded text-emerald-200" aria-hidden="true">restaurant</span>
                                 <h3 className="font-bold text-lg text-emerald-50/90">Nutrição é a chave</h3>
                             </div>
-                            <p className="text-sm text-emerald-50/80 mb-6">Estimativa para manutenção de peso.</p>
+                            <p className="text-sm text-emerald-50/90 mb-6 tabular-nums">
+                                Estimativa para manutenção de peso ({metabolic.activityLabel} • {metabolic.activityMultiplier}x).
+                            </p>
 
                             <div className="flex flex-col gap-4">
                                 <div className="flex items-center justify-between bg-white/10 p-4 rounded-2xl border border-white/10">
                                     <div className="flex flex-col">
-                                        <span className="text-[10px] uppercase font-black tracking-widest opacity-60">Gasto Basal (TMB)</span>
-                                        <span className="text-lg font-bold">{tmb} kcal</span>
+                                        <span className="text-[10px] uppercase font-black tracking-widest opacity-80">Gasto Basal (TMB)</span>
+                                        <span className="text-lg font-bold tabular-nums">{tmb} kcal</span>
                                     </div>
                                     <div className="flex flex-col items-end">
-                                        <span className="text-[10px] uppercase font-black tracking-widest opacity-60">Manutenção</span>
-                                        <span className="text-lg font-bold">~{maintenance} kcal</span>
+                                        <span className="text-[10px] uppercase font-black tracking-widest opacity-80">Manutenção</span>
+                                        <span className="text-lg font-bold tabular-nums">~{maintenance} kcal</span>
                                     </div>
                                 </div>
                             </div>
@@ -562,16 +642,16 @@ const StudentProfile: React.FC = () => {
                     <div className="bg-sky-50 dark:bg-sky-900/10 p-5 rounded-3xl border border-sky-100 dark:border-sky-500/10">
                         <p className="text-[10px] font-black text-sky-600 dark:text-sky-400 uppercase tracking-widest mb-1">Peso Inicial</p>
                         <div className="flex items-baseline gap-1">
-                            <span className="text-2xl font-black text-slate-900 dark:text-white">
+                            <span className="text-2xl font-black text-slate-900 dark:text-white tabular-nums">
                                 {weightHistory.length > 0 ? weightHistory[0].weight_kg : '-'}
                             </span>
-                            <span className="text-xs font-bold text-slate-500">kg</span>
+                            <span className="text-xs font-bold text-slate-600 dark:text-slate-300">kg</span>
                         </div>
                     </div>
                     <div className="bg-emerald-50 dark:bg-emerald-900/10 p-5 rounded-3xl border border-emerald-100 dark:border-emerald-500/10">
                         <p className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-widest mb-1">Diferença</p>
                         <div className="flex items-baseline gap-1">
-                            <span className="text-2xl font-black text-slate-900 dark:text-white">
+                            <span className="text-2xl font-black text-slate-900 dark:text-white tabular-nums">
                                 {(() => {
                                     if (weightHistory.length < 2) return '-';
                                     const first = weightHistory[0].weight_kg;
@@ -580,7 +660,7 @@ const StudentProfile: React.FC = () => {
                                     return diff.startsWith('-') ? diff : `+${diff}`;
                                 })()}
                             </span>
-                            <span className="text-xs font-bold text-slate-500">kg</span>
+                            <span className="text-xs font-bold text-slate-600 dark:text-slate-300">kg</span>
                         </div>
                     </div>
                 </section>
@@ -642,17 +722,16 @@ const StudentProfile: React.FC = () => {
                             </ResponsiveContainer>
                         </div>
                     </section>
-                )
-                }
+                )}
 
                 {/* Evolution Section */}
                 <section className="space-y-4 animate-slide-up pt-4">
                     <div className="flex items-center justify-between px-2">
                         <div className="flex items-center gap-2">
-                            <span className="material-symbols-rounded text-primary">photo_library</span>
+                            <span className="material-symbols-rounded text-primary" aria-hidden="true">photo_library</span>
                             <h3 className="text-lg font-black text-slate-900 dark:text-white">Galeria de Evolução</h3>
                         </div>
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Seu Olhar No Espelho</p>
+                        <p className="text-[10px] font-black text-slate-600 dark:text-slate-300 uppercase tracking-widest">Seu Olhar No Espelho</p>
                     </div>
                     <div className="bg-white dark:bg-slate-800 p-2 rounded-[2.5rem] shadow-soft border border-slate-100 dark:border-slate-700">
                         <EvolutionGallery />
@@ -661,16 +740,16 @@ const StudentProfile: React.FC = () => {
 
                 {/* Preferences Section */}
                 <section className="space-y-3 animate-slide-up">
-                    <h3 className="text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider ml-1">Experiência</h3>
+                    <h3 className="text-sm font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider ml-1">Experiência</h3>
                     <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-soft border border-slate-100 dark:border-slate-700 overflow-hidden divide-y divide-slate-100 dark:divide-slate-700">
                         <div className="flex items-center justify-between p-5">
                             <div className="flex items-center gap-4">
-                                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-colors ${preferences.focusMode ? 'bg-primary/10 text-primary' : 'bg-slate-100 dark:bg-slate-700 text-slate-400'}`}>
-                                    <span className="material-symbols-rounded">select_window</span>
+                                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-colors ${preferences.focusMode ? 'bg-primary/10 text-primary' : 'bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400'}`}>
+                                    <span className="material-symbols-rounded" aria-hidden="true">select_window</span>
                                 </div>
                                 <div>
                                     <p className="text-sm font-black text-slate-900 dark:text-white">Modo Foco</p>
-                                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Destaca exercício atual</p>
+                                    <p className="text-[10px] text-slate-600 dark:text-slate-300 font-bold uppercase tracking-wider">Destaca exercício atual</p>
                                 </div>
                             </div>
                             <ToggleSwitch
@@ -684,27 +763,27 @@ const StudentProfile: React.FC = () => {
 
                 {/* Settings Section */}
                 <section className="space-y-3 animate-slide-up">
-                    <h3 className="text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider ml-1">Configurações</h3>
+                    <h3 className="text-sm font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider ml-1">Configurações</h3>
                     <div className="space-y-3">
                         <InstallTutorial />
                         <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-soft border border-slate-100 dark:border-slate-700 overflow-hidden divide-y divide-slate-100 dark:divide-slate-700">
-                            <Link to="/student/settings/notifications" className="flex items-center justify-between p-4 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors cursor-pointer group">
+                            <Link to="/student/settings/notifications" className="flex items-center justify-between p-4 min-h-[48px] hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors cursor-pointer group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary">
                                 <div className="flex items-center gap-3">
                                     <div className="p-2 rounded-xl bg-sky-50 dark:bg-sky-900/20 text-primary">
                                         <span className="material-symbols-rounded" aria-hidden="true">notifications</span>
                                     </div>
                                     <p className="text-sm font-medium text-slate-900 dark:text-white">Notificações</p>
                                 </div>
-                                <span className="material-symbols-rounded text-slate-300 group-hover:translate-x-1 transition-transform" aria-hidden="true">chevron_right</span>
+                                <span className="material-symbols-rounded text-slate-400 group-hover:translate-x-1 transition-transform" aria-hidden="true">chevron_right</span>
                             </Link>
-                            <Link to="/student/settings/privacy" className="flex items-center justify-between p-4 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors cursor-pointer group">
+                            <Link to="/student/settings/privacy" className="flex items-center justify-between p-4 min-h-[48px] hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors cursor-pointer group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary">
                                 <div className="flex items-center gap-3">
                                     <div className="p-2 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 text-success">
                                         <span className="material-symbols-rounded" aria-hidden="true">shield</span>
                                     </div>
                                     <p className="text-sm font-medium text-slate-900 dark:text-white">Privacidade</p>
                                 </div>
-                                <span className="material-symbols-rounded text-slate-300 group-hover:translate-x-1 transition-transform" aria-hidden="true">chevron_right</span>
+                                <span className="material-symbols-rounded text-slate-400 group-hover:translate-x-1 transition-transform" aria-hidden="true">chevron_right</span>
                             </Link>
                         </div>
                     </div>
@@ -716,7 +795,7 @@ const StudentProfile: React.FC = () => {
                         type="button"
                         onClick={() => setIsSignOutModalOpen(true)}
                         aria-label="Sair da conta e encerrar sessão"
-                        className="w-full min-h-[52px] p-4 rounded-2xl border-2 border-danger/20 bg-danger/5 text-danger font-bold flex items-center justify-center gap-2 hover:bg-danger/10 transition-all active:scale-[0.98] cursor-pointer"
+                        className="w-full min-h-[52px] p-4 rounded-2xl border-2 border-danger/20 bg-danger/5 text-danger font-bold flex items-center justify-center gap-2 hover:bg-danger/10 transition-all active:scale-[0.98] cursor-pointer whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-danger"
                     >
                         <span className="material-symbols-rounded" aria-hidden="true">logout</span>
                         Sair da Conta
@@ -735,7 +814,7 @@ const StudentProfile: React.FC = () => {
                     onClose={() => setIsSignOutModalOpen(false)}
                 />
             </div>
-        </MainLayout >
+        </MainLayout>
     );
 };
 

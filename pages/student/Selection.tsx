@@ -10,6 +10,85 @@ import { notifyNetworkSuccess, notifyNetworkError } from '../../utils/useOnlineS
 import ConfirmDialog from '../../components/shared/ConfirmDialog';
 import { getActiveWorkout, removeActiveWorkout } from '../../utils/activeWorkoutStorage';
 
+export interface ParsedRoutineMeta {
+    isJson: boolean;
+    duration?: string;
+    level?: string;
+    frequency?: string;
+    text?: string;
+    formattedSummary: string;
+}
+
+export const parseRoutineMeta = (description?: string | null): ParsedRoutineMeta => {
+    if (!description || typeof description !== 'string' || !description.trim()) {
+        return { isJson: false, text: '', formattedSummary: '' };
+    }
+
+    const trimmed = description.trim();
+    if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
+        try {
+            const parsed = JSON.parse(trimmed);
+            if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+                const rawDuration = parsed.duration !== undefined && parsed.duration !== null ? String(parsed.duration).trim() : undefined;
+                const rawLevel = parsed.level !== undefined && parsed.level !== null ? String(parsed.level).trim() : undefined;
+                const rawFrequency = parsed.frequency !== undefined && parsed.frequency !== null ? String(parsed.frequency).trim() : undefined;
+                const rawText = parsed.notes || parsed.description || parsed.text;
+
+                const parts: string[] = [];
+                if (rawDuration) {
+                    const hasMin = /min/i.test(rawDuration);
+                    parts.push(`Duração média: ${hasMin ? rawDuration : `${rawDuration} min`}`);
+                }
+                if (rawLevel) {
+                    parts.push(`Nível: ${rawLevel}`);
+                }
+                if (rawFrequency) {
+                    const hasWeekSuffix = /x|sem/i.test(rawFrequency);
+                    parts.push(`Frequência: ${hasWeekSuffix ? rawFrequency : `${rawFrequency}x/sem`}`);
+                }
+                if (rawText && typeof rawText === 'string' && rawText.trim()) {
+                    parts.push(rawText.trim());
+                }
+
+                return {
+                    isJson: true,
+                    duration: rawDuration || undefined,
+                    level: rawLevel || undefined,
+                    frequency: rawFrequency || undefined,
+                    text: typeof rawText === 'string' ? rawText.trim() : undefined,
+                    formattedSummary: parts.join(' • ')
+                };
+            }
+        } catch {
+            // Se falhar o parse JSON, trata como texto livre
+        }
+    }
+
+    return {
+        isJson: false,
+        text: trimmed,
+        formattedSummary: trimmed
+    };
+};
+
+export const formatRoutineInfoToast = (description?: string | null, routineName?: string): string => {
+    const meta = parseRoutineMeta(description);
+    if (meta.formattedSummary) {
+        return meta.formattedSummary;
+    }
+    return `Rotina prescrita: ${routineName || 'Treino Personalizado'}`;
+};
+
+export const resolveWorkoutDurationLabel = (workout: any, routineMeta?: ParsedRoutineMeta): string => {
+    if (workout?.duration_minutes !== undefined && workout?.duration_minutes !== null && Number(workout.duration_minutes) > 0) {
+        return `${Number(workout.duration_minutes)} min`;
+    }
+    if (routineMeta?.duration) {
+        return /min/i.test(routineMeta.duration) ? routineMeta.duration : `${routineMeta.duration} min`;
+    }
+    return '~60 min';
+};
+
 const Selection: React.FC = () => {
     const { user } = useAuth();
     const navigate = useNavigate();
@@ -135,12 +214,7 @@ const Selection: React.FC = () => {
         }
     };
 
-    const getDifficultyColor = (name: string) => {
-        const lower = name.toLowerCase();
-        if (lower.includes('iniciante') || lower.includes('a')) return 'text-emerald-500 bg-emerald-50 dark:bg-emerald-900/20 border-emerald-100 dark:border-emerald-900/30';
-        if (lower.includes('avançado') || lower.includes('c')) return 'text-red-500 bg-red-50 dark:bg-red-900/20 border-red-100 dark:border-red-900/30';
-        return 'text-blue-500 bg-blue-50 dark:bg-blue-900/20 border-blue-100 dark:border-blue-900/30';
-    };
+    const routineMeta = parseRoutineMeta(routine?.description);
 
     if (loading) return (
         <MainLayout>
@@ -182,18 +256,18 @@ const Selection: React.FC = () => {
             </div>
 
             <header className="relative sticky top-0 z-30 bg-white dark:bg-slate-900 px-4 py-3 flex items-center justify-between border-b border-slate-200/50 dark:border-white/5">
-                <Link to="/student/dashboard" aria-label="Voltar para a tela inicial" className="w-11 h-11 min-w-[44px] min-h-[44px] rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-500 hover:text-sky-500 hover:border-sky-300 dark:hover:border-sky-600 transition-colors shadow-sm active:scale-95">
+                <Link to="/student/dashboard" aria-label="Voltar para a tela inicial" className="w-11 h-11 min-w-[44px] min-h-[44px] rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-600 dark:text-slate-300 hover:text-sky-500 hover:border-sky-300 dark:hover:border-sky-600 transition-colors shadow-sm active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
                     <span className="material-symbols-rounded text-xl" aria-hidden="true">arrow_back</span>
                 </Link>
                 <div className="flex-1 px-4 text-center">
                     <h1 className="text-base font-bold text-slate-900 dark:text-white truncate">{routine.name}</h1>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">Rotina Atual</p>
+                    <p className="text-xs text-slate-600 dark:text-slate-300">Rotina Atual</p>
                 </div>
                 <button
                     type="button"
                     aria-label="Informações sobre a rotina"
-                    onClick={() => toast(routine.description || `Rotina prescrita: ${routine.name}`, { icon: 'ℹ️' })}
-                    className="w-11 h-11 min-w-[44px] min-h-[44px] p-2 -mr-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 transition-colors flex items-center justify-center"
+                    onClick={() => toast(formatRoutineInfoToast(routine.description, routine.name), { icon: 'ℹ️' })}
+                    className="w-11 h-11 min-w-[44px] min-h-[44px] p-2 -mr-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                 >
                     <span className="material-symbols-rounded" aria-hidden="true">info</span>
                 </button>
@@ -217,14 +291,14 @@ const Selection: React.FC = () => {
                             <button
                                 type="button"
                                 onClick={() => setIsDiscardModalOpen(true)}
-                                className="min-h-[44px] py-2.5 rounded-xl text-slate-400 font-bold text-sm bg-slate-800 hover:bg-slate-700 transition-colors border border-white/5 flex items-center justify-center"
+                                className="min-h-[44px] py-2.5 rounded-xl text-slate-400 font-bold text-sm bg-slate-800 hover:bg-slate-700 transition-colors border border-white/5 flex items-center justify-center whitespace-nowrap"
                             >
                                 Descartar
                             </button>
                             <button
                                 type="button"
                                 onClick={() => navigate(`/student/workout/${activeWorkout.workoutId}`)}
-                                className="min-h-[44px] py-2.5 rounded-xl bg-sky-500 text-white font-bold text-sm shadow-lg shadow-sky-500/20 active:scale-[0.98] transition-all flex items-center justify-center"
+                                className="min-h-[44px] py-2.5 rounded-xl bg-sky-500 text-white font-bold text-sm shadow-lg shadow-sky-500/20 active:scale-[0.98] transition-all flex items-center justify-center whitespace-nowrap"
                             >
                                 Continuar
                             </button>
@@ -240,38 +314,52 @@ const Selection: React.FC = () => {
                     <div className="relative z-10">
                         <h2 className="font-bold text-2xl mb-1 font-display">Pronto para treinar?</h2>
                         <p className="text-blue-100 text-sm mb-4">Escolha seu treino de hoje e dê o seu melhor!</p>
-                        <div className="flex items-center gap-2 bg-white/20 backdrop-blur-md rounded-lg px-3 py-1.5 w-fit border border-white/10">
-                            <span className="material-symbols-rounded text-sm text-yellow-300">local_fire_department</span>
-                            <span className="text-xs font-bold">Foco total hoje!</span>
+                        <div className="flex flex-wrap items-center gap-2">
+                            <div className="flex items-center gap-2 bg-white/20 backdrop-blur-md rounded-lg px-3 py-1.5 w-fit border border-white/10">
+                                <span className="material-symbols-rounded text-sm text-yellow-300">local_fire_department</span>
+                                <span className="text-xs font-bold">Foco total hoje!</span>
+                            </div>
+                            {routineMeta.level && (
+                                <div className="flex items-center gap-1.5 bg-white/15 backdrop-blur-md rounded-lg px-3 py-1.5 w-fit border border-white/10">
+                                    <span className="material-symbols-rounded text-sm text-sky-100">equalizer</span>
+                                    <span className="text-xs font-bold">{routineMeta.level}</span>
+                                </div>
+                            )}
+                            {routineMeta.frequency && (
+                                <div className="flex items-center gap-1.5 bg-white/15 backdrop-blur-md rounded-lg px-3 py-1.5 w-fit border border-white/10">
+                                    <span className="material-symbols-rounded text-sm text-sky-100" aria-hidden="true">calendar_month</span>
+                                    <span className="text-xs font-bold tabular-nums">
+                                        {/x|sem/i.test(routineMeta.frequency) ? routineMeta.frequency : `${routineMeta.frequency}x/sem`}
+                                    </span>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
 
                 <div className="flex justify-between items-end px-1">
                     <h3 className="font-bold text-lg text-slate-900 dark:text-white">Seus Treinos</h3>
-                    <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">{workouts.length} disponíveis</span>
+                    <span className="text-xs text-slate-600 dark:text-slate-300 font-medium tabular-nums">{workouts.length} disponíveis</span>
                 </div>
 
                 <div className="space-y-4 pb-20">
                     {workouts.length === 0 ? (
                         <div className="text-center py-10 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-2xl">
-                            <p className="text-slate-500">Esta rotina não tem treinos ainda.</p>
+                            <p className="text-slate-600 dark:text-slate-300">Esta rotina não tem treinos ainda.</p>
                         </div>
                     ) : (
                         workouts.map((workout, index) => {
-                            // Helper to extract duration/exercises count if available (for now mocking or simplified)
-                            // In real app, we might need to join 'workout_items' to get count.
-                            // Assuming backend doesn't send count yet, we'll placeholder.
+                            const durationLabel = resolveWorkoutDurationLabel(workout, routineMeta);
                             return (
                                 <Link
                                     key={workout.id}
                                     to={`/student/workout/${workout.id}`}
                                     aria-label={`Iniciar treino ${workout.name || index + 1}`}
-                                    className="block group relative"
+                                    className="block group relative rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                                 >
                                     {index === suggestedIndex && (
                                         <div className="absolute -top-3 left-4 bg-emerald-500 text-white text-[10px] font-bold px-3 py-1 rounded-full shadow-md z-10 flex items-center gap-1">
-                                            <span className="material-symbols-rounded text-[12px]">recommend</span>
+                                            <span className="material-symbols-rounded text-[12px]" aria-hidden="true">recommend</span>
                                             SUGESTÃO
                                         </div>
                                     )}
@@ -296,14 +384,15 @@ const Selection: React.FC = () => {
                                             <h4 className="font-bold text-lg text-slate-900 dark:text-white group-hover:text-primary transition-colors truncate">{workout.name}</h4>
 
                                             <div className="flex items-center gap-3 mt-1">
-                                                <span className="inline-flex items-center text-xs text-slate-600 dark:text-slate-400 font-medium">
-                                                    <span className="material-symbols-rounded text-[14px] mr-1 text-slate-400" aria-hidden="true">timer</span>
-                                                    ~60 min
+                                                <span className="inline-flex items-center text-xs text-slate-600 dark:text-slate-300 font-medium tabular-nums">
+                                                    <span className="material-symbols-rounded text-[14px] mr-1 text-slate-500 dark:text-slate-400" aria-hidden="true">timer</span>
+                                                    {durationLabel}
                                                 </span>
-                                                <span className="inline-flex items-center text-xs text-slate-600 dark:text-slate-400 font-medium">
-                                                    <span className="material-symbols-rounded text-[14px] mr-1 text-slate-400" aria-hidden="true">fitness_center</span>
-                                                    Ver detalhes
-                                                </span>
+                                                {workout.description && (
+                                                    <span className="text-xs text-slate-600 dark:text-slate-300 truncate">
+                                                        {workout.description}
+                                                    </span>
+                                                )}
                                             </div>
                                         </div>
 

@@ -144,7 +144,9 @@ const Library: React.FC = () => {
                             routine_id: newRoutine.id,
                             name: w.name,
                             day_number: w.day_number || w.order_index,
-                            order_index: w.order_index || w.day_number
+                            order_index: w.order_index || w.day_number,
+                            duration_minutes: w.duration_minutes ?? null,
+                            description: w.description ?? null
                         }])
                         .select()
                         .single();

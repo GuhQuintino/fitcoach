@@ -11,7 +11,6 @@ const BottomNav: React.FC = () => {
         { path: '/coach/dashboard', icon: 'home', label: 'Home' },
         { path: '/coach/library', icon: 'fitness_center', label: 'Treinos' },
         { path: '/coach/students', icon: 'groups', label: 'Alunos' },
-        { path: '/coach/plans', icon: 'card_membership', label: 'Planos' },
         { path: '/coach/profile', icon: 'person', label: 'Perfil' },
     ];
 
@@ -49,7 +48,7 @@ const BottomNav: React.FC = () => {
                             to={link.path}
                             aria-label={link.label}
                             aria-current={isActive ? 'page' : undefined}
-                            className={`flex flex-col items-center justify-center gap-1 flex-1 relative group min-h-[44px] py-1`}
+                            className="flex flex-col items-center justify-center gap-1 flex-1 relative group min-h-[44px] py-1 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                         >
                             {/* Active Indicator Glow */}
                             {isActive && (
@@ -58,7 +57,7 @@ const BottomNav: React.FC = () => {
 
                             <span className={`material-symbols-rounded text-[28px] transition-all duration-300 ${isActive
                                 ? 'text-sky-500 scale-110 filled drop-shadow-sm'
-                                : 'text-slate-500 dark:text-slate-400 group-hover:text-sky-500 group-active:scale-95'
+                                : 'text-slate-600 dark:text-slate-300 group-hover:text-sky-500 group-active:scale-95'
                                 }`} aria-hidden="true">
                                 {link.icon}
                             </span>

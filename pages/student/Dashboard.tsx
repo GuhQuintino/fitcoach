@@ -258,7 +258,7 @@ const StudentDashboard: React.FC = () => {
                             target="_blank"
                             rel="noreferrer"
                             aria-label={`Falar com coach ${coach?.full_name || ''} no WhatsApp`}
-                            className="flex items-center gap-2 px-6 py-3 min-h-[44px] bg-whatsapp text-white font-bold rounded-xl shadow-lg shadow-whatsapp/20 hover:shadow-xl hover:bg-whatsapp-dark transition-all transform active:scale-95"
+                            className="flex items-center gap-2 px-6 py-3 min-h-[44px] bg-whatsapp text-white font-bold rounded-xl shadow-lg shadow-whatsapp/20 hover:shadow-xl hover:bg-whatsapp-dark transition-all transform active:scale-95 whitespace-nowrap"
                         >
                             <span className="material-symbols-rounded" aria-hidden="true">chat</span>
                             Falar com Coach
@@ -278,7 +278,7 @@ const StudentDashboard: React.FC = () => {
                         <span className="material-symbols-rounded text-5xl text-red-500" aria-hidden="true">event_busy</span>
                     </div>
                     <div>
-                        <h1 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Plano Vencido</h1>
+                        <h1 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Acesso Vencido</h1>
                         <p className="text-slate-500 dark:text-slate-400">
                             Sua consultoria encerrou em <strong>{new Date(studentData.consultancy_expires_at).toLocaleDateString()}</strong>.
                             <br />Entre em contato com <strong>{coach?.full_name || 'seu coach'}</strong> para renovar.
@@ -290,8 +290,8 @@ const StudentDashboard: React.FC = () => {
                             href={formatToWhatsappUrl(coach.phone)!}
                             target="_blank"
                             rel="noreferrer"
-                            aria-label={`Renovar plano via WhatsApp com ${coach?.full_name || 'coach'}`}
-                            className="flex items-center gap-2 px-6 py-3 min-h-[44px] bg-whatsapp text-white font-bold rounded-xl shadow-lg shadow-whatsapp/20 hover:shadow-xl hover:bg-whatsapp-dark transition-all transform active:scale-95"
+                            aria-label={`Renovar acesso via WhatsApp com ${coach?.full_name || 'coach'}`}
+                            className="flex items-center gap-2 px-6 py-3 min-h-[44px] bg-whatsapp text-white font-bold rounded-xl shadow-lg shadow-whatsapp/20 hover:shadow-xl hover:bg-whatsapp-dark transition-all transform active:scale-95 whitespace-nowrap"
                         >
                             <span className="material-symbols-rounded" aria-hidden="true">chat</span>
                             Renovar Agora
@@ -301,6 +301,10 @@ const StudentDashboard: React.FC = () => {
             </MainLayout>
         );
     }
+
+    const formattedExpirationDate = expiresAt
+        ? new Date(expiresAt).toLocaleDateString('pt-BR')
+        : null;
 
     // ACTIVE DASHBOARD
     return (
@@ -335,8 +339,8 @@ const StudentDashboard: React.FC = () => {
                         {/* Streak Badge - Only show if > 0 */}
                         {gamification.streak > 0 && (
                             <div className="flex items-center gap-1 bg-orange-100 dark:bg-orange-900/30 px-3 py-1.5 rounded-full border border-orange-200 dark:border-orange-800/50 animate-fade-in">
-                                <span className="material-symbols-rounded text-orange-500 text-lg">local_fire_department</span>
-                                <span className="text-xs font-bold text-orange-600 dark:text-orange-400">{gamification.streak} dias</span>
+                                <span className="material-symbols-rounded text-orange-500 text-lg" aria-hidden="true">local_fire_department</span>
+                                <span className="text-xs font-bold text-orange-600 dark:text-orange-400 tabular-nums">{gamification.streak} dias</span>
                             </div>
                         )}
                         <ThemeToggle />
@@ -344,43 +348,49 @@ const StudentDashboard: React.FC = () => {
                     </div>
                 </div>
 
-                {/* Plan Status Overview */}
-                {daysRemaining !== null ? (
-                    <div className="flex items-center justify-between bg-slate-50 dark:bg-slate-700/30 rounded-2xl p-4 border border-slate-100 dark:border-slate-700/50">
-                        <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-full border-[3px] border-primary/20 border-t-primary flex items-center justify-center rotate-45">
-                                <span className="material-symbols-rounded text-primary -rotate-45" aria-hidden="true">fitness_center</span>
+                {/* Gamification XP & Expiration Status Overview */}
+                <div className="bg-slate-50 dark:bg-slate-700/30 rounded-2xl p-4 border border-slate-100 dark:border-slate-700/50 space-y-3">
+                    <div className="flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                            <div className="w-11 h-11 rounded-2xl bg-primary/10 dark:bg-primary/20 flex items-center justify-center shrink-0">
+                                <span className="material-symbols-rounded text-primary text-2xl" aria-hidden="true">military_tech</span>
                             </div>
-                            <div>
-                                <p className="text-xs text-slate-600 dark:text-slate-300 font-medium">Plano Atual</p>
-                                <p className="text-sm font-bold text-slate-900 dark:text-white">Consultoria Pro</p>
-                            </div>
-                            <div className="mt-1">
-                                {/* XP Progress Bar */}
-                                <div className="h-1.5 w-24 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden relative">
+                            <div className="flex-1 min-w-0">
+                                <div className="flex items-center justify-between gap-2 mb-1">
+                                    <p className="text-sm font-bold text-slate-900 dark:text-white truncate tabular-nums">
+                                        Nível {gamification.level} • {gamification.current_xp} XP
+                                    </p>
+                                    <span className="text-[11px] font-bold text-primary whitespace-nowrap tabular-nums">
+                                        {gamification.current_xp % 1000}/1000 XP
+                                    </span>
+                                </div>
+                                <div className="h-2 w-full bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden relative">
                                     <div
                                         className="h-full bg-gradient-to-r from-primary to-blue-500 rounded-full transition-all duration-1000"
                                         style={{ width: `${(gamification.current_xp % 1000) / 10}%` }}
                                     ></div>
                                 </div>
-                                <p className="text-[10px] text-slate-600 dark:text-slate-300 mt-1 font-bold">Nível {gamification.level} ({gamification.current_xp} XP)</p>
                             </div>
                         </div>
-                        <div className="text-right">
-                            <p className="text-xs text-slate-600 dark:text-slate-300 font-medium">Expira em</p>
-                            <p className={`text-sm font-bold ${daysRemaining < 7 ? 'text-red-500' : 'text-primary'}`}>
-                                {daysRemaining} dias
-                            </p>
-                        </div>
+
+                        {daysRemaining !== null && (
+                            <div className="text-right shrink-0 pl-2 border-l border-slate-200 dark:border-slate-700">
+                                <p className="text-[11px] text-slate-600 dark:text-slate-300 font-medium tabular-nums">
+                                    Expira em{formattedExpirationDate ? `: ${formattedExpirationDate}` : ''}
+                                </p>
+                                <p className={`text-sm font-bold tabular-nums ${daysRemaining < 7 ? 'text-red-500' : 'text-primary'}`}>
+                                    {daysRemaining} dias
+                                </p>
+                            </div>
+                        )}
                     </div>
-                ) : (
-                    <div className="flex items-center justify-between bg-slate-50 dark:bg-slate-700/30 rounded-2xl p-4 border border-slate-100 dark:border-slate-700/50">
-                        <p className="text-slate-500 text-sm">Sem plano ativo</p>
-                    </div>
-                )}
+                    <p className="text-[11px] text-slate-600 dark:text-slate-300 leading-snug">
+                        Cada treino concluído soma 100 XP. A cada 1.000 XP (10 treinos), você sobe de nível!
+                    </p>
+                </div>
             </header>
 
-            <div className="px-6 -mt-4 space-y-4 relative z-20">
+            <div className="px-6 -mt-4 space-y-4 pb-8 relative z-20">
                 <PWAInstallPrompt />
                 <OfflineSyncStatus />
                 <ProfileCompletionBanner completeness={profileCompleteness} />
@@ -402,7 +412,7 @@ const StudentDashboard: React.FC = () => {
                                 type="button"
                                 onClick={() => setIsDiscardModalOpen(true)}
                                 aria-label="Descartar treino em andamento"
-                                className="min-h-[44px] py-2.5 rounded-xl text-slate-400 font-bold text-sm bg-slate-800 hover:bg-slate-700 transition-colors border border-white/5 flex items-center justify-center"
+                                className="min-h-[44px] py-2.5 rounded-xl text-slate-400 font-bold text-sm bg-slate-800 hover:bg-slate-700 transition-colors border border-white/5 flex items-center justify-center whitespace-nowrap"
                             >
                                 Descartar
                             </button>
@@ -410,7 +420,7 @@ const StudentDashboard: React.FC = () => {
                                 type="button"
                                 onClick={() => navigate(`/student/workout/${activeWorkout.workoutId}`)}
                                 aria-label="Continuar treino em andamento"
-                                className="min-h-[44px] py-2.5 rounded-xl bg-primary text-white font-bold text-sm shadow-lg shadow-primary/20 active:scale-[0.98] transition-all flex items-center justify-center"
+                                className="min-h-[44px] py-2.5 rounded-xl bg-primary text-white font-bold text-sm shadow-lg shadow-primary/20 active:scale-[0.98] transition-all flex items-center justify-center whitespace-nowrap"
                             >
                                 Continuar
                             </button>
@@ -454,7 +464,7 @@ const StudentDashboard: React.FC = () => {
                                 </div>
                                 <div>
                                     <p className="text-slate-900 dark:text-white font-bold">Sem treino ativo</p>
-                                    <p className="text-slate-500 dark:text-slate-400 text-sm">Aguarde seu coach atribuir um plano.</p>
+                                    <p className="text-slate-500 dark:text-slate-400 text-sm">Aguarde seu coach atribuir uma rotina.</p>
                                 </div>
                             </div>
                         )}
@@ -468,22 +478,22 @@ const StudentDashboard: React.FC = () => {
                     </div>
 
                     <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-4">
-                        <Link to="/student/history" className="bg-gradient-to-br from-emerald-50/80 to-white dark:from-emerald-900/20 dark:to-slate-800 p-5 rounded-2xl shadow-sm border border-emerald-100/50 dark:border-emerald-700/30 active:scale-[0.98] transition-all duration-200 ease-out hover:shadow-emerald-100/50 dark:hover:shadow-none group relative overflow-hidden">
+                        <Link to="/student/history" className="bg-gradient-to-br from-emerald-50/80 to-white dark:from-emerald-900/20 dark:to-slate-800 p-5 rounded-2xl shadow-sm border border-emerald-100/50 dark:border-emerald-700/30 active:scale-[0.98] transition-all duration-200 ease-out hover:shadow-emerald-100/50 dark:hover:shadow-none group relative overflow-hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
                             <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-100/20 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2" aria-hidden="true"></div>
                             <div className="w-12 h-12 bg-white dark:bg-emerald-900/40 rounded-2xl flex items-center justify-center text-emerald-500 dark:text-emerald-400 mb-4 group-hover:scale-110 transition-transform duration-200 ease-out shadow-sm relative z-10">
                                 <span className="material-symbols-rounded text-2xl" aria-hidden="true">history</span>
                             </div>
                             <span className="font-bold text-lg text-slate-900 dark:text-white block mb-0.5 relative z-10">Histórico</span>
-                            <span className="text-xs text-slate-500 dark:text-slate-400 font-medium relative z-10">{workoutCount} treinos feitos</span>
+                            <span className="text-xs text-slate-600 dark:text-slate-300 font-medium relative z-10 tabular-nums">{workoutCount} treinos feitos</span>
                         </Link>
 
-                        <Link to="/student/evolution" className="bg-gradient-to-br from-purple-50/80 to-white dark:from-purple-900/20 dark:to-slate-800 p-5 rounded-2xl shadow-sm border border-purple-100/50 dark:border-purple-700/30 active:scale-[0.98] transition-all duration-200 ease-out hover:shadow-purple-100/50 dark:hover:shadow-none group relative overflow-hidden">
+                        <Link to="/student/evolution" className="bg-gradient-to-br from-purple-50/80 to-white dark:from-purple-900/20 dark:to-slate-800 p-5 rounded-2xl shadow-sm border border-purple-100/50 dark:border-purple-700/30 active:scale-[0.98] transition-all duration-200 ease-out hover:shadow-purple-100/50 dark:hover:shadow-none group relative overflow-hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
                             <div className="absolute top-0 right-0 w-24 h-24 bg-purple-100/20 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2" aria-hidden="true"></div>
                             <div className="w-12 h-12 bg-white dark:bg-purple-900/40 rounded-2xl flex items-center justify-center text-purple-500 dark:text-purple-400 mb-4 group-hover:scale-110 transition-transform duration-200 ease-out shadow-sm relative z-10">
                                 <span className="material-symbols-rounded text-2xl" aria-hidden="true">analytics</span>
                             </div>
                             <span className="font-bold text-lg text-slate-900 dark:text-white block mb-0.5 relative z-10">Evolução</span>
-                            <span className="text-xs text-slate-500 dark:text-slate-400 font-medium relative z-10">Seus recordes</span>
+                            <span className="text-xs text-slate-600 dark:text-slate-300 font-medium relative z-10">Seus recordes</span>
                         </Link>
 
                         {/* Card: Falar com Coach */}
@@ -493,7 +503,7 @@ const StudentDashboard: React.FC = () => {
                                 target="_blank"
                                 rel="noreferrer"
                                 aria-label={`Conversar com coach ${coach.full_name || ''} no WhatsApp`}
-                                className="bg-gradient-to-br from-whatsapp/10 to-white dark:from-whatsapp/20 dark:to-slate-800 p-5 rounded-2xl shadow-sm border border-whatsapp/20 dark:border-whatsapp/30 active:scale-[0.98] transition-all hover:shadow-whatsapp/10 dark:hover:shadow-none group relative overflow-hidden"
+                                className="bg-gradient-to-br from-whatsapp/10 to-white dark:from-whatsapp/20 dark:to-slate-800 p-5 rounded-2xl shadow-sm border border-whatsapp/20 dark:border-whatsapp/30 active:scale-[0.98] transition-all hover:shadow-whatsapp/10 dark:hover:shadow-none group relative overflow-hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-whatsapp"
                             >
                                 <div className="absolute top-0 right-0 w-24 h-24 bg-whatsapp/10 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2" aria-hidden="true"></div>
                                 <div className="w-12 h-12 bg-white dark:bg-whatsapp/20 rounded-2xl flex items-center justify-center text-whatsapp mb-4 group-hover:scale-110 transition-transform shadow-sm relative z-10">
@@ -502,27 +512,9 @@ const StudentDashboard: React.FC = () => {
                                     </svg>
                                 </div>
                                 <span className="font-bold text-lg text-slate-900 dark:text-white block mb-0.5 relative z-10">Falar com Coach</span>
-                                <span className="text-xs text-slate-500 dark:text-slate-400 font-medium relative z-10">{coach.full_name?.split(' ')[0] || 'WhatsApp'}</span>
+                                <span className="text-xs text-slate-600 dark:text-slate-300 font-medium relative z-10">{coach.full_name?.split(' ')[0] || 'WhatsApp'}</span>
                             </a>
                         )}
-                    </div>
-                </div>
-
-                {/* Daily Motivation / Extras */}
-                <div className="bg-indigo-900 rounded-3xl p-6 text-white relative overflow-hidden shadow-lg shadow-indigo-900/20">
-                    <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500/30 rounded-full blur-3xl" aria-hidden="true"></div>
-                    <div className="absolute bottom-0 left-0 w-32 h-32 bg-blue-500/30 rounded-full blur-3xl" aria-hidden="true"></div>
-
-                    <div className="relative z-10 flex items-start justify-between">
-                        <div>
-                            <span className="block text-indigo-200 text-xs font-bold uppercase tracking-wider mb-2">Dica do dia</span>
-                            <p className="font-display font-medium text-lg leading-relaxed max-w-[80%]">
-                                "A consistência é mais importante que a intensidade."
-                            </p>
-                        </div>
-                        <div className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center backdrop-blur-md">
-                            <span className="material-symbols-rounded text-indigo-100" aria-hidden="true">lightbulb</span>
-                        </div>
                     </div>
                 </div>
 

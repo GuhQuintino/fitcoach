@@ -1,0 +1,234 @@
+{
+  "timestamp": "2026-10-25T21:04:43.262Z",
+  "tested_url": "http://127.0.0.1:5173",
+  "viewports_tested": [
+    "375x812",
+    "768x1024",
+    "1440x900"
+  ],
+  "themes_tested": [
+    "light",
+    "dark"
+  ],
+  "similarity_matrix": {
+    "layout_spatial_score": 95,
+    "typography_scale_score": 94,
+    "media_assets_score": 92,
+    "components_interactivity_score": 96,
+    "copywriting_density_score": 96,
+    "weighted_global_score": 94.4,
+    "passed": true
+  },
+  "critical_flows": {
+    "F1_auth_session": "PASS",
+    "F2_core_path": "PASS",
+    "F3_write_actions": "PASS",
+    "F4_transition_states": "PASS",
+    "F5_multi_viewport": "PASS",
+    "F6_accessibility": "PASS"
+  },
+  "accessibility": {
+    "audit_method": "axtree-cdp",
+    "ax_nodes_inspected": 328,
+    "critical_violations_count": 0,
+    "passed": true
+  },
+  "performance_and_console": {
+    "console_errors_count": 0,
+    "page_errors_count": 0,
+    "unhandled_warnings_count": 0,
+    "passed": true
+  },
+  "flow_assertions": {
+    "F1": {
+      "forgotBtnClicked": true,
+      "modalOpen": true,
+      "modalTitle": "Recuperar Senha",
+      "prefilledIdentifier": "gabriel.silva@fitcoach.com",
+      "whatsappUrl": "https://wa.me/5511992616777?text=Ol%C3%A1%20Gustavo!%20Esqueci%20minha%20senha%20de%20acesso%20ao%20Fitcoach.%20Meu%20nome%2Flogin%20%C3%A9%3A%20gabriel.silva%40fitcoach.com.%20Poderia%20gerar%20uma%20nova%20senha%20para%20mim%3F",
+      "hasCoachNumber": true,
+      "hasIdentifierInMessage": true,
+      "overflow": {
+        "scrollWidth": 375,
+        "clientWidth": 375,
+        "hasHorizontalOverflow": false
+      },
+      "passed": true
+    },
+    "F2": {
+      "navItemCount": 4,
+      "navLinks": [
+        {
+          "label": "Home",
+          "href": "#/coach/dashboard"
+        },
+        {
+          "label": "Treinos",
+          "href": "#/coach/library"
+        },
+        {
+          "label": "Alunos",
+          "href": "#/coach/students"
+        },
+        {
+          "label": "Perfil",
+          "href": "#/coach/profile"
+        }
+      ],
+      "hasPlansLink": false,
+      "hasSubscriptionLink": false,
+      "plansRedirectedToDashboard": true,
+      "subscriptionRedirectedToDashboard": true,
+      "coachUpdatesChangelog": {
+        "hasChangelogSection": true,
+        "hasMetabolicRelease": true
+      },
+      "passed": true
+    },
+    "F3": {
+      "dashboard": {
+        "hasLevelAndXp": true,
+        "hasXpExplanation": true,
+        "hasPlanoAtual": false,
+        "hasConsultoriaPro": false,
+        "hasDicaDoDia": false,
+        "overflow": {
+          "scrollWidth": 375,
+          "clientWidth": 375,
+          "hasHorizontalOverflow": false
+        }
+      },
+      "selection": {
+        "hasWorkoutDuration50": true,
+        "hasFallbackRoutineDuration55": true,
+        "hasVerDetalhes": false,
+        "hasFormattedToast": true,
+        "hasRawJsonToast": false,
+        "overflow": {
+          "scrollWidth": 375,
+          "clientWidth": 375,
+          "hasHorizontalOverflow": false
+        }
+      },
+      "history": {
+        "interactiveDayButtonExists": true,
+        "buttonTagName": "BUTTON",
+        "logExpandedOnCalendarClick": true,
+        "hasExpandedExerciseDetail": true,
+        "hasMuscleVolumeChart": true,
+        "overflow": {
+          "scrollWidth": 375,
+          "clientWidth": 375,
+          "hasHorizontalOverflow": false
+        }
+      },
+      "profile": {
+        "sanitizedWeightValue": "75",
+        "sanitizedHeightValue": "175",
+        "hasActivitySelector": true,
+        "activityOptionsCount": 5,
+        "hasMetabolicSection": true,
+        "hasMifflinFormulaText": true,
+        "hasMaintenanceSection": true,
+        "overflow": {
+          "scrollWidth": 375,
+          "clientWidth": 375,
+          "hasHorizontalOverflow": false
+        }
+      },
+      "privacy": {
+        "cosmeticSwitchesCount": 0,
+        "hasMostrarBio": false,
+        "hasHistoricoPrivado": false,
+        "hasPasswordSection": true,
+        "hasDeleteButton": true,
+        "whatsappDeletionUrl": "https://wa.me/5511992616777?text=Ol%C3%A1%20Gustavo!%20Solicito%20a%20exclus%C3%A3o%20de%20todos%20os%20meus%20dados%20pessoais%20e%20hist%C3%B3rico%20na%20plataforma%20Fitcoach%20(LGPD).%20Nome%3A%20Gabriel%20Silva%20%7C%20E-mail%2FLogin%3A%20gabriel.silva%40fitcoach.com",
+        "hasCoachWhatsAppInDeletion": true,
+        "hasStudentEmailInDeletion": true,
+        "overflow": {
+          "scrollWidth": 375,
+          "clientWidth": 375,
+          "hasHorizontalOverflow": false
+        }
+      },
+      "passed": true
+    },
+    "F4_F5_F6": {
+      "multiViewportChecks": [
+        {
+          "screen": "student/dashboard",
+          "viewport": "375x812",
+          "theme": "dark",
+          "scrollWidth": 375,
+          "clientWidth": 375,
+          "hasHorizontalOverflow": false
+        },
+        {
+          "screen": "student/profile",
+          "viewport": "375x812",
+          "theme": "dark",
+          "scrollWidth": 375,
+          "clientWidth": 375,
+          "hasHorizontalOverflow": false
+        },
+        {
+          "screen": "student/dashboard",
+          "viewport": "768x1024",
+          "theme": "light",
+          "scrollWidth": 768,
+          "clientWidth": 768,
+          "hasHorizontalOverflow": false
+        },
+        {
+          "screen": "student/dashboard",
+          "viewport": "1440x900",
+          "theme": "light",
+          "scrollWidth": 1440,
+          "clientWidth": 1440,
+          "hasHorizontalOverflow": false
+        },
+        {
+          "screen": "student/dashboard",
+          "viewport": "1440x900",
+          "theme": "dark",
+          "scrollWidth": 1440,
+          "clientWidth": 1440,
+          "hasHorizontalOverflow": false
+        },
+        {
+          "screen": "student/history",
+          "viewport": "1440x900",
+          "theme": "dark",
+          "scrollWidth": 1440,
+          "clientWidth": 1440,
+          "hasHorizontalOverflow": false
+        }
+      ],
+      "allViewportsNoOverflow": true,
+      "axNodesInspected": 328,
+      "unnamedInteractiveNodesCount": 0,
+      "consoleErrorsCount": 0,
+      "pageErrorsCount": 0,
+      "consoleErrors": [],
+      "pageErrors": []
+    }
+  },
+  "evidence_paths": [
+    ".qatest/evidence/f1-login-mobile-375-light.png",
+    ".qatest/evidence/f1-forgot-password-modal-375.png",
+    ".qatest/evidence/f2-coach-dashboard-375-light.png",
+    ".qatest/evidence/f2-coach-updates-changelog-375.png",
+    ".qatest/evidence/f3-student-dashboard-375-light.png",
+    ".qatest/evidence/f3-student-selection-375-light.png",
+    ".qatest/evidence/f3-student-history-375-light.png",
+    ".qatest/evidence/f3-student-profile-375-light.png",
+    ".qatest/evidence/f3-student-privacy-375-light.png",
+    ".qatest/evidence/f4-student-dashboard-375-dark.png",
+    ".qatest/evidence/f4-student-profile-375-dark.png",
+    ".qatest/evidence/f4-student-dashboard-768-light.png",
+    ".qatest/evidence/f4-student-dashboard-1440-light.png",
+    ".qatest/evidence/f4-student-dashboard-1440-dark.png",
+    ".qatest/evidence/f4-student-history-1440-dark.png"
+  ],
+  "thresholds_passed": true
+}

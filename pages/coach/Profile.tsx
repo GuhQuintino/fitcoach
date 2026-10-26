@@ -53,7 +53,7 @@ const CoachProfile: React.FC = () => {
             // Note: coaches_data might not exist yet for new users
             setProfileData({
                 full_name: profile.full_name || '',
-                email: profile.email || '',
+                email: profile.email || user!.email || '',
                 phone: profile.phone || coachData?.phone || '',
                 avatar_url: profile.avatar_url || '',
                 bio: coachData?.bio || '',
@@ -178,7 +178,7 @@ const CoachProfile: React.FC = () => {
                         <Link
                             to="/coach/settings/notifications"
                             aria-label="Configurações de Notificações"
-                            className="min-w-[44px] min-h-[44px] w-11 h-11 flex items-center justify-center bg-slate-100 dark:bg-slate-700/50 rounded-2xl hover:bg-slate-200 dark:hover:bg-slate-600 transition-all active:scale-95"
+                            className="min-w-[44px] min-h-[44px] w-11 h-11 flex items-center justify-center bg-slate-100 dark:bg-slate-700/50 rounded-2xl hover:bg-slate-200 dark:hover:bg-slate-600 transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                         >
                             <span className="material-symbols-rounded text-slate-600 dark:text-slate-300" aria-hidden="true">settings</span>
                         </Link>
@@ -225,17 +225,20 @@ const CoachProfile: React.FC = () => {
                             onClick={() => fileInputRef.current?.click()}
                             disabled={uploading}
                             aria-label="Alterar foto de perfil"
-                            className="absolute bottom-1 -right-1 bg-primary text-white w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-2xl shadow-xl hover:bg-primary-dark transition-all transform hover:rotate-12 active:scale-90 border-2 border-white dark:border-slate-800 disabled:opacity-50"
+                            className="absolute bottom-1 -right-1 bg-primary text-white w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-2xl shadow-xl hover:bg-primary-dark transition-all transform hover:rotate-12 active:scale-90 border-2 border-white dark:border-slate-800 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                         >
                             <span className="material-symbols-rounded text-lg font-bold" aria-hidden="true">photo_camera</span>
                         </button>
                     </div>
                     <div className="text-center">
                         <h2 className="font-display text-2xl font-black text-slate-900 dark:text-white">{profileData.full_name}</h2>
-                        <div className="flex items-center justify-center gap-2 mt-1">
+                        {(profileData.email || user?.email) && (
+                            <p className="text-xs font-medium text-slate-600 dark:text-slate-300 mt-0.5">{profileData.email || user?.email}</p>
+                        )}
+                        <div className="flex items-center justify-center gap-2 mt-2">
                             <span className="bg-primary/10 text-primary px-3 py-1 rounded-full text-xs font-black uppercase tracking-widest">Personal Trainer</span>
                             {profileData.cref && (
-                                <span className="bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-widest">
+                                <span className="bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-widest tabular-nums">
                                     CREF: {profileData.cref}
                                 </span>
                             )}
@@ -259,7 +262,7 @@ const CoachProfile: React.FC = () => {
                             onClick={handleSave}
                             disabled={saving}
                             aria-label="Salvar alterações do perfil"
-                            className="min-h-[44px] bg-sky-500 text-white px-6 py-2.5 rounded-xl text-sm font-black shadow-lg shadow-sky-500/20 hover:bg-sky-600 transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer"
+                            className="min-h-[44px] bg-sky-500 text-white px-6 py-2.5 rounded-xl text-sm font-black shadow-lg shadow-sky-500/20 hover:bg-sky-600 transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2"
                         >
                             {saving ? (
                                 <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" aria-hidden="true"></div>
@@ -287,6 +290,22 @@ const CoachProfile: React.FC = () => {
                             </div>
                         </div>
 
+                        <div className="group">
+                            <label htmlFor="coach-email" className="block text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-[0.2em] mb-2 ml-1">E-mail de Acesso</label>
+                            <div className="relative">
+                                <span className="absolute inset-y-0 left-0 flex items-center pl-5 text-slate-400" aria-hidden="true">
+                                    <span className="material-symbols-rounded text-xl">mail</span>
+                                </span>
+                                <input
+                                    id="coach-email"
+                                    className="w-full pl-14 pr-5 py-4 bg-slate-100/70 dark:bg-slate-900/30 border border-slate-100 dark:border-slate-700/70 rounded-2xl text-slate-600 dark:text-slate-300 text-sm font-semibold outline-none cursor-not-allowed"
+                                    type="email"
+                                    readOnly
+                                    value={profileData.email || user?.email || ''}
+                                />
+                            </div>
+                        </div>
+
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div className="group">
                                 <label htmlFor="coach-cref" className="block text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-[0.2em] mb-2 ml-1">CREF</label>
@@ -296,7 +315,7 @@ const CoachProfile: React.FC = () => {
                                     </span>
                                     <input
                                         id="coach-cref"
-                                        className="w-full pl-14 pr-5 py-4 bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-700 rounded-2xl text-slate-900 dark:text-white text-sm font-bold focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all"
+                                        className="w-full pl-14 pr-5 py-4 bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-700 rounded-2xl text-slate-900 dark:text-white text-sm font-bold tabular-nums focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all"
                                         type="text"
                                         placeholder="G00000-G/XX"
                                         value={profileData.cref}
@@ -312,7 +331,7 @@ const CoachProfile: React.FC = () => {
                                     </span>
                                     <input
                                         id="coach-phone"
-                                        className="w-full pl-14 pr-5 py-4 bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-700 rounded-2xl text-slate-900 dark:text-white text-sm font-bold focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all"
+                                        className="w-full pl-14 pr-5 py-4 bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-700 rounded-2xl text-slate-900 dark:text-white text-sm font-bold tabular-nums focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all"
                                         type="tel"
                                         value={profileData.phone}
                                         onChange={e => setProfileData({ ...profileData, phone: e.target.value })}
@@ -337,23 +356,23 @@ const CoachProfile: React.FC = () => {
 
                 <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl rounded-[2.5rem] border border-white dark:border-slate-700/50 p-4 space-y-2 mb-4">
                     <InstallTutorial />
-                    <Link to="/coach/settings/notifications" className="w-full flex items-center justify-between p-4 hover:bg-slate-50 dark:hover:bg-slate-700/50 rounded-2xl transition-all group">
+                    <Link to="/coach/settings/notifications" className="w-full min-h-[48px] flex items-center justify-between p-4 hover:bg-slate-50 dark:hover:bg-slate-700/50 rounded-2xl transition-all group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
                         <div className="flex items-center gap-4">
                             <div className="p-2.5 bg-primary/10 text-primary rounded-xl">
                                 <span className="material-symbols-rounded" aria-hidden="true">notifications</span>
                             </div>
                             <span className="font-bold text-slate-700 dark:text-slate-200">Notificações</span>
                         </div>
-                        <span className="material-symbols-rounded text-slate-300 group-hover:translate-x-1 transition-transform" aria-hidden="true">chevron_right</span>
+                        <span className="material-symbols-rounded text-slate-400 dark:text-slate-500 group-hover:translate-x-1 transition-transform" aria-hidden="true">chevron_right</span>
                     </Link>
-                    <Link to="/coach/settings/privacy" className="w-full flex items-center justify-between p-4 hover:bg-slate-50 dark:hover:bg-slate-700/50 rounded-2xl transition-all group">
+                    <Link to="/coach/settings/privacy" className="w-full min-h-[48px] flex items-center justify-between p-4 hover:bg-slate-50 dark:hover:bg-slate-700/50 rounded-2xl transition-all group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
                         <div className="flex items-center gap-4">
                             <div className="p-2.5 bg-warning/10 text-warning rounded-xl">
                                 <span className="material-symbols-rounded" aria-hidden="true">shield</span>
                             </div>
                             <span className="font-bold text-slate-700 dark:text-slate-200">Privacidade</span>
                         </div>
-                        <span className="material-symbols-rounded text-slate-300 group-hover:translate-x-1 transition-transform" aria-hidden="true">chevron_right</span>
+                        <span className="material-symbols-rounded text-slate-400 dark:text-slate-500 group-hover:translate-x-1 transition-transform" aria-hidden="true">chevron_right</span>
                     </Link>
                 </div>
 
@@ -362,13 +381,13 @@ const CoachProfile: React.FC = () => {
                     type="button"
                     onClick={handleSignOut}
                     aria-label="Sair da conta e encerrar sessão"
-                    className="w-full p-5 rounded-[2rem] border-2 border-danger/10 bg-danger/5 text-danger font-black flex items-center justify-center gap-3 hover:bg-danger/10 transition-all active:scale-[0.98] mt-4 min-h-[52px] cursor-pointer"
+                    className="w-full p-5 rounded-[2rem] border-2 border-danger/10 bg-danger/5 text-danger font-black flex items-center justify-center gap-3 hover:bg-danger/10 transition-all active:scale-[0.98] mt-4 min-h-[52px] cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-danger"
                 >
                     <span className="material-symbols-rounded" aria-hidden="true">logout</span>
                     Sair da Conta
                 </button>
 
-                <p className="text-center text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.3em] py-4">
+                <p className="text-center text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-[0.3em] py-4 tabular-nums">
                     Fitcoach v1.0.4
                 </p>
             </div>

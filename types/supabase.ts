@@ -154,6 +154,8 @@ export interface Database {
                     birth_date: string | null
                     height_cm: number | null
                     weight_kg: number | null
+                    gender?: 'male' | 'female' | 'other' | string | null
+                    activity_level?: string | null
                     goal: string | null
                     notes: string | null
                     updated_at: string
@@ -165,6 +167,8 @@ export interface Database {
                     birth_date?: string | null
                     height_cm?: number | null
                     weight_kg?: number | null
+                    gender?: 'male' | 'female' | 'other' | string | null
+                    activity_level?: string | null
                     goal?: string | null
                     notes?: string | null
                     updated_at?: string
@@ -176,6 +180,8 @@ export interface Database {
                     birth_date?: string | null
                     height_cm?: number | null
                     weight_kg?: number | null
+                    gender?: 'male' | 'female' | 'other' | string | null
+                    activity_level?: string | null
                     goal?: string | null
                     notes?: string | null
                     updated_at?: string
@@ -238,6 +244,8 @@ export interface Database {
                     id: string
                     routine_id: string
                     name: string
+                    description?: string | null
+                    duration_minutes?: number | string | null
                     day_number: number | null
                     order_index: number
                     created_at: string
@@ -246,6 +254,8 @@ export interface Database {
                     id?: string
                     routine_id: string
                     name: string
+                    description?: string | null
+                    duration_minutes?: number | string | null
                     day_number?: number | null
                     order_index?: number
                     created_at?: string
@@ -254,6 +264,8 @@ export interface Database {
                     id?: string
                     routine_id?: string
                     name?: string
+                    description?: string | null
+                    duration_minutes?: number | string | null
                     day_number?: number | null
                     order_index?: number
                     created_at?: string

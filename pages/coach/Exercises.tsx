@@ -142,6 +142,7 @@ const Exercises: React.FC<ExercisesProps> = ({ isModal, onSelect }) => {
                 name: data.name,
                 muscle_group: data.muscle_group,
                 video_url: data.video_url,
+                image_url: data.image_url || (data.video_url && /\.(gif|webp|png|jpe?g)(\?.*)?$/i.test(data.video_url) ? data.video_url : (editingExercise?.image_url ?? null)),
                 description: data.description,
                 owner_id: role === 'admin' ? null : user?.id,
                 // Admin exercises are always public, coach exercises default to private
