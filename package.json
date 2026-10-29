@@ -16,7 +16,8 @@
     "react-dom": "^19.2.3",
     "react-hot-toast": "^2.6.0",
     "react-router-dom": "^7.11.0",
-    "recharts": "^3.6.0"
+    "recharts": "^3.6.0",
+    "web-push": "^3.6.7"
   },
   "devDependencies": {
     "@tailwindcss/aspect-ratio": "^0.4.2",
@@ -27,6 +28,7 @@
     "@types/node": "^22.14.0",
     "@types/pg": "^8.23.1",
     "@types/qrcode.react": "^1.0.5",
+    "@types/web-push": "^3.6.4",
     "@vitejs/plugin-react": "^5.0.0",
     "autoprefixer": "^10.4.23",
     "dotenv": "^17.2.3",

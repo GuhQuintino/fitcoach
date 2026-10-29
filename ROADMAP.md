@@ -166,6 +166,16 @@ Fitcoach Pro é uma plataforma progressiva (PWA Mobile-First com suporte a fallb
 
 ---
 
+### Fase 16: Notificação Web Push "Treino Finalizado" para o Coach & Endpoint Serverless Vercel (Concluída — PASS 3.00/3.00)
+- [x] **P1 — DDL Relacional, Idempotência & Extensão pg_net:** Migração `20261029000000_workout_completed_push.sql` aplicada no Supabase com extensão `pg_net`, tabela `internal_push_config` (RLS restrito a service role/security definer), tabela de idempotência `workout_completion_notifications` com chave composta (`student_id`, `workout_id`, `started_at`) e trigger `trg_notify_coach_workout_completed` em `workout_logs` disparando assincronamente via `net.http_post`. [2026-10-29]
+- [x] **P2 — Endpoint Serverless Vercel & Autenticação Timing-Safe:** Implementação de `api/workout-completed-push.ts` em Node.js com comparação de hash SHA-256 via `crypto.timingSafeEqual`, rejeição de secrets nulos/vazios com HTTP 401 e ajuste de rewrites no `vercel.json` (`/((?!api/).*)` -> `/index.html`) para roteamento nativo da função. [2026-10-29]
+- [x] **P3 — Idempotência Atômica, Revalidação de Log e Expurgo 410:** Revalidação de `finished_at` em `workout_logs`, reivindicação atômica via `UPDATE` com `push_sent_at IS NULL` prevenindo concorrência, inserção em `notification_logs`, respeito a `quiet_hours` e preferências do coach, e expurgo automático de assinaturas expiradas (404/410 Gone) em `push_subscriptions`. [2026-10-29]
+- [x] **P4 — Branding Oficial GQ & Payload:** Ícone e badge configurados para `/icon-gq.png` (branding oficial Gustavo Queiroz), payload dinâmico com primeiro nome do aluno e deep-link direto para a ficha do estudante (`/coach/student/<studentId>`). [2026-10-29]
+- [x] **P5 — Configuração de Variáveis de Ambiente & Banco:** Configuração em `public.internal_push_config` da URL de produção (`https://fitcoach-five.vercel.app/api/workout-completed-push`) e segredo de webhook; sincronização completa de variáveis de ambiente na Vercel (`SUPABASE_SERVICE_ROLE_KEY`, `WORKOUT_PUSH_WEBHOOK_SECRET`, `VAPID_SUBJECT`, `VAPID_PRIVATE_KEY`, `VAPID_PUBLIC_KEY`, `VITE_VAPID_PUBLIC_KEY`) nos ambientes Production e Development. [2026-10-29]
+- [x] **P6 — Testes Automatizados & Laudo Gauntlet Critic:** 22 suítes de teste e 212 testes no Vitest (100% verdes em 2.65s, incluindo 12 testes em `apiWorkoutCompletedPush.test.ts`, 15 testes em `workoutCompletedPush.test.ts` e 6 testes em `timingSafeEqual.regression.test.ts`), 0 erros de tipagem TypeScript (`tsc --noEmit`), build Vite limpo (787 módulos) e Laudo Gauntlet Critic aprovado com nota máxima **3.00 / 3.00 (Média 6D — PASS)** em [`QA_REPORT_workout-completed-push.md`](file:///c:/Users/Gustavo/Desktop/Fitcoach/docs/gauntlet/QA_REPORT_workout-completed-push.md). [2026-10-29]
+
+---
+
 ## 📋 Pendências / Backlog Futuro & Integrações Externas
 
 ### Pendências / Backlog Futuro (Produto Interno)
@@ -177,12 +187,3 @@ Fitcoach Pro é uma plataforma progressiva (PWA Mobile-First com suporte a fallb
     1. *Divergência de E-mail Pessoal vs `@fitcoach.com` e Variação de Nome:* Na renovação via InfinitePay, `payload.customer.email` traz o e-mail pessoal do pagador, enquanto a conta original do aluno no Fitcoach usa `${nomeNormalizado}@fitcoach.com`. Quando a busca por `targetEmail` falha (`provisioning.ts` L154), o fallback gera `${normalizedName}@fitcoach.com` (L168); qualquer variação no nome digitado no checkout ou ausência de `.normalize('NFD')` em `route.ts` (L78) faz `existingProfile` resultar em `null`, disparando `auth.admin.createUser` e duplicando a conta do aluno.
     2. *Ausência de Reconciliação por Pagamentos Anteriores e Telefone:* `provisioning.ts` não consulta a tabela `payments` do banco GQFit por pagamentos anteriores aprovados (`fitcoach_user_id IS NOT NULL`) com o mesmo `customer_email` ou `customer_phone`, nem busca em `students_data`/`profiles` pelo telefone normalizado ou `full_name` (`ilike`).
     3. *Limite de Paginação em `listUsers()`:* Em `provisioning.ts` L201, `fitcoachSupabase.auth.admin.listUsers()` é chamado sem paginação (retorna apenas 50 usuários por padrão), falhando ao localizar alunos existentes quando a base ultrapassa 50 registros.
-
-
-
-
-### Push "Treino Finalizado" para o coach (Conclu�da em 2026-10-29)
-- [x] Migration `20261029000000_workout_completed_push` aplicada (trigger, pg_net, idempot�ncia).
-- [x] Edge Function `workout-completed-push` e toggle de prefer�ncia.
-- [x] Testes + regress�o timingSafeEqual; Critic PASS.
-- [ ] Ativa��o: popular `internal_push_config`, secrets VAPID e deploy da fun��o.

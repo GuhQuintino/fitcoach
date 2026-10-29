@@ -38,7 +38,7 @@ describe('workoutCompletedPush: payload', () => {
         });
         expect(payload.title).toBe('Treino Finalizado');
         expect(payload.body).toBe('Lucas finalizou o treino!');
-        expect(payload.icon).toBe('/icon-192.png');
+        expect(payload.icon).toBe('/icon-gq.png');
         expect(payload.action_url).toBe('/coach/student/stu-1');
         expect(payload.topic).toBe('workout_completed');
         expect(payload.id).toBe('n-1');

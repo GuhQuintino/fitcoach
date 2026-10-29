@@ -3,7 +3,7 @@
 
 export const WORKOUT_COMPLETED_TOPIC = 'workout_completed';
 export const WORKOUT_COMPLETED_TITLE = 'Treino Finalizado';
-export const DEFAULT_PUSH_ICON = '/icon-192.png';
+export const DEFAULT_PUSH_ICON = '/icon-gq.png';
 export const FALLBACK_STUDENT_NAME = 'Seu aluno';
 
 export interface WorkoutLogRecord {

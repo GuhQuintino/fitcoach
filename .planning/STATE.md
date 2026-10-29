@@ -1,53 +1,42 @@
 # STATE — Fitcoach Pro
 
-**Última Atualização:** 25 de Outubro de 2026  
-**Fase Ativa:** Fase 15 — Consolidação Single-Coach, Eliminação de Mockups e Blindagem de Bugs Silenciosos (C1 a C13) (`COMPLETE` — `PASS 3.00/3.00`, `19 suítes / 179 testes`, `94.4% similaridade`)  
-**Status Global:** Saúde excelente e blindada, 0 erros TypeScript (`tsc --noEmit`), build de produção Vite 100% aprovado (787 módulos), 179 testes automatizados Vitest passando (100% em 19 suítes de teste, incluindo as 3 novas suítes de regressão `utils/__tests__/metabolicCalculator.regression.test.ts`, `utils/__tests__/smartNotificationDispatcher.regression.test.ts` e `utils/__tests__/selectionAndTemplates.regression.test.ts`), Matriz de Similaridade Multidimensional em **94.4%**, 0 violações Anti-AI-Slop (`detect.mjs == []`), 0 violações P0 de acessibilidade (328 nós AXTree inspecionados), e Laudo de Auditoria Gauntlet Critic com nota máxima **3.00 / 3.00 (Média 6D — PASS)** ([`QA_REPORT_SINGLE_COACH_CONSOLIDATION.md`](file:///c:/Users/Gustavo/Desktop/Fitcoach/docs/gauntlet/QA_REPORT_SINGLE_COACH_CONSOLIDATION.md)).
-
-
-## Marco Mais Recente: Push "Treino Finalizado" para o coach (2026-10-29, PASS)
-- Migration aplicada em produ��o; trigger `trg_notify_coach_workout_completed`, tabelas `internal_push_config` e `workout_completion_notifications`, extens�o pg_net.
-- Decis�es travadas: idempot�ncia por chave student|workout|started_at; falha de notifica��o nunca bloqueia a finaliza��o; config ausente n�o marca o treino como notificado.
-- Pend�ncias: popular `internal_push_config` (url + secret), secrets VAPID e deploy da Edge Function `workout-completed-push`.
-- Laudo: docs/gauntlet/QA_REPORT_workout-completed-push.md
+**Última Atualização:** 29 de Outubro de 2026  
+**Fase Ativa:** Fase 16 — Webhook Serverless & Notificação Web Push "Treino Finalizado" para o Coach (`COMPLETE` — `PASS 3.00/3.00`, `22 suítes / 212 testes`, `0 erros tsc`, `Vite build OK`)  
+**Status Global:** Saúde excelente e blindada, 0 erros TypeScript (`tsc --noEmit`), build de produção Vite 100% aprovado (787 módulos), 212 testes automatizados Vitest passando (100% em 22 suítes de teste, incluindo as novas suítes `tests/unit/apiWorkoutCompletedPush.test.ts`, `tests/unit/workoutCompletedPush.test.ts` e `tests/unit/timingSafeEqual.regression.test.ts`), Matriz de Similaridade Multidimensional em **94.4%**, 0 violações Anti-AI-Slop (`detect.mjs == []`), 0 violações P0 de acessibilidade (328 nós AXTree inspecionados), e Laudo de Auditoria Gauntlet Critic com nota máxima **3.00 / 3.00 (Média 6D — PASS)** ([`QA_REPORT_workout-completed-push.md`](file:///c:/Users/Gustavo/Desktop/Fitcoach/docs/gauntlet/QA_REPORT_workout-completed-push.md)).
 
 ---
 
-## 🎯 Marco Atual Concluído
-- **Objetivo**: Consolidação definitiva do Fitcoach Pro como plataforma exclusiva da consultoria do Treinador Gustavo e seus alunos, extinção de rotas SaaS multi-coach e mockups cosméticos, implementação de fluxos reais de suporte/LGPD via WhatsApp (`5511992616777`), calculadora metabólica Mifflin-St Jeor com sanitização anti-erro de digitação, preservação integral das 4 camadas em templates de séries, upload direto de mídia no Supabase Storage e eliminação de 4 bugs silenciosos (C1 a C13).
-- **Entregáveis da Fatia Vertical (End-to-End — Slices 1, 2 e 3)**:
-  - **C1 & C2 — Extinção de Rotas Comerciais Multi-Coach & Remoção de Código Morto**:
-    - Exclusão física de `pages/coach/Plans.tsx`, `pages/coach/SubscriptionDetails.tsx` e `contexts/RoleContext.tsx`.
-    - Remoção das rotas `/coach/plans` e `/coach/subscription` em [`App.tsx`](file:///c:/Users/Gustavo/Desktop/Fitcoach/App.tsx) e do item `"Planos"` em [`BottomNav.tsx`](file:///c:/Users/Gustavo/Desktop/Fitcoach/components/BottomNav.tsx).
-  - **C3 — Seleção de Treinos Sem JSON Cru & Preservação na Clonagem ([`Selection.tsx`](file:///c:/Users/Gustavo/Desktop/Fitcoach/pages/student/Selection.tsx), [`Library.tsx`](file:///c:/Users/Gustavo/Desktop/Fitcoach/pages/coach/Library.tsx))**:
-    - Funções `parseRoutineMeta`, `formatRoutineInfoToast` e `resolveWorkoutDurationLabel` formatando metadados JSON em texto legível, exibindo duração real do treino e removendo o badge estático `"Ver detalhes"`.
-    - `handleAssign` em `Library.tsx` preservando `duration_minutes` e `description` ao clonar rotinas para alunos.
-  - **C4 — Dashboard do Aluno com Destaque de Nível/XP ([`Dashboard.tsx`](file:///c:/Users/Gustavo/Desktop/Fitcoach/pages/student/Dashboard.tsx))**:
-    - Remoção de `"Plano Atual / Consultoria Pro"` e do card estático `"Dica do dia"`.
-    - Card superior destacando `Nível X • Y XP`, barra de progresso, regra explícita (*"Cada treino concluído soma 100 XP. A cada 1.000 XP (10 treinos), você sobe de nível!"*) e validade da consultoria (`Expira em: DD/MM/AAAA`).
-  - **C5 — Histórico do Aluno com Query Corrigida & Calendário Interativo ([`History.tsx`](file:///c:/Users/Gustavo/Desktop/Fitcoach/pages/student/History.tsx))**:
-    - Busca da rotina ativa no gráfico de volume muscular corrigida via `student_assignments` (`.eq('student_id', user.id).eq('is_active', true)`).
-    - Dias com treino no calendário mensal transformados em botões interativos que expandem a sessão, aplicam destaque e realizam scroll suave até o log correspondente.
-  - **C6 & C7 — Recuperação de Senha e Privacidade LGPD via WhatsApp do Coach ([`Login.tsx`](file:///c:/Users/Gustavo/Desktop/Fitcoach/pages/Login.tsx), [`Privacy.tsx`](file:///c:/Users/Gustavo/Desktop/Fitcoach/pages/settings/Privacy.tsx))**:
-    - Modal acessível em `/login` (`"Esqueceu a senha?"`) com abertura direta do WhatsApp do Coach (`5511992616777`) com mensagem pré-preenchida.
-    - Remoção dos 4 switches cosméticos em `/settings/privacy`, mantendo alteração real de senha (`supabase.auth.updateUser`) e botão `"Solicitar Exclusão de Todos os Dados"` integrado ao WhatsApp do Coach.
-  - **C8 — Preservação das 4 Camadas e Cardio/HIIT em Templates de Séries ([`SetTemplateManager.tsx`](file:///c:/Users/Gustavo/Desktop/Fitcoach/components/coach/editor/SetTemplateManager.tsx))**:
-    - `serializeSetForTemplate` e `deserializeTemplateSet` preservando todos os 23 campos das Camadas 1–4 e parâmetros de Cardio/HIIT.
-  - **C9 — Calculadora Metabólica Mifflin-St Jeor & Sanitização Antropométrica ([`metabolicCalculator.ts`](file:///c:/Users/Gustavo/Desktop/Fitcoach/utils/metabolicCalculator.ts), [`Profile.tsx`](file:///c:/Users/Gustavo/Desktop/Fitcoach/pages/student/Profile.tsx), [`StudentProfileView.tsx`](file:///c:/Users/Gustavo/Desktop/Fitcoach/pages/coach/StudentProfileView.tsx))**:
-    - Sanitização inteligente (`sanitizeWeightKg`: `750 -> 75.0 kg`, `75000 -> 75.0 kg`; `sanitizeHeightCm`: `1.75 -> 175 cm`, `1750 -> 175 cm`), cálculo de idade exata por `birth_date` e equação de Mifflin-St Jeor com seletor de Nível de Atividade Física persistido em `profiles.preferences.activity_level`.
-  - **C10, C11 & C12 — Exclusão Física no Storage, Upload de Mídia em Exercícios e Perfil/Changelog do Coach**:
-    - Exclusão física do arquivo no bucket `evolution-photos` via `extractStoragePath` em [`EvolutionGallery.tsx`](file:///c:/Users/Gustavo/Desktop/Fitcoach/components/student/EvolutionGallery.tsx).
-    - Upload direto de GIF, WebP, PNG, JPG, MP4 e WebM para o Supabase Storage em [`ExerciseFormModal.tsx`](file:///c:/Users/Gustavo/Desktop/Fitcoach/components/coach/exercises/ExerciseFormModal.tsx).
-    - Exibição do e-mail da conta em [`pages/coach/Profile.tsx`](file:///c:/Users/Gustavo/Desktop/Fitcoach/pages/coach/Profile.tsx) e seção `"Novidades da Plataforma"` (Changelog V2.4.0 a V2.1.0) em [`pages/coach/Updates.tsx`](file:///c:/Users/Gustavo/Desktop/Fitcoach/pages/coach/Updates.tsx).
-  - **C13 — Blindagem de 4 Bugs Silenciosos**:
-    - Remoção das colunas inexistentes `age` (de `students_data`) e `completed_at` (usando `finished_at` em `workout_logs`) em [`smartNotificationDispatcher.ts`](file:///c:/Users/Gustavo/Desktop/Fitcoach/utils/smartNotificationDispatcher.ts).
-    - Fuso `America/Sao_Paulo` (UTC-3), respeito a `quiet_hours_start`/`quiet_hours_end`, backoff automático de 5 dias após 2 lembretes ignorados e disparo para `push_subscriptions` na Edge Function [`supabase/functions/smart-notifications/index.ts`](file:///c:/Users/Gustavo/Desktop/Fitcoach/supabase/functions/smart-notifications/index.ts).
-    - Separação das chaves `coach_feedback` e `evolution_photos` sem colisão em [`Notifications.tsx`](file:///c:/Users/Gustavo/Desktop/Fitcoach/pages/settings/Notifications.tsx).
-    - Eliminação da query N+1 em [`WorkoutImportModal.tsx`](file:///c:/Users/Gustavo/Desktop/Fitcoach/components/coach/editor/WorkoutImportModal.tsx) com busca em lote único `.in('student_id', studentIds)`.
+## 🎯 Marco Atual Concluído: Notificação Web Push "Treino Finalizado" para o Coach (Fase 16 — PASS 3.00/3.00)
+- **Objetivo**: Implementação ponta a ponta do sistema de notificação Web Push instantânea para o Treinador Gustavo quando qualquer aluno conclui um treino, com arquitetura serverless na Vercel (`api/workout-completed-push.ts`), autenticação timing-safe via SHA-256 e `crypto.timingSafeEqual`, idempotência atômica com trava em `workout_completion_notifications`, trigger assíncrono via `pg_net` em `workout_logs`, branding oficial GQ (`/icon-gq.png`), expurgo automático de assinaturas expiradas (404/410) e respeito a horários de silêncio (`quiet_hours`).
+- **Entregáveis da Fatia Vertical (End-to-End)**:
+  - **DDL Relacional, Idempotência & Extensão pg_net (`20261029000000_workout_completed_push.sql`)**:
+    - Extensão `pg_net` habilitada no Postgres do Supabase.
+    - Tabela de configuração interna `public.internal_push_config` com RLS estrito (acesso exclusivo service role / security definer).
+    - Tabela de idempotência `public.workout_completion_notifications` com constraint `UNIQUE(dedupe_key)` e lock atômico por `push_sent_at`.
+    - Trigger `trg_notify_coach_workout_completed` ativo em `workout_logs` disparando assincronamente a função `notify_coach_workout_completed()` via `net.http_post`.
+  - **Endpoint Serverless Vercel (`api/workout-completed-push.ts`)**:
+    - Serverless Function Node.js nativa desacoplada da SPA através de rewrite regex em `vercel.json` (`/((?!api/).*)` -> `/index.html`).
+    - Autenticação de webhook via constant-time comparison (`crypto.timingSafeEqual`) de hashes SHA-256 de tamanho fixo (32 bytes), rejeitando secrets vazios com HTTP 401.
+    - Revalidação de estado em `workout_logs` checando `finished_at IS NOT NULL`.
+    - Respeito integral a `preferences.push` e `preferences.student_workout_completed` do coach e janela de silêncio (`quiet_hours`), gravando em `notification_logs` sem disparar push ruidoso.
+    - Disparo de Web Push RFC 8292 via biblioteca `web-push` e VAPID para todas as inscrições ativas do coach em `push_subscriptions`.
+    - Expurgo em lote de endpoints inválidos/revogados (status HTTP 404 e 410 Gone).
+  - **Branding Oficial & Payload**:
+    - Notificação configurada com título `"Treino Finalizado"`, mensagem `"<PrimeiroNome> finalizou o treino!"` (com fallback seguro), ícone oficial GQ (`/icon-gq.png`) e deep-link direto para a ficha do aluno (`/coach/student/<studentId>`).
+  - **Configuração de Produção & Infraestrutura**:
+    - Populada tabela `public.internal_push_config` com a URL do endpoint de produção (`https://fitcoach-five.vercel.app/api/workout-completed-push`) e segredo de webhook.
+    - Sincronizadas variáveis de ambiente no projeto Vercel (`fitcoach`) via Vercel CLI nos ambientes Production e Development: `SUPABASE_SERVICE_ROLE_KEY`, `WORKOUT_PUSH_WEBHOOK_SECRET`, `VAPID_SUBJECT`, `VAPID_PRIVATE_KEY`, `VAPID_PUBLIC_KEY` e `VITE_VAPID_PUBLIC_KEY`.
+  - **Garantia de Qualidade & Testes**:
+    - Suíte `tests/unit/apiWorkoutCompletedPush.test.ts` (12 testes unitários do endpoint).
+    - Suíte `tests/unit/workoutCompletedPush.test.ts` (15 testes unitários de lógica).
+    - Suíte de regressão `tests/unit/timingSafeEqual.regression.test.ts` (6 testes de segurança).
+    - 212/212 testes Vitest passando (100%), 0 erros de compilação TypeScript (`tsc --noEmit`), build de produção Vite 100% OK em 8.66s.
 
 ---
 
 ## 🔒 Decisões Travadas (Locked Decisions)
+- **ADR-023: Endpoint Serverless Vercel Node.js para Notificação Push de Treino Concluído com Idempotência Estrita e Timing-Safe Auth (Fase 16):** Rota `/api/workout-completed-push` em Node.js runtime da Vercel desacoplada da SPA (`vercel.json`), validação de webhook via SHA-256 e `crypto.timingSafeEqual`, revalidação de `finished_at` em `workout_logs`, deduplicação atômica via `push_sent_at IS NULL` em `workout_completion_notifications`, personalização com branding oficial GQ (`/icon-gq.png`), respeito a `quiet_hours` e preferências do coach, e expurgo automático de endpoints expirados (404/410 Gone).
+- **ADR-024: Orquestração Desacoplada Supabase pg_net -> Vercel Serverless Function (Fase 16):** Trigger `trg_notify_coach_workout_completed` assíncrono via `net.http_post` em `workout_logs` consultando URL e secret em `public.internal_push_config` protegida por RLS estrito (service role/security definer). Falhas de rede ou serviço de push são isoladas e nunca bloqueiam a finalização de treino pelo aluno.
 - **ADR-019: Consolidação Single-Coach e Fluxos Assistidos via WhatsApp Oficial (Fase 15 — C1, C2, C6, C7):** Extinção de rotas SaaS multi-coach (`/coach/plans`, `/coach/subscription`) e centralização de recuperação de senha (`@fitcoach.com`) e solicitações LGPD de exclusão de dados via deep-link oficial `https://wa.me/5511992616777` diretamente com o Treinador Gustavo.
 - **ADR-020: Cálculo Metabólico Mifflin-St Jeor com Sanitização Antropométrica Determinística (Fase 15 — C9):** A Taxa Metabólica Basal (TMB) e o Gasto Energético Diário Total (GET/Manutenção) utilizam a equação científica de Mifflin-St Jeor com fator de atividade física persistido em `profiles.preferences.activity_level`, precedidos por sanitização automática de erros comuns de digitação (`750 -> 75.0 kg`, `1.75 -> 175 cm`).
 - **ADR-021: Serialização Completa de 23 Campos das 4 Camadas em Templates de Séries (Fase 15 — C8):** Os templates de séries do editor (`SetTemplateManager.tsx`) serializam e desserializam integralmente os atributos das Camadas 1 a 4 (`set_method`, `drop_count`, `sub_sets`, `micro_rest_seconds`, `activation_reps`, `execution_mode`, `tempo`, `timer_mode`) e todos os alvos de Cardio/HIIT.
@@ -84,31 +73,35 @@
 
 ## 📊 Métricas de Qualidade
 - **TypeScript:** 0 erros de tipagem estática (`tsc --noEmit`)
-- **Testes Automatizados (Vitest):** 179 passed / 179 total (100% de sucesso em 19 suítes de teste)
-  - `tests/whatsappDossierSync.test.ts`: 22/22 passed
-  - `utils/studentStatus.test.ts`: 20/20 passed
+- **Testes Automatizados (Vitest):** 212 passed / 212 total (100% de sucesso em 22 suítes de teste)
+  - `tests/unit/timingSafeEqual.regression.test.ts`: 6/6 passed
+  - `tests/unit/workoutCompletedPush.test.ts`: 15/15 passed
   - `tests/unit/workoutHabitAnalyzer.test.ts`: 19/19 passed
-  - `utils/specialSetTokens.test.ts`: 14/14 passed
-  - `utils/sessionComparison.test.ts`: 13/13 passed
-  - `utils/__tests__/metabolicCalculator.regression.test.ts`: 11/11 passed
-  - `tests/background-lifecycle-timer.regression.test.ts`: 10/10 passed
+  - `tests/unit/smartNotificationDispatcher.test.ts`: 5/5 passed
+  - `utils/__tests__/smartNotificationDispatcher.regression.test.ts`: 2/2 passed
+  - `tests/whatsappDossierSync.test.ts`: 22/22 passed
   - `tests/unit/muscleUtils.test.ts`: 9/9 passed
-  - `tests/unit/phoneAndTextUtils.test.ts`: 8/8 passed
-  - `tests/unit/staleWorkoutService.test.ts`: 8/8 passed
-  - `tests/regression/activeWorkoutAndAuthSafety.regression.test.ts`: 7/7 passed
-  - `tests/regression/workoutFinalizationEnum.regression.test.ts`: 6/6 passed
-  - `utils/__tests__/selectionAndTemplates.regression.test.ts`: 5/5 passed
-  - `tests/regression/profileCompletionBanner.regression.test.tsx`: 5/5 passed
   - `utils/workoutHistoryGrouper.test.ts`: 5/5 passed
   - `tests/unit/offlineCacheService.test.ts`: 5/5 passed
-  - `tests/unit/smartNotificationDispatcher.test.ts`: 5/5 passed
+  - `utils/sessionComparison.test.ts`: 13/13 passed
+  - `utils/specialSetTokens.test.ts`: 14/14 passed
+  - `utils/studentStatus.test.ts`: 20/20 passed
+  - `tests/regression/activeWorkoutAndAuthSafety.regression.test.ts`: 7/7 passed
+  - `utils/__tests__/metabolicCalculator.regression.test.ts`: 11/11 passed
+  - `tests/unit/apiWorkoutCompletedPush.test.ts`: 12/12 passed
+  - `tests/regression/profileCompletionBanner.regression.test.tsx`: 5/5 passed
+  - `tests/regression/workoutFinalizationEnum.regression.test.ts`: 6/6 passed
+  - `tests/unit/phoneAndTextUtils.test.ts`: 8/8 passed
+  - `utils/__tests__/selectionAndTemplates.regression.test.ts`: 6/6 passed
+  - `tests/unit/staleWorkoutService.test.ts`: 8/8 passed
   - `tests/unit/pushNotificationService.test.ts`: 4/4 passed
-  - `utils/__tests__/smartNotificationDispatcher.regression.test.ts`: 3/3 passed
+  - `tests/background-lifecycle-timer.regression.test.ts`: 10/10 passed
 - **Build de Produção:** Vite build 100% concluído gerando 787 módulos sem erros ou warnings (`npm run build`)
 - **Matriz de Similaridade Multidimensional (UI Operate):** **94.4%** global ponderado (Layout 95%, Tipografia 94%, Mídia 92%, Componentes 96%, Copy 96%)
 - **Acessibilidade:** 0 violações críticas P0 em 328 nós AXTree inspecionados (WAI-ARIA `role="dialog"`, touch targets $\ge 44\text{px}$, suporte a tecla `Escape` em 100% dos modais)
 - **Conformidade Anti-AI-Slop:** 0 violações (`detect.mjs == []`, zero travessões longos `—` em botões/títulos, `tabular-nums` em todas as métricas numéricas)
 - **Laudos Gauntlet Critic:**
+  - **3.00 / 3.00 (Média 6D — PASS)** em [`QA_REPORT_workout-completed-push.md`](file:///c:/Users/Gustavo/Desktop/Fitcoach/docs/gauntlet/QA_REPORT_workout-completed-push.md)
   - **3.00 / 3.00 (Média 6D — PASS)** em [`QA_REPORT_SINGLE_COACH_CONSOLIDATION.md`](file:///c:/Users/Gustavo/Desktop/Fitcoach/docs/gauntlet/QA_REPORT_SINGLE_COACH_CONSOLIDATION.md)
   - **3.00 / 3.00 (Média 6D — PASS)** em [`QA_REPORT_smart_notifications.md`](file:///c:/Users/Gustavo/Desktop/Fitcoach/docs/gauntlet/QA_REPORT_smart_notifications.md)
   - **3.00 / 3.00 (Média 6D — PASS)** em [`QA_REPORT_profile_banner_expansion.md`](file:///c:/Users/Gustavo/Desktop/Fitcoach/docs/gauntlet/QA_REPORT_profile_banner_expansion.md)
@@ -130,4 +123,4 @@
 ## 🚀 Próximo Passo
 - Planejar e executar a implementação do **Item 2.11** (Camada 4 de Séries Especiais `timer_mode`: seletor EMOM/AMRAP/Tabata no editor e cronômetro dedicado no player de musculação) quando priorizado pelo treinador.
 - Aplicar a correção de reconciliação de contas na renovação do Webhook InfinitePay diretamente no repositório externo `C:\Users\Gustavo\Desktop\Consultoria` (`src/lib/fitcoach/provisioning.ts` e `src/app/api/webhooks/infinitepay/route.ts`).
-- Configurar agendamento horário de produção para a Edge Function `supabase/functions/smart-notifications` via cron / pg_cron no período diurno (08:00 às 21:00) e substituir credenciais VAPID de desenvolvimento pelas chaves definitivas do ambiente de produção (`VITE_VAPID_PUBLIC_KEY`).
+- Configurar agendamento horário de produção para a Edge Function `supabase/functions/smart-notifications` via cron / pg_cron no período diurno (08:00 às 21:00).

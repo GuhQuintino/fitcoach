@@ -1,13 +1,69 @@
 # PROGRESS — Fitcoach Pro
 
-### [2026-10-29] - Push "Treino Finalizado" para o coach
-- **Entregas:** Trigger SECURITY DEFINER em `workout_logs` (pg_net) -> Edge Function `workout-completed-push` (Web Push) com idempot�ncia por `workout_completion_notifications`, toggle em Configura��es > Notifica��es, compara��o de secret em tempo constante.
-- **Qualidade:** Gauntlet Critic PASS (V2), 200 testes / 21 arquivos, build OK ([QA_REPORT](docs/gauntlet/QA_REPORT_workout-completed-push.md)). Migration aplicada em produ��o em 2026-10-29.
-- **Arquivos: `pages/settings/Notifications.tsx`, `types/notifications.ts`, `supabase/functions/workout-completed-push/`, `supabase/functions/_shared/`, `supabase/migrations/20261029000000_workout_completed_push.sql`, `supabase/WORKOUT_COMPLETED_PUSH.md`, `tests/unit/workoutCompletedPush.test.ts`, `tests/unit/timingSafeEqual.regression.test.ts`.**
-- **Pendente:** configurar `internal_push_config` (url/secret), definir secrets VAPID e fazer deploy da Edge Function.
+## [2026-10-29] — Notificação Web Push "Treino Finalizado" para o Coach & Endpoint Serverless Vercel (Fase 16 — COMPLETE / PASS 3.00/3.00)
 
+- **Identificador da Fatia:** `workout-completed-push` / `feature-workout-completed-push-serverless`
+- **Perfil Gauntlet:** `full-stack` (TypeScript, Node.js runtime, Vercel Serverless Functions, Supabase PostgreSQL, pg_net, RLS, Web Push VAPID RFC 8292, Vitest)
+- **Subagente Executor:** `gauntlet-builder`
+- **Sumário da Fatia:** [`docs/gauntlet/SLICE_SUMMARY.md`](file:///c:/Users/Gustavo/Desktop/Fitcoach/docs/gauntlet/SLICE_SUMMARY.md)
+- **Veredito do Gauntlet Critic:** **PASS (3.00 / 3.00 na Rubrica 6D | 22 suítes / 212 testes | 0 erros tsc | build Vite OK)** — [`QA_REPORT_workout-completed-push.md`](file:///c:/Users/Gustavo/Desktop/Fitcoach/docs/gauntlet/QA_REPORT_workout-completed-push.md)
 
-> Registro histórico cronológico de entregas validadas pelo Gauntlet Loop e governança GSD.
+### Resumo do Valor Entregue (End-to-End)
+1. **Dados & Modelos (Supabase PostgreSQL & pg_net):**
+   - Migração `20261029000000_workout_completed_push.sql` aplicada com sucesso no Supabase com extensão `pg_net`.
+   - Tabela de configuração interna `public.internal_push_config` com RLS estrito (acessível exclusivamente por service role / security definer).
+   - Gravada configuração de produção:
+     - `workout_completed_push_url`: `https://fitcoach-five.vercel.app/api/workout-completed-push`
+     - `workout_completed_push_secret`: segredo SHA-256 criptográfico de 64 caracteres.
+   - Tabela de idempotência `public.workout_completion_notifications` com chave única `UNIQUE(dedupe_key)` e lock atômico por `push_sent_at`.
+   - Trigger `trg_notify_coach_workout_completed` ativo em `workout_logs` disparando assincronamente a função `notify_coach_workout_completed()` via `net.http_post`.
+2. **Serviços & Contratos (Vercel Serverless API Route & VAPID Web Push):**
+   - Endpoint Serverless `api/workout-completed-push.ts` em Node.js runtime nativo da Vercel.
+   - Autenticação de webhook timing-safe via digest fixo SHA-256 (32 bytes) com `crypto.timingSafeEqual`, rejeitando secrets vazios ou inválidos com HTTP 401.
+   - Revalidação do treino em `workout_logs` garantindo `finished_at IS NOT NULL`.
+   - Deduplicação concorrente com claim atômico via `UPDATE workout_completion_notifications SET push_sent_at = NOW() WHERE dedupe_key = ... AND push_sent_at IS NULL`.
+   - Respeito integral a `preferences.push` e `preferences.student_workout_completed` do coach e janela de silêncio (`quiet_hours`), persistindo no histórico de notificações (`notification_logs`) sem emitir ruído em horário impróprio.
+   - Disparo de Web Push RFC 8292 via biblioteca `web-push` para todas as assinaturas do coach em `push_subscriptions`.
+   - Expurgo atômico de inscrições revogadas ou expiradas (status HTTP 404 e 410 Gone) via delete em lote.
+   - Ajuste de rewrites no `vercel.json` (`/((?!api/).*)` -> `/index.html`) para permitir roteamento direto de funções `/api/*`.
+3. **Interface & Branding Oficial:**
+   - Ícone e badge da notificação push configurados como `/icon-gq.png` (branding oficial Gustavo Queiroz).
+   - Título `"Treino Finalizado"` e mensagem personalizada com o primeiro nome do aluno (`"<PrimeiroNome> finalizou o treino!"`, com fallback seguro).
+   - Ação da notificação redireciona o coach diretamente para a ficha do aluno (`/coach/student/<studentId>`).
+4. **Configuração de Produção & Infraestrutura:**
+   - Sincronizadas variáveis de ambiente no projeto Vercel (`fitcoach`) via Vercel CLI nos ambientes Production e Development:
+     - `SUPABASE_SERVICE_ROLE_KEY`
+     - `WORKOUT_PUSH_WEBHOOK_SECRET`
+     - `VAPID_SUBJECT`
+     - `VAPID_PRIVATE_KEY`
+     - `VAPID_PUBLIC_KEY`
+     - `VITE_VAPID_PUBLIC_KEY`
+5. **Garantia de Qualidade & Testes:**
+   - Suíte `tests/unit/apiWorkoutCompletedPush.test.ts` com 12 testes unitários do endpoint.
+   - Suíte `tests/unit/workoutCompletedPush.test.ts` com 15 testes de regras de negócio.
+   - Suíte de regressão `tests/unit/timingSafeEqual.regression.test.ts` com 6 testes de segurança.
+   - 22 suítes e 212 testes no Vitest (100% de aprovação em 2.65s).
+   - 0 erros TypeScript estritos (`tsc --noEmit`).
+   - Build Vite 100% limpo em 8.66s.
+
+### Métricas da Rubrica 6D
+| Dimensão | Nota | Status |
+|---|:---:|:---:|
+| **D1. Funcionalidade & Requisitos** | 3.0 / 3.0 | Aprovado |
+| **D2. Robustez & Estabilidade** | 3.0 / 3.0 | Aprovado |
+| **D3. Qualidade de Implementação & Anti-Slop** | 3.0 / 3.0 | Aprovado |
+| **D4. Consistência Arquitetural & Stack Nativa** | 3.0 / 3.0 | Aprovado |
+| **D5. Performance & Eficiência** | 3.0 / 3.0 | Aprovado |
+| **D6. Testabilidade, Segurança & Conformidade** | 3.0 / 3.0 | Aprovado |
+| **Média Consolidada** | **3.00 / 3.00** | **PASS** |
+
+### Arquivos Criados e Modificados
+- **Criados:** `api/workout-completed-push.ts`, `public/icon-gq.png`, `tests/unit/apiWorkoutCompletedPush.test.ts`, `tests/unit/timingSafeEqual.regression.test.ts`, `docs/gauntlet/QA_REPORT_workout-completed-push.md`.
+- **Modificados:** `supabase/functions/_shared/workoutCompletedPush.ts`, `vercel.json`, `package.json`, `package-lock.json`, `tests/unit/workoutCompletedPush.test.ts`, `docs/gauntlet/SLICE_SUMMARY.md`, `.planning/STATE.md`, `.planning/ROADMAP.md`, `ROADMAP.md`, `.planning/PROGRESS.md`, `PROGRESS.md`.
+
+---
+
+ cronológico de entregas validadas pelo Gauntlet Loop e governança GSD.
 
 ---
 
