@@ -52,6 +52,7 @@ const NotificationsSettings: React.FC = () => {
             profile_completion_snoozed_until: raw.profile_completion_snoozed_until ?? null,
             evolution_photos: raw.evolution_photos ?? true,
             coach_feedback: raw.coach_feedback ?? true,
+            student_workout_completed: raw.student_workout_completed ?? true,
             plan_expiration: raw.plan_expiration ?? true,
             system_updates: raw.system_updates ?? true,
             quiet_hours_start: raw.quiet_hours_start || '21:30',
@@ -329,6 +330,11 @@ const NotificationsSettings: React.FC = () => {
     ];
 
     const coachTopics = [
+        {
+            key: 'student_workout_completed' as const,
+            label: 'Treinos Finalizados por Alunos',
+            desc: 'Alerta quando um aluno concluir um treino no Fitcoach.'
+        },
         {
             key: 'coach_feedback' as const,
             label: 'Novos Feedbacks de Alunos',

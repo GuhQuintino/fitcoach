@@ -4,6 +4,7 @@ export type NotificationTopic =
     | 'evolution_photos'
     | 'plan_expiration'
     | 'coach_feedback'
+    | 'workout_completed'
     | 'system';
 
 export interface PushSubscriptionKeys {
@@ -46,6 +47,7 @@ export interface NotificationPreferences {
     profile_completion?: boolean; // Lembrete na dashboard para completar perfil
     profile_completion_snoozed_until?: string | null; // ISO timestamp até quando está adiado (3 dias)
     evolution_photos: boolean;    // Fotos de evolução (aluno/coach)
+    student_workout_completed?: boolean; // Aviso ao coach quando aluno finaliza treino
     coach_feedback?: boolean;     // Novos feedbacks de alunos (coach)
     plan_expiration: boolean;     // Aviso de plano (aluno) / Alunos expirados (coach)
     system_updates?: boolean;     // Atualizações do sistema

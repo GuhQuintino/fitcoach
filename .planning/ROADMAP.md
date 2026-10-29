@@ -180,3 +180,9 @@ Fitcoach Pro é uma plataforma progressiva (PWA Mobile-First com suporte a fallb
 
 
 
+
+### Push "Treino Finalizado" para o coach (Conclu�da em 2026-10-29)
+- [x] Migration `20261029000000_workout_completed_push` aplicada (trigger, pg_net, idempot�ncia).
+- [x] Edge Function `workout-completed-push` e toggle de prefer�ncia.
+- [x] Testes + regress�o timingSafeEqual; Critic PASS.
+- [ ] Ativa��o: popular `internal_push_config`, secrets VAPID e deploy da fun��o.

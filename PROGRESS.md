@@ -1,5 +1,12 @@
 # PROGRESS — Fitcoach Pro
 
+### [2026-10-29] - Push "Treino Finalizado" para o coach
+- **Entregas:** Trigger SECURITY DEFINER em `workout_logs` (pg_net) -> Edge Function `workout-completed-push` (Web Push) com idempot�ncia por `workout_completion_notifications`, toggle em Configura��es > Notifica��es, compara��o de secret em tempo constante.
+- **Qualidade:** Gauntlet Critic PASS (V2), 200 testes / 21 arquivos, build OK ([QA_REPORT](docs/gauntlet/QA_REPORT_workout-completed-push.md)). Migration aplicada em produ��o em 2026-10-29.
+- **Arquivos: `pages/settings/Notifications.tsx`, `types/notifications.ts`, `supabase/functions/workout-completed-push/`, `supabase/functions/_shared/`, `supabase/migrations/20261029000000_workout_completed_push.sql`, `supabase/WORKOUT_COMPLETED_PUSH.md`, `tests/unit/workoutCompletedPush.test.ts`, `tests/unit/timingSafeEqual.regression.test.ts`.**
+- **Pendente:** configurar `internal_push_config` (url/secret), definir secrets VAPID e fazer deploy da Edge Function.
+
+
 > Registro histórico cronológico de entregas validadas pelo Gauntlet Loop e governança GSD.
 
 ---

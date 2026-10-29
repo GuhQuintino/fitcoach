@@ -4,6 +4,13 @@
 **Fase Ativa:** Fase 15 — Consolidação Single-Coach, Eliminação de Mockups e Blindagem de Bugs Silenciosos (C1 a C13) (`COMPLETE` — `PASS 3.00/3.00`, `19 suítes / 179 testes`, `94.4% similaridade`)  
 **Status Global:** Saúde excelente e blindada, 0 erros TypeScript (`tsc --noEmit`), build de produção Vite 100% aprovado (787 módulos), 179 testes automatizados Vitest passando (100% em 19 suítes de teste, incluindo as 3 novas suítes de regressão `utils/__tests__/metabolicCalculator.regression.test.ts`, `utils/__tests__/smartNotificationDispatcher.regression.test.ts` e `utils/__tests__/selectionAndTemplates.regression.test.ts`), Matriz de Similaridade Multidimensional em **94.4%**, 0 violações Anti-AI-Slop (`detect.mjs == []`), 0 violações P0 de acessibilidade (328 nós AXTree inspecionados), e Laudo de Auditoria Gauntlet Critic com nota máxima **3.00 / 3.00 (Média 6D — PASS)** ([`QA_REPORT_SINGLE_COACH_CONSOLIDATION.md`](file:///c:/Users/Gustavo/Desktop/Fitcoach/docs/gauntlet/QA_REPORT_SINGLE_COACH_CONSOLIDATION.md)).
 
+
+## Marco Mais Recente: Push "Treino Finalizado" para o coach (2026-10-29, PASS)
+- Migration aplicada em produ��o; trigger `trg_notify_coach_workout_completed`, tabelas `internal_push_config` e `workout_completion_notifications`, extens�o pg_net.
+- Decis�es travadas: idempot�ncia por chave student|workout|started_at; falha de notifica��o nunca bloqueia a finaliza��o; config ausente n�o marca o treino como notificado.
+- Pend�ncias: popular `internal_push_config` (url + secret), secrets VAPID e deploy da Edge Function `workout-completed-push`.
+- Laudo: docs/gauntlet/QA_REPORT_workout-completed-push.md
+
 ---
 
 ## 🎯 Marco Atual Concluído
