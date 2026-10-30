@@ -87,7 +87,7 @@ serve(async (req) => {
     // 3. Dados do aluno e preferências do coach
     const { data: studentProfile } = await supabase
       .from("profiles")
-      .select("name, full_name")
+      .select("full_name, email")
       .eq("id", log.student_id)
       .maybeSingle();
 

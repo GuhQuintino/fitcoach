@@ -41,19 +41,30 @@ export interface PushSubscriptionRow {
 }
 
 /**
- * Extrai o primeiro nome (capitalizado) a partir de profiles.name / profiles.full_name.
+ * Extrai o primeiro nome (capitalizado) a partir de profiles.full_name (ou email como fallback).
  * Retorna "Seu aluno" se não houver nome utilizável.
  */
 export function getFirstName(
-    profile: { name?: string | null; full_name?: string | null } | null | undefined
+    profile: { full_name?: string | null; email?: string | null } | null | undefined
 ): string {
-    const raw = (profile?.full_name ?? '').trim() || (profile?.name ?? '').trim();
-    if (!raw) return FALLBACK_STUDENT_NAME;
+    const fullNameRaw = (profile?.full_name ?? '').trim();
+    if (fullNameRaw) {
+        const firstWord = fullNameRaw.split(/\s+/)[0]?.trim();
+        if (firstWord) {
+            return firstWord.charAt(0).toLocaleUpperCase('pt-BR') + firstWord.slice(1).toLocaleLowerCase('pt-BR');
+        }
+    }
 
-    const firstWord = raw.split(/\s+/)[0];
-    if (!firstWord) return FALLBACK_STUDENT_NAME;
+    const emailRaw = (profile?.email ?? '').trim();
+    if (emailRaw) {
+        const emailPrefix = emailRaw.split('@')[0]?.trim() ?? '';
+        const firstEmailChunk = emailPrefix.split(/[._+-]/)[0]?.trim() ?? '';
+        if (firstEmailChunk) {
+            return firstEmailChunk.charAt(0).toLocaleUpperCase('pt-BR') + firstEmailChunk.slice(1).toLocaleLowerCase('pt-BR');
+        }
+    }
 
-    return firstWord.charAt(0).toLocaleUpperCase('pt-BR') + firstWord.slice(1).toLocaleLowerCase('pt-BR');
+    return FALLBACK_STUDENT_NAME;
 }
 
 /**
@@ -74,7 +85,7 @@ export function isCompletedLog(log: Pick<WorkoutLogRecord, 'finished_at'> | null
 
 export function buildWorkoutCompletedPayload(params: {
     studentId: string;
-    studentName?: { name?: string | null; full_name?: string | null } | null;
+    studentName?: { full_name?: string | null; email?: string | null } | null;
     notificationId?: string | null;
 }): WorkoutCompletedPayload {
     const firstName = getFirstName(params.studentName);

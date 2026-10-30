@@ -1,5 +1,54 @@
 # PROGRESS — Fitcoach Pro
 
+## [2026-10-30] — Bugfix: Extração do Primeiro Nome do Aluno nas Notificações Push & Saneamento de Schema PostgREST (Fase 16 Refinamento — PASS 3.00/3.00)
+
+- **Identificador da Fatia:** `workout-completed-push-name-fix` / `bugfix-student-first-name-push`
+- **Perfil Gauntlet:** `full-stack` (TypeScript, Vercel Serverless Functions, Supabase PostgreSQL / PostgREST, Vitest)
+- **Subagente Executor:** `gauntlet-builder`
+- **Veredito do Gauntlet Critic:** **PASS (3.00 / 3.00 na Rubrica 6D | 23 suítes / 225 testes | 0 erros tsc | build Vite OK)** — [`QA_REPORT_workout-completed-push.md`](file:///c:/Users/Gustavo/Desktop/Fitcoach/docs/gauntlet/QA_REPORT_workout-completed-push.md)
+
+### Resumo do Valor Entregue (End-to-End)
+1. **Causa Raiz Identificada e Erradicada:**
+   - A consulta a `profiles` em `api/workout-completed-push.ts` e `supabase/functions/workout-completed-push/index.ts` selecionava `.select('name, full_name, email')`.
+   - No schema canônico do Supabase (`public.profiles`), a coluna `name` inexiste (apenas `full_name` e `email` existem). O PostgREST rejeitava a consulta com HTTP 400 (`column profiles.name does not exist`), disparando o tratamento de exceção e forçando o fallback em `"Seu aluno"`.
+2. **Serviços & Contratos (Vercel Serverless API Route & Supabase Edge Function):**
+   - Saneada a query para `.select('full_name, email')` em ambos os pontos de entrada (`api/workout-completed-push.ts` e `supabase/functions/workout-completed-push/index.ts`).
+   - Implementado algoritmo `getFirstName` robusto e determinístico com 3 camadas de resolução:
+     1. Extração da primeira palavra de `full_name`, com trim e normalização de capitalização em pt-BR (ex: `"GABRIEL SILVA"` -> `"Gabriel"`).
+     2. Fallback inteligente a partir do `email`: extrai o prefixo antes do `@` e descarta caracteres após separadores comuns (`.`, `_`, `-`, `+`), normalizando em Title Case (ex: `"ana.beatriz@email.com"` -> `"Ana"`).
+     3. Fallback defensivo final para `"Seu aluno"` caso ambos estejam vazios.
+   - Sincronização em `supabase/functions/_shared/workoutCompletedPush.ts` garantindo consistência entre a Edge Function Deno e a Serverless Function da Vercel.
+3. **Bugfix Regression Test Mandate & Blindagem:**
+   - Criada suíte de testes de regressão dedicada [`tests/unit/studentFirstName.regression.test.ts`](file:///c:/Users/Gustavo/Desktop/Fitcoach/tests/unit/studentFirstName.regression.test.ts) com 13 testes cobrindo os 5 cenários críticos:
+     - Extração a partir de `full_name` completo.
+     - Extração a partir de nome simples e normalização de capitalização.
+     - Fallback por prefixo de e-mail quando `full_name` for nulo ou vazio.
+     - Fallback final `"Seu aluno"` quando `full_name` e `email` forem nulos ou vazios.
+     - Blindagem estrita contra a reintrodução da coluna `name` (mock do Supabase lançando erro imediato se `name` constar no `.select()`).
+   - Atualizados testes unitários existentes em `tests/unit/apiWorkoutCompletedPush.test.ts` e `tests/unit/workoutCompletedPush.test.ts`.
+4. **Métricas de Qualidade:**
+   - 225/225 testes passando no Vitest (100% de sucesso em 23 suítes).
+   - 0 erros no compilador TypeScript (`tsc --noEmit`).
+   - Build de produção do Vite 100% limpo em 8.00s.
+   - Laudo formal do Gauntlet Critic V5 emitido com **PASS (3.00 / 3.00)**.
+
+### Métricas da Rubrica 6D
+| Dimensão | Nota | Status |
+|---|:---:|:---:|
+| **D1. Funcionalidade & Requisitos** | 3.0 / 3.0 | Aprovado |
+| **D2. Robustez & Estabilidade** | 3.0 / 3.0 | Aprovado |
+| **D3. Qualidade de Implementação & Anti-Slop** | 3.0 / 3.0 | Aprovado |
+| **D4. Consistência Arquitetural & Stack Nativa** | 3.0 / 3.0 | Aprovado |
+| **D5. Performance & Eficiência** | 3.0 / 3.0 | Aprovado |
+| **D6. Testabilidade, Segurança & Conformidade** | 3.0 / 3.0 | Aprovado |
+| **Média Consolidada** | **3.00 / 3.00** | **PASS** |
+
+### Arquivos Criados e Modificados
+- **Criados:** `tests/unit/studentFirstName.regression.test.ts`.
+- **Modificados:** `api/workout-completed-push.ts`, `supabase/functions/_shared/workoutCompletedPush.ts`, `supabase/functions/workout-completed-push/index.ts`, `tests/unit/apiWorkoutCompletedPush.test.ts`, `tests/unit/workoutCompletedPush.test.ts`, `docs/gauntlet/QA_REPORT_workout-completed-push.md`, `.planning/STATE.md`, `.planning/ROADMAP.md`, `ROADMAP.md`, `.planning/PROGRESS.md`, `PROGRESS.md`.
+
+---
+
 ## [2026-10-29] — Notificação Web Push "Treino Finalizado" para o Coach & Endpoint Serverless Vercel (Fase 16 — COMPLETE / PASS 3.00/3.00)
 
 - **Identificador da Fatia:** `workout-completed-push` / `feature-workout-completed-push-serverless`

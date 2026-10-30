@@ -17,15 +17,16 @@ describe('workoutCompletedPush: primeiro nome', () => {
         expect(getFirstName({ full_name: '  MARIA   souza ' })).toBe('Maria');
     });
 
-    it('usa name quando full_name está vazio', () => {
-        expect(getFirstName({ full_name: '', name: 'carlos eduardo' })).toBe('Carlos');
-        expect(getFirstName({ name: 'ana' })).toBe('Ana');
+    it('usa email quando full_name está vazio ou ausente', () => {
+        expect(getFirstName({ full_name: '', email: 'carlos.eduardo@example.com' })).toBe('Carlos');
+        expect(getFirstName({ email: 'ana@example.com' })).toBe('Ana');
     });
 
-    it('retorna "Seu aluno" sem nome utilizável', () => {
+    it('retorna "Seu aluno" sem nome utilizável nem email', () => {
         expect(getFirstName(null)).toBe(FALLBACK_STUDENT_NAME);
         expect(getFirstName(undefined)).toBe('Seu aluno');
-        expect(getFirstName({ full_name: '   ', name: null })).toBe('Seu aluno');
+        expect(getFirstName({ full_name: '   ', email: null })).toBe('Seu aluno');
+        expect(getFirstName({ full_name: '', email: '' })).toBe('Seu aluno');
     });
 });
 

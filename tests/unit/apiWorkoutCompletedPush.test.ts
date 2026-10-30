@@ -108,8 +108,8 @@ describe('api/workout-completed-push: processWorkoutCompletedPush logic', () => 
     };
 
     const studentData = overrides.student !== undefined ? overrides.student : {
-      name: 'Gabriel',
       full_name: 'Gabriel Souza',
+      email: 'gabriel.souza@example.com',
     };
 
     const coachData = overrides.coach !== undefined ? overrides.coach : {

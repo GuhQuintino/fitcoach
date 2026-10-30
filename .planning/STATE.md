@@ -1,40 +1,45 @@
 # STATE — Fitcoach Pro
 
-**Última Atualização:** 29 de Outubro de 2026  
-**Fase Ativa:** Fase 16 — Webhook Serverless & Notificação Web Push "Treino Finalizado" para o Coach (`COMPLETE` — `PASS 3.00/3.00`, `22 suítes / 212 testes`, `0 erros tsc`, `Vite build OK`)  
-**Status Global:** Saúde excelente e blindada, 0 erros TypeScript (`tsc --noEmit`), build de produção Vite 100% aprovado (787 módulos), 212 testes automatizados Vitest passando (100% em 22 suítes de teste, incluindo as novas suítes `tests/unit/apiWorkoutCompletedPush.test.ts`, `tests/unit/workoutCompletedPush.test.ts` e `tests/unit/timingSafeEqual.regression.test.ts`), Matriz de Similaridade Multidimensional em **94.4%**, 0 violações Anti-AI-Slop (`detect.mjs == []`), 0 violações P0 de acessibilidade (328 nós AXTree inspecionados), e Laudo de Auditoria Gauntlet Critic com nota máxima **3.00 / 3.00 (Média 6D — PASS)** ([`QA_REPORT_workout-completed-push.md`](file:///c:/Users/Gustavo/Desktop/Fitcoach/docs/gauntlet/QA_REPORT_workout-completed-push.md)).
+**Última Atualização:** 30 de Outubro de 2026  
+**Fase Ativa:** Fase 16 — Webhook Serverless & Notificação Web Push "Treino Finalizado" para o Coach (`COMPLETE` — `PASS 3.00/3.00`, `23 suítes / 225 testes`, `0 erros tsc`, `Vite build OK`)  
+**Status Global:** Saúde excelente e blindada, 0 erros TypeScript (`tsc --noEmit`), build de produção Vite 100% aprovado (787 módulos), 225 testes automatizados Vitest passando (100% em 23 suítes de teste, incluindo as suítes `tests/unit/studentFirstName.regression.test.ts`, `tests/unit/apiWorkoutCompletedPush.test.ts`, `tests/unit/workoutCompletedPush.test.ts` e `tests/unit/timingSafeEqual.regression.test.ts`), Matriz de Similaridade Multidimensional em **94.4%**, 0 violações Anti-AI-Slop (`detect.mjs == []`), 0 violações P0 de acessibilidade (328 nós AXTree inspecionados), e Laudo de Auditoria Gauntlet Critic V5 com nota máxima **3.00 / 3.00 (Média 6D — PASS)** ([`QA_REPORT_workout-completed-push.md`](file:///c:/Users/Gustavo/Desktop/Fitcoach/docs/gauntlet/QA_REPORT_workout-completed-push.md)).
 
 ---
 
 ## 🎯 Marco Atual Concluído: Notificação Web Push "Treino Finalizado" para o Coach (Fase 16 — PASS 3.00/3.00)
-- **Objetivo**: Implementação ponta a ponta do sistema de notificação Web Push instantânea para o Treinador Gustavo quando qualquer aluno conclui um treino, com arquitetura serverless na Vercel (`api/workout-completed-push.ts`), autenticação timing-safe via SHA-256 e `crypto.timingSafeEqual`, idempotência atômica com trava em `workout_completion_notifications`, trigger assíncrono via `pg_net` em `workout_logs`, branding oficial GQ (`/icon-gq.png`), expurgo automático de assinaturas expiradas (404/410) e respeito a horários de silêncio (`quiet_hours`).
+- **Objetivo**: Implementação ponta a ponta do sistema de notificação Web Push instantânea para o Treinador Gustavo quando qualquer aluno conclui um treino, com arquitetura serverless na Vercel (`api/workout-completed-push.ts`), autenticação timing-safe via SHA-256 e `crypto.timingSafeEqual`, idempotência atômica com trava em `workout_completion_notifications`, trigger assíncrono via `pg_net` em `workout_logs`, branding oficial GQ (`/icon-gq.png`), expurgo automático de assinaturas expiradas (404/410), respeito a horários de silêncio (`quiet_hours`) e extração resiliente de primeiro nome do aluno sem erros de schema PostgREST.
 - **Entregáveis da Fatia Vertical (End-to-End)**:
   - **DDL Relacional, Idempotência & Extensão pg_net (`20261029000000_workout_completed_push.sql`)**:
     - Extensão `pg_net` habilitada no Postgres do Supabase.
     - Tabela de configuração interna `public.internal_push_config` com RLS estrito (acesso exclusivo service role / security definer).
     - Tabela de idempotência `public.workout_completion_notifications` com constraint `UNIQUE(dedupe_key)` e lock atômico por `push_sent_at`.
     - Trigger `trg_notify_coach_workout_completed` ativo em `workout_logs` disparando assincronamente a função `notify_coach_workout_completed()` via `net.http_post`.
-  - **Endpoint Serverless Vercel (`api/workout-completed-push.ts`)**:
+  - **Endpoint Serverless Vercel (`api/workout-completed-push.ts`) & Edge Function (`supabase/functions/workout-completed-push/index.ts`)**:
     - Serverless Function Node.js nativa desacoplada da SPA através de rewrite regex em `vercel.json` (`/((?!api/).*)` -> `/index.html`).
     - Autenticação de webhook via constant-time comparison (`crypto.timingSafeEqual`) de hashes SHA-256 de tamanho fixo (32 bytes), rejeitando secrets vazios com HTTP 401.
     - Revalidação de estado em `workout_logs` checando `finished_at IS NOT NULL`.
     - Respeito integral a `preferences.push` e `preferences.student_workout_completed` do coach e janela de silêncio (`quiet_hours`), gravando em `notification_logs` sem disparar push ruidoso.
     - Disparo de Web Push RFC 8292 via biblioteca `web-push` e VAPID para todas as inscrições ativas do coach em `push_subscriptions`.
     - Expurgo em lote de endpoints inválidos/revogados (status HTTP 404 e 410 Gone).
+  - **Bugfix Crítico de Schema PostgREST & Extração do Primeiro Nome (`getFirstName`)**:
+    - Saneamento da query a `profiles` em ambos os pontos de entrada (`api/workout-completed-push.ts` e `supabase/functions/workout-completed-push/index.ts`) para `.select('full_name, email')`, eliminando a coluna inexistente `name` que gerava HTTP 400 no PostgREST e forçava fallback em `"Seu aluno"`.
+    - Algoritmo `getFirstName` robusto: extrai e normaliza com capitalização pt-BR a primeira palavra de `full_name`; fallback inteligente pelo prefixo do `email` antes do `@` e delimitadores (`.`, `_`, `+`, `-`); e fallback final seguro para `"Seu aluno"`.
   - **Branding Oficial & Payload**:
-    - Notificação configurada com título `"Treino Finalizado"`, mensagem `"<PrimeiroNome> finalizou o treino!"` (com fallback seguro), ícone oficial GQ (`/icon-gq.png`) e deep-link direto para a ficha do aluno (`/coach/student/<studentId>`).
+    - Notificação configurada com título `"Treino Finalizado"`, mensagem `"<PrimeiroNome> finalizou o treino!"` (ex: `"Gabriel finalizou o treino!"`), ícone oficial GQ (`/icon-gq.png`) e deep-link direto para a ficha do aluno (`/coach/student/<studentId>`).
   - **Configuração de Produção & Infraestrutura**:
     - Populada tabela `public.internal_push_config` com a URL do endpoint de produção (`https://fitcoach-five.vercel.app/api/workout-completed-push`) e segredo de webhook.
     - Sincronizadas variáveis de ambiente no projeto Vercel (`fitcoach`) via Vercel CLI nos ambientes Production e Development: `SUPABASE_SERVICE_ROLE_KEY`, `WORKOUT_PUSH_WEBHOOK_SECRET`, `VAPID_SUBJECT`, `VAPID_PRIVATE_KEY`, `VAPID_PUBLIC_KEY` e `VITE_VAPID_PUBLIC_KEY`.
   - **Garantia de Qualidade & Testes**:
+    - Suíte de regressão `tests/unit/studentFirstName.regression.test.ts` (13 testes cobrindo os 5 cenários e prevenindo reintrodução da coluna `name`).
     - Suíte `tests/unit/apiWorkoutCompletedPush.test.ts` (12 testes unitários do endpoint).
     - Suíte `tests/unit/workoutCompletedPush.test.ts` (15 testes unitários de lógica).
     - Suíte de regressão `tests/unit/timingSafeEqual.regression.test.ts` (6 testes de segurança).
-    - 212/212 testes Vitest passando (100%), 0 erros de compilação TypeScript (`tsc --noEmit`), build de produção Vite 100% OK em 8.66s.
+    - 225/225 testes Vitest passando (100% em 23 suítes), 0 erros de compilação TypeScript (`tsc --noEmit`), build de produção Vite 100% OK em 8.00s.
 
 ---
 
 ## 🔒 Decisões Travadas (Locked Decisions)
+- **ADR-025: Sanitização de Schema em Consultas PostgREST e Extração Determinística de Nome (Fase 16 Refinamento / Bugfix):** As consultas a `profiles` para montagem de payloads de notificação consultam estritamente colunas canônicas existentes no banco (`full_name, email`), erradicando a tentativa de seleção da coluna inexistente `name` que causava HTTP 400 no PostgREST. A resolução do primeiro nome do aluno (`getFirstName`) implementa normalização de capitalização em pt-BR da primeira palavra de `full_name`, com fallback determinístico pelo prefixo de `email` (descartando provedor e caracteres após separadores `.` ou `_`) e fallback final seguro para `"Seu aluno"`. Blindado permanentemente contra regressões de schema por `tests/unit/studentFirstName.regression.test.ts`.
 - **ADR-023: Endpoint Serverless Vercel Node.js para Notificação Push de Treino Concluído com Idempotência Estrita e Timing-Safe Auth (Fase 16):** Rota `/api/workout-completed-push` em Node.js runtime da Vercel desacoplada da SPA (`vercel.json`), validação de webhook via SHA-256 e `crypto.timingSafeEqual`, revalidação de `finished_at` em `workout_logs`, deduplicação atômica via `push_sent_at IS NULL` em `workout_completion_notifications`, personalização com branding oficial GQ (`/icon-gq.png`), respeito a `quiet_hours` e preferências do coach, e expurgo automático de endpoints expirados (404/410 Gone).
 - **ADR-024: Orquestração Desacoplada Supabase pg_net -> Vercel Serverless Function (Fase 16):** Trigger `trg_notify_coach_workout_completed` assíncrono via `net.http_post` em `workout_logs` consultando URL e secret em `public.internal_push_config` protegida por RLS estrito (service role/security definer). Falhas de rede ou serviço de push são isoladas e nunca bloqueiam a finalização de treino pelo aluno.
 - **ADR-019: Consolidação Single-Coach e Fluxos Assistidos via WhatsApp Oficial (Fase 15 — C1, C2, C6, C7):** Extinção de rotas SaaS multi-coach (`/coach/plans`, `/coach/subscription`) e centralização de recuperação de senha (`@fitcoach.com`) e solicitações LGPD de exclusão de dados via deep-link oficial `https://wa.me/5511992616777` diretamente com o Treinador Gustavo.
@@ -73,9 +78,11 @@
 
 ## 📊 Métricas de Qualidade
 - **TypeScript:** 0 erros de tipagem estática (`tsc --noEmit`)
-- **Testes Automatizados (Vitest):** 212 passed / 212 total (100% de sucesso em 22 suítes de teste)
+- **Testes Automatizados (Vitest):** 225 passed / 225 total (100% de sucesso em 23 suítes de teste)
+  - `tests/unit/studentFirstName.regression.test.ts`: 13/13 passed
   - `tests/unit/timingSafeEqual.regression.test.ts`: 6/6 passed
   - `tests/unit/workoutCompletedPush.test.ts`: 15/15 passed
+  - `tests/unit/apiWorkoutCompletedPush.test.ts`: 12/12 passed
   - `tests/unit/workoutHabitAnalyzer.test.ts`: 19/19 passed
   - `tests/unit/smartNotificationDispatcher.test.ts`: 5/5 passed
   - `utils/__tests__/smartNotificationDispatcher.regression.test.ts`: 2/2 passed
@@ -88,7 +95,6 @@
   - `utils/studentStatus.test.ts`: 20/20 passed
   - `tests/regression/activeWorkoutAndAuthSafety.regression.test.ts`: 7/7 passed
   - `utils/__tests__/metabolicCalculator.regression.test.ts`: 11/11 passed
-  - `tests/unit/apiWorkoutCompletedPush.test.ts`: 12/12 passed
   - `tests/regression/profileCompletionBanner.regression.test.tsx`: 5/5 passed
   - `tests/regression/workoutFinalizationEnum.regression.test.ts`: 6/6 passed
   - `tests/unit/phoneAndTextUtils.test.ts`: 8/8 passed
