@@ -22,4 +22,4 @@ O aviso antigo dependia de updatefound do service worker. public/sw.js continuav
 ## Transição
 Uma instância já aberta com o JavaScript antigo não pode receber retroativamente a lógica nova. Fechar totalmente e abrir o app novamente permite baixar esta correção; depois a detecção em primeiro plano passa a oferecer novas versões. O tutorial fica no Perfil, seção Configurações, botão Tutorial; não inicia automaticamente.
 
-Publicação autorizada na conversa; aguardando push e confirmação do GitHub/Vercel.
+Publicado em origin/main no commit 3d15a7781f342a2845d50601b3dd4ec58b154cd6. Vercel confirmou Production com status success (Deployment has completed): https://vercel.com/gustavos-projects-2f647c1d/fitcoach/BygPWcDggXrvrAh8TxSYfCJSNf1p.

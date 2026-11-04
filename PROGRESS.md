@@ -899,4 +899,4 @@ O tutorial utiliza as mesmas telas Dashboard, Selection e WorkoutExecution, Main
 
 ## Correção de atualização do PWA (04/11/2026)
 
-Corrigida a detecção de novas versões do app instalado: build identifica cada publicação em version.json e sw.js; aviso com Atualizar agora/Mais tarde, checagem ao retornar/reconectar e em primeiro plano, ativação após aceite com preservação da sessão. 246 testes, TypeScript/build aprovados e 8 verificações de navegador com workers/caches reais. Evidências: docs/gauntlet/QA_REPORT_app_update.md. Publicação em preparação.
+Corrigida a detecção de novas versões do app instalado: build identifica cada publicação em version.json e sw.js; aviso com Atualizar agora/Mais tarde, checagem ao retornar/reconectar e em primeiro plano, ativação após aceite com preservação da sessão. 246 testes, TypeScript/build aprovados e 8 verificações de navegador com workers/caches reais. Evidências: docs/gauntlet/QA_REPORT_app_update.md. Publicado no commit 3d15a77, deploy Vercel confirmado com sucesso.
