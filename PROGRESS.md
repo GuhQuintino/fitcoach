@@ -896,3 +896,7 @@ O tutorial utiliza as mesmas telas Dashboard, Selection e WorkoutExecution, Main
 
 ### [2026-06-30] — Fase 1: Arquitetura Base & Autenticação Supabase
 - **Entregas:** Autenticação por e-mail/senha, controle de perfis (admin/coach/student), banco Postgres com RLS e telas de onboarding/login.
+
+## Correção de atualização do PWA (04/11/2026)
+
+Corrigida a detecção de novas versões do app instalado: build identifica cada publicação em version.json e sw.js; aviso com Atualizar agora/Mais tarde, checagem ao retornar/reconectar e em primeiro plano, ativação após aceite com preservação da sessão. 246 testes, TypeScript/build aprovados e 8 verificações de navegador com workers/caches reais. Evidências: docs/gauntlet/QA_REPORT_app_update.md. Publicação em preparação.

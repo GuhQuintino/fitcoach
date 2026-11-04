@@ -1,4 +1,4 @@
-const CACHE_NAME = 'fitcoach-v12';
+const CACHE_NAME = 'fitcoach-__FITCOACH_BUILD_ID__';
 const ASSETS_TO_CACHE = [
     '/',
     '/index.html',
@@ -12,7 +12,6 @@ const ASSETS_TO_CACHE = [
 ];
 
 self.addEventListener('install', (event) => {
-    self.skipWaiting();
     event.waitUntil(
         caches.open(CACHE_NAME).then((cache) => {
             return cache.addAll(ASSETS_TO_CACHE);
@@ -25,7 +24,7 @@ self.addEventListener('activate', (event) => {
         caches.keys().then((cacheNames) => {
             return Promise.all(
                 cacheNames.map((cacheName) => {
-                    if (cacheName !== CACHE_NAME) {
+                    if (cacheName.startsWith('fitcoach-') && cacheName !== CACHE_NAME) {
                         return caches.delete(cacheName);
                     }
                 })
@@ -39,6 +38,10 @@ self.addEventListener('fetch', (event) => {
     const isSelfOrigin = url.origin === self.location.origin;
     const isApiCall = url.hostname.includes('supabase.co');
     const isFont = url.hostname === 'fonts.googleapis.com' || url.hostname === 'fonts.gstatic.com';
+
+    // Release checks must always reach the network, including while an old app is open.
+    if (event.request.method !== 'GET' || (isSelfOrigin &&
+        (url.pathname === '/version.json' || url.pathname === '/sw.js' || url.pathname.startsWith('/api/')))) return;
 
     // NEVER cache Supabase API calls
     if (isApiCall) {
@@ -100,7 +103,7 @@ self.addEventListener('fetch', (event) => {
                         if (response && response.status === 200) {
                             const clonedResponse = response.clone();
                             caches.open(CACHE_NAME).then((cache) => {
-                                cache.put(event.request, clonedResponse);
+                                cache.put('/index.html', clonedResponse);
                             });
                         }
                         resolve(response);
@@ -146,6 +149,11 @@ let restTimerTimeoutId = null;
 self.addEventListener('message', (event) => {
     const data = event.data;
     if (!data || !data.type) return;
+
+    if (data.type === 'SKIP_WAITING') {
+        event.waitUntil(self.skipWaiting());
+        return;
+    }
 
     if (data.type === 'CANCEL_REST_TIMER') {
         if (restTimerTimeoutId) {

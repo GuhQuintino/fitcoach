@@ -1,0 +1,41 @@
+{
+  "timestamp": "2026-11-04T22:36:40.270Z",
+  "assertions": [
+    {
+      "name": "Primeira instalação não avisa atualização inexistente",
+      "pass": true
+    },
+    {
+      "name": "Voltar ao app detecta nova publicação e oferece atualizar",
+      "pass": true
+    },
+    {
+      "name": "Não recarrega antes do aceite",
+      "pass": true
+    },
+    {
+      "name": "Sem conexão mantém app aberto e oferece tentar novamente",
+      "pass": true
+    },
+    {
+      "name": "Aceitar ativa worker e recarrega uma vez",
+      "pass": true
+    },
+    {
+      "name": "Sessão ativa preservada ao atualizar",
+      "pass": true
+    },
+    {
+      "name": "Worker usa cache com versão da nova publicação",
+      "pass": true
+    },
+    {
+      "name": "Mantém a rota atual",
+      "pass": true
+    }
+  ],
+  "errors": [
+    "Failed to load resource: net::ERR_INTERNET_DISCONNECTED"
+  ],
+  "writes": []
+}

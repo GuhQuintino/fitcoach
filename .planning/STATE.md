@@ -143,3 +143,7 @@ O tutorial utiliza as mesmas telas Dashboard, Selection e WorkoutExecution, Main
 - Planejar e executar a implementação do **Item 2.11** (Camada 4 de Séries Especiais `timer_mode`: seletor EMOM/AMRAP/Tabata no editor e cronômetro dedicado no player de musculação) quando priorizado pelo treinador.
 - Aplicar a correção de reconciliação de contas na renovação do Webhook InfinitePay diretamente no repositório externo `C:\Users\Gustavo\Desktop\Consultoria` (`src/lib/fitcoach/provisioning.ts` e `src/app/api/webhooks/infinitepay/route.ts`).
 - Configurar agendamento horário de produção para a Edge Function `supabase/functions/smart-notifications` via cron / pg_cron no período diurno (08:00 às 21:00).
+
+## Correção de atualização do PWA (04/11/2026)
+
+Corrigida a detecção de novas versões do app instalado: build identifica cada publicação em version.json e sw.js; aviso com Atualizar agora/Mais tarde, checagem ao retornar/reconectar e em primeiro plano, ativação após aceite com preservação da sessão. 246 testes, TypeScript/build aprovados e 8 verificações de navegador com workers/caches reais. Evidências: docs/gauntlet/QA_REPORT_app_update.md. Publicação em preparação.
