@@ -27,7 +27,7 @@
 ## Decisões e limites
 
 - Demonstração segura confirmada pelo usuário. Dados de exemplo identificados, nenhum dado fictício persistido. Não necessita migração nem mudança Supabase.
-- Usuário testou e aprovou localmente; publicação autorizada e envio ao GitHub em preparação. Nenhum commit, push ou deploy registrado nesta atualização.
+- Usuário testou e aprovou localmente; Push funcional confirmado em `origin/main` (`1c8a02a1938d1c82e41a32acc10e6957171401f6`); produção confirmada pelo status Vercel/GitHub `success` (deployment `7558654813`, environment `Production`).
 - Referências visuais incumbentes e tokens usados, conforme `student-tutorial-references.md`; não há redesign.
 - QA identificou painel sobrepondo o feedback final em 375 × 667. Corrigido somente no overlay: painel no topo e rolagem natural para manter o alvo abaixo dele, respeitando o fim do documento. Sem padding ou deslocamento do player real.
 

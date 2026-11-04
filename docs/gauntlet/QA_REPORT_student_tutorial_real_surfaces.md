@@ -14,4 +14,12 @@ Data: 2026-11-04. Responsável pela consolidação: agente principal.
 
 ## Limites e interrupção do serviço
 
-A revisão independente de código ocorreu durante o ciclo e identificou a rota demo sem query, que foi corrigida com regressão. A conexão do serviço de IA falhou antes de o crítico emitir seu laudo final. Este documento registra a consolidação direta das evidências pelo agente principal; não atribui um novo veredito independente 6D. Lighthouse, FPS e WCAG completa não medidos. Usuário testou e aprovou localmente. Publicação autorizada; envio ao GitHub em preparação. Nenhum commit, push ou deploy registrado nesta atualização.
+A revisão independente de código ocorreu durante o ciclo e identificou a rota demo sem query, que foi corrigida com regressão. A conexão do serviço de IA falhou antes de o crítico emitir seu laudo final. Este documento registra a consolidação direta das evidências pelo agente principal; não atribui um novo veredito independente 6D. Lighthouse, FPS e WCAG completa não medidos. Usuário testou e aprovou localmente. Push funcional confirmado em `origin/main` (`1c8a02a1938d1c82e41a32acc10e6957171401f6`); produção confirmada pelo status Vercel/GitHub `success` (deployment `7558654813`, environment `Production`).
+
+## Publicação confirmada
+
+Push funcional confirmado em `origin/main` (`1c8a02a1938d1c82e41a32acc10e6957171401f6`); produção confirmada pelo status Vercel/GitHub `success` (deployment `7558654813`, environment `Production`).
+
+- URL: https://fitcoach-dmg4hj10o-gustavos-projects-2f647c1d.vercel.app
+- Vercel: https://vercel.com/gustavos-projects-2f647c1d/fitcoach/4FPk9HCho2E8QYXvLw84UKZiu5Lo
+- Evidência informada pelo agente principal: GitHub/Vercel “Deployment has completed” e deployment Production com estado success.

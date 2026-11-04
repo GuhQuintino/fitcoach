@@ -1,6 +1,6 @@
 ## Ajuste final de 04/11/2026: tutorial nas telas reais
 
-O tutorial utiliza as mesmas telas Dashboard, Selection e WorkoutExecution, MainLayout e modais do uso normal, preservando posições, tamanhos e ordem dos elementos. Apenas o destaque e o painel explicativo ficam sobrepostos. Fixtures em memória e guards impedem persistência ou efeitos reais. Painel final de feedback corrigido no celular. Validação atual: 241 testes, TypeScript e build aprovados; 114/114 verificações de navegador em 375, 768 e 1440 px, sem erros ou mutações remotas. Evidências consolidadas em docs/gauntlet/QA_REPORT_student_tutorial_real_surfaces.md. Revisão independente final interrompida por indisponibilidade do serviço de IA; resultados de navegador concluídos e inspecionados pelo agente principal. Usuário testou e aprovou localmente; publicação autorizada e envio ao GitHub em preparação. Produção ainda não confirmada.
+O tutorial utiliza as mesmas telas Dashboard, Selection e WorkoutExecution, MainLayout e modais do uso normal, preservando posições, tamanhos e ordem dos elementos. Apenas o destaque e o painel explicativo ficam sobrepostos. Fixtures em memória e guards impedem persistência ou efeitos reais. Painel final de feedback corrigido no celular. Validação atual: 241 testes, TypeScript e build aprovados; 114/114 verificações de navegador em 375, 768 e 1440 px, sem erros ou mutações remotas. Evidências consolidadas em docs/gauntlet/QA_REPORT_student_tutorial_real_surfaces.md. Revisão independente final interrompida por indisponibilidade do serviço de IA; resultados de navegador concluídos e inspecionados pelo agente principal. Usuário testou e aprovou localmente; Push funcional confirmado em `origin/main` (`1c8a02a1938d1c82e41a32acc10e6957171401f6`); produção confirmada pelo status Vercel/GitHub `success` (deployment `7558654813`, environment `Production`).
 # ROADMAP — Fitcoach Pro
 
 ## Visão do Produto
@@ -184,7 +184,7 @@ Fitcoach Pro é uma plataforma progressiva (PWA Mobile-First com suporte a fallb
 
 - [x] Exigir séries principais e intensificações completas; abrir automaticamente o mesmo modal manual, sem reabertura ao cancelar. [2026-11-04]
 - [x] Tutorial reiniciável em Configurações, sete passos sobre as mesmas telas reais e MainLayout, posições/dimensões preservadas, destaque e fundo borrado; fixtures em memória e guards sem efeitos reais. [2026-11-04]
-- [x] Validação atual: 241/241 testes (25 arquivos), TypeScript/build aprovados, 114/114 verificações no navegador; consolidação `docs/gauntlet/QA_REPORT_student_tutorial_real_surfaces.md`, sem nova nota 6D independente por interrupção do serviço de IA. Usuário testou e aprovou localmente; publicação autorizada e envio ao GitHub em preparação, sem commit/push/deploy registrado nesta atualização. [2026-11-04]
+- [x] Validação atual: 241/241 testes (25 arquivos), TypeScript/build aprovados, 114/114 verificações no navegador; consolidação `docs/gauntlet/QA_REPORT_student_tutorial_real_surfaces.md`, sem nova nota 6D independente por interrupção do serviço de IA. Usuário testou e aprovou localmente; Push funcional confirmado em `origin/main` (`1c8a02a1938d1c82e41a32acc10e6957171401f6`); produção confirmada pelo status Vercel/GitHub `success` (deployment `7558654813`, environment `Production`). [2026-11-04]
 
 ---
 
