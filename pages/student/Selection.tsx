@@ -9,6 +9,8 @@ import { cacheSelectionWorkouts, getCachedSelectionWorkouts } from '../../utils/
 import { notifyNetworkSuccess, notifyNetworkError } from '../../utils/useOnlineStatus';
 import ConfirmDialog from '../../components/shared/ConfirmDialog';
 import { getActiveWorkout, removeActiveWorkout } from '../../utils/activeWorkoutStorage';
+import { useStudentDemo } from '../../components/student/StudentDemoContext';
+import { STUDENT_DEMO_ROUTINE, STUDENT_DEMO_WORKOUTS } from '../../utils/studentDemoFixtures';
 
 export interface ParsedRoutineMeta {
     isJson: boolean;
@@ -90,16 +92,17 @@ export const resolveWorkoutDurationLabel = (workout: any, routineMeta?: ParsedRo
 };
 
 const Selection: React.FC = () => {
+    const isDemo = useStudentDemo();
     const { user } = useAuth();
     const navigate = useNavigate();
-    const [loading, setLoading] = useState(true);
-    const [routine, setRoutine] = useState<any>(null);
-    const [workouts, setWorkouts] = useState<any[]>([]);
+    const [loading, setLoading] = useState(!isDemo);
+    const [routine, setRoutine] = useState<any>(isDemo ? STUDENT_DEMO_ROUTINE : null);
+    const [workouts, setWorkouts] = useState<any[]>(isDemo ? STUDENT_DEMO_WORKOUTS : []);
     const [activeWorkout, setActiveWorkout] = useState<any>(null);
     const [isDiscardModalOpen, setIsDiscardModalOpen] = useState(false);
 
     // Auto-finalização de treinos abandonados
-    const { result: autoFinalizeResult } = useStaleWorkoutDetector(user?.id);
+    const { result: autoFinalizeResult } = useStaleWorkoutDetector(isDemo ? undefined : user?.id);
 
     useEffect(() => {
         if (autoFinalizeResult?.success) {
@@ -112,6 +115,7 @@ const Selection: React.FC = () => {
     }, [autoFinalizeResult]);
 
     useEffect(() => {
+        if (isDemo) return;
         if (user?.id) {
             fetchRoutineAndWorkouts();
             const saved = getActiveWorkout(user.id);
@@ -120,6 +124,7 @@ const Selection: React.FC = () => {
     }, [user?.id]);
 
     const handleConfirmDiscard = () => {
+        if (isDemo) return;
         removeActiveWorkout(user?.id);
         setActiveWorkout(null);
         setIsDiscardModalOpen(false);
@@ -129,6 +134,7 @@ const Selection: React.FC = () => {
     const [suggestedIndex, setSuggestedIndex] = useState(0);
 
     const fetchRoutineAndWorkouts = async () => {
+        if (isDemo) return;
         if (!user?.id) return;
         try {
             // 0. Hidrata imediatamente do cache local se existir (Zero Loading Screen!)
@@ -352,6 +358,7 @@ const Selection: React.FC = () => {
                             const durationLabel = resolveWorkoutDurationLabel(workout, routineMeta);
                             return (
                                 <Link
+                                    data-tutorial-target={index === 0 ? '1' : undefined}
                                     key={workout.id}
                                     to={`/student/workout/${workout.id}`}
                                     aria-label={`Iniciar treino ${workout.name || index + 1}`}

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabaseClient';
 import { groupExerciseSessions, GroupedExerciseSession } from '../../utils/workoutHistoryGrouper';
 import { getSetTypeToken, getMethodToken, getExecutionModeToken } from '../../utils/specialSetTokens';
+import { useStudentDemo } from '../student/StudentDemoContext';
 
 const formatTime = (seconds: number | string | null | undefined) => {
     if (seconds === null || seconds === undefined) return '-';
@@ -27,6 +28,7 @@ const ExerciseHistoryModal: React.FC<ExerciseHistoryModalProps> = ({
     exerciseName,
     studentId,
 }) => {
+    const isDemo = useStudentDemo();
     const [sessions, setSessions] = useState<GroupedExerciseSession[]>([]);
     const [loading, setLoading] = useState(false);
 
@@ -44,7 +46,7 @@ const ExerciseHistoryModal: React.FC<ExerciseHistoryModalProps> = ({
     useEffect(() => {
         let isMounted = true;
 
-        if (isOpen && exerciseId && studentId) {
+        if (!isDemo && isOpen && exerciseId && studentId) {
             fetchFullHistory(isMounted);
         }
 
@@ -54,6 +56,7 @@ const ExerciseHistoryModal: React.FC<ExerciseHistoryModalProps> = ({
     }, [isOpen, exerciseId, studentId]);
 
     const fetchFullHistory = async (isMounted: boolean) => {
+        if (isDemo) return;
         try {
             setLoading(true);
 

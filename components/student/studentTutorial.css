@@ -1,0 +1,14 @@
+/* Never changes the layout, typography or controls of the real screens. */
+.tutorial-mask { position: fixed; z-index: 60; background: rgb(15 23 42 / .42); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); }
+.tutorial-spotlight { position: fixed; z-index: 61; border: 3px solid #0284c7; border-radius: 16px; pointer-events: none; }
+.tutorial-banner { position: fixed; inset: 0 0 auto; z-index: 70; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 4px 16px; background: #fff; border-bottom: 1px solid #cbd5e1; color: #0f172a; font-size: 13px; font-weight: 700; }
+.dark .tutorial-banner { background: #0f172a; color: #fff; border-color: #475569; }
+.tutorial-banner button { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 12px; }
+.tutorial-panel { position: fixed; z-index: 80; bottom: max(12px, env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%); width: min(440px, calc(100% - 24px)); max-height: calc(100dvh - 100px); overflow-y: auto; padding: 20px; border: 1px solid #cbd5e1; border-radius: 24px; background: #fff; color: #0f172a; box-shadow: 0 12px 40px rgb(15 23 42 / .22); }
+.tutorial-panel[data-placement="top"] { top: 64px; bottom: auto; }
+.dark .tutorial-panel { background: #1e293b; color: #fff; border-color: #64748b; }
+.tutorial-panel[hidden], .tutorial-banner[hidden] { display: none; }
+.tutorial-text-button { min-height: 44px; padding: 8px; border-radius: 10px; font-weight: 600; font-size: 14px; }
+.tutorial-next { min-height: 44px; padding: 10px 16px; border-radius: 12px; background: #0369a1; color: #fff; font-size: 14px; font-weight: 700; white-space: nowrap; }
+:is(.tutorial-panel, .tutorial-banner) button:focus-visible { outline: 3px solid #0284c7; outline-offset: 3px; }
+@media (prefers-reduced-motion: reduce) { .student-tutorial *, .student-tutorial *::before, .student-tutorial *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; } }

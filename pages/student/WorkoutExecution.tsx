@@ -34,6 +34,9 @@ import {
     releaseWorkoutWakeLock
 } from '../../utils/restTimerAudioAndNotification';
 import { getActiveWorkout, setActiveWorkout as persistActiveWorkout, removeActiveWorkout } from '../../utils/activeWorkoutStorage';
+import { createCompletionTransition, isWorkoutComplete } from '../../utils/workoutCompletion';
+import { useStudentDemo } from '../../components/student/StudentDemoContext';
+import { createStudentDemoExercises, STUDENT_DEMO_WORKOUTS } from '../../utils/studentDemoFixtures';
 
 const getYouTubeId = (url: string) => {
     if (!url) return null;
@@ -142,13 +145,14 @@ const formatTimeTarget = (seconds: number | string) => {
 };
 
 const WorkoutExecution: React.FC = () => {
+    const isDemo = useStudentDemo();
     const { user, preferences } = useAuth();
     const navigate = useNavigate();
     const { id: workoutId } = useParams();
 
-    const [loading, setLoading] = useState(true);
-    const [workout, setWorkout] = useState<any>(null);
-    const [exercises, setExercises] = useState<TriggerExercise[]>([]);
+    const [loading, setLoading] = useState(!isDemo);
+    const [workout, setWorkout] = useState<any>(isDemo ? STUDENT_DEMO_WORKOUTS[0] : null);
+    const [exercises, setExercises] = useState<TriggerExercise[]>(() => isDemo ? createStudentDemoExercises() : []);
     const [exerciseGroups, setExerciseGroups] = useState<any[]>([]);
 
     // Modal Pedagógico das 4 Camadas
@@ -173,6 +177,7 @@ const WorkoutExecution: React.FC = () => {
     // Mantém a tela acesa durante o treino, mas se o aluno bloquear no botão físico
     // e voltar depois, reativa o Wake Lock automaticamente.
     useEffect(() => {
+        if (isDemo) return;
         acquireWorkoutWakeLock();
         const handleVisibility = () => {
             if (document.visibilityState === 'visible') {
@@ -189,10 +194,12 @@ const WorkoutExecution: React.FC = () => {
 
     // Sound beep + vibração quando timer termina
     const playBeep = () => {
+        if (isDemo) return;
         playRestFinishedAlert();
     };
 
     const playTransitionBeep = (type: 'to_work' | 'to_rest' | 'finished') => {
+        if (isDemo) return;
         try {
             if (!audioContextRef.current) {
                 audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
@@ -245,6 +252,7 @@ const WorkoutExecution: React.FC = () => {
 
     // Notificação nativa via Service Worker (funciona no Android e em tela bloqueada)
     const sendRestNotification = () => {
+        if (isDemo) return;
         triggerImmediateRestNotification(restTimerLabel);
     };
 
@@ -281,6 +289,7 @@ const WorkoutExecution: React.FC = () => {
     const [workoutComment, setWorkoutComment] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const isSubmittingRef = useRef(false);
+    const completionTransitionRef = useRef(createCompletionTransition());
 
     // Stats
     const [volume, setVolume] = useState(0);
@@ -311,6 +320,7 @@ const WorkoutExecution: React.FC = () => {
     const duration = formatWorkoutDuration(workoutSeconds);
 
     useEffect(() => {
+        if (isDemo) return;
         if (user?.id && workoutId) {
             fetchWorkoutData();
         }
@@ -358,7 +368,7 @@ const WorkoutExecution: React.FC = () => {
 
     // Duration Timer (otimizado sem teardown desnecessário a cada digitação)
     useEffect(() => {
-        if (isWorkoutPaused || loading) return;
+        if (isDemo || isWorkoutPaused || loading) return;
         const interval = setInterval(() => {
             setWorkoutSeconds(prev => {
                 const next = prev + 1;
@@ -386,7 +396,7 @@ const WorkoutExecution: React.FC = () => {
 
     // Cardio/Time Active Timer Tick
     useEffect(() => {
-        if (!activeTimerSet || !activeTimerSet.isRunning) return;
+        if (isDemo || !activeTimerSet || !activeTimerSet.isRunning) return;
 
         const interval = setInterval(() => {
             setActiveTimerSet(prev => {
@@ -437,7 +447,7 @@ const WorkoutExecution: React.FC = () => {
 
     // Auto-scroll to focused exercise
     useEffect(() => {
-        if (!loading && exercises.length > 0) {
+        if (!isDemo && !loading && exercises.length > 0) {
             if (preferences.focusMode) {
                 const el = document.getElementById(`exercise-card-${currentExerciseIndex}`) || document.getElementById(`exercise-${currentExerciseIndex}`);
                 if (el) {
@@ -499,6 +509,7 @@ const WorkoutExecution: React.FC = () => {
 
 
     const fetchWorkoutData = async () => {
+        if (isDemo) return;
         // 0. Cache-First Imediato (Zero Loading Screen!)
         // Se houver active_workout em andamento ou cache offline do treino, hidrata na hora
         const data = getActiveWorkout(user?.id);
@@ -857,6 +868,7 @@ const WorkoutExecution: React.FC = () => {
     };
 
     const saveToLocalStorage = (currentExercises: TriggerExercise[], secs?: number, paused?: boolean) => {
+        if (isDemo) return;
         const sessionData = {
             workoutId,
             exercises: currentExercises,
@@ -1242,7 +1254,7 @@ const WorkoutExecution: React.FC = () => {
 
     // Monitorar fim do timer (com suporte a retorno imediato de tela bloqueada)
     useEffect(() => {
-        if (!timerActive || !restEndTime) return;
+        if (isDemo || !timerActive || !restEndTime) return;
 
         const evaluateTimer = () => {
             const now = Date.now();
@@ -1285,6 +1297,7 @@ const WorkoutExecution: React.FC = () => {
     }, [timerActive, restEndTime, restTimerLabel]);
 
     const startRestTimer = (duration: number, label: string = 'Descanso') => {
+        if (isDemo) return;
         const end = Date.now() + (duration * 1000);
         setRestEndTime(end);
         setInitialTime(duration);
@@ -1301,6 +1314,7 @@ const WorkoutExecution: React.FC = () => {
     };
 
     const stopRestTimer = () => {
+        if (isDemo) return;
         setTimerActive(false);
         setRestEndTime(null);
         setToastVisible(false);
@@ -1308,6 +1322,7 @@ const WorkoutExecution: React.FC = () => {
     };
 
     const addTime = (seconds: number) => {
+        if (isDemo) return;
         if (!restEndTime) return;
         const now = Date.now();
         // CORREÇÃO CRÍTICA: Se o cronômetro já tinha zerado (restEndTime no passado),
@@ -1334,14 +1349,24 @@ const WorkoutExecution: React.FC = () => {
     };
 
     const handleFinishWorkout = async () => {
-        if (setsCompleted === 0) {
+        if (!exercises.some(exercise => exercise.sets.some(set => set.completed))) {
             toast.error('Complete pelo menos 1 série para salvar.');
             return;
         }
         setFinishModalOpen(true);
     };
 
+    const allSeriesComplete = isWorkoutComplete(exercises);
+    useEffect(() => {
+        if (completionTransitionRef.current(workoutId, allSeriesComplete, !isDemo && !loading && !isSubmitting)) {
+            stopRestTimer();
+            stopBackgroundTimerAudio();
+            void handleFinishWorkout();
+        }
+    }, [workoutId, allSeriesComplete, loading, isSubmitting]);
+
     const confirmFinishWorkout = async (overallEffort: number) => {
+        if (isDemo) return;
         if (isSubmittingRef.current) return;
         isSubmittingRef.current = true;
         setIsSubmitting(true);
@@ -1948,7 +1973,7 @@ const WorkoutExecution: React.FC = () => {
             >
                 <div className={`bg-white dark:bg-slate-800 rounded-xl sm:rounded-[2.5rem] shadow-soft border transition-all duration-500 overflow-hidden ${shouldFocus && isFocused ? 'border-primary/30 ring-4 ring-primary/5 shadow-focus-glow' : inGroup ? 'border-indigo-100 dark:border-indigo-900/50' : 'border-slate-100 dark:border-slate-700'}`}>
                     {/* Exercise Header */}
-                    <div className="p-4 border-b border-slate-100 dark:border-slate-700">
+                    <div data-tutorial-target={exIndex === 0 ? '2' : undefined} className="p-4 border-b border-slate-100 dark:border-slate-700">
                         <div className="flex items-start justify-between mb-3 px-1">
                             <div className="flex items-center gap-3 flex-1 min-w-0">
                                 {/* Thumbnail Area */}
@@ -2038,7 +2063,7 @@ const WorkoutExecution: React.FC = () => {
                         )}
 
                         {exercise.notes && (
-                            <div className="mx-2 mb-3 bg-sky-50/50 dark:bg-sky-900/10 p-3 rounded-2xl border border-sky-100 dark:border-sky-500/10 flex gap-3 items-start">
+                            <div data-tutorial-target={exIndex === 0 ? '3' : undefined} className="mx-2 mb-3 bg-sky-50/50 dark:bg-sky-900/10 p-3 rounded-2xl border border-sky-100 dark:border-sky-500/10 flex gap-3 items-start">
                                 <span className="material-symbols-rounded text-sky-500 text-lg mt-0.5">sticky_note</span>
                                 <div className="flex-1">
                                     <span className="uppercase text-[10px] font-bold text-sky-600 dark:text-sky-400 block mb-0.5 tracking-wider">Nota do Coach</span>
@@ -2089,9 +2114,9 @@ const WorkoutExecution: React.FC = () => {
 
                                 return (
                                     <React.Fragment key={set.id + setIndex}>
-                                        <div className={gridRowClass}>
+                                        <div data-tutorial-target={exIndex === 0 && setIndex === 0 ? '5' : undefined} className={gridRowClass}>
                                             {/* # col */}
-                                            <div className="flex items-center justify-center">
+                                            <div data-tutorial-target={exIndex === 0 && setIndex === 0 ? '4' : undefined} className="flex items-center justify-center">
                                                 {getSetIcon()}
                                             </div>
 
@@ -2608,7 +2633,7 @@ const WorkoutExecution: React.FC = () => {
                     </div>
 
                     {/* Exercise Feedback */}
-                    <div className="p-3 sm:p-4 bg-slate-50/50 dark:bg-slate-800/40 border-t border-slate-100 dark:border-slate-700/50 transition-colors">
+                    <div data-tutorial-target={exIndex === 0 ? '6' : undefined} className="p-3 sm:p-4 bg-slate-50/50 dark:bg-slate-800/40 border-t border-slate-100 dark:border-slate-700/50 transition-colors">
                         <label htmlFor={`feedback-${exercise.id}`} className="flex items-center gap-1.5 mb-2 px-1 text-slate-500 dark:text-slate-400 cursor-pointer">
                             <span className="material-symbols-rounded text-base" aria-hidden="true">chat_bubble</span>
                             <span className="text-[10px] font-extrabold uppercase tracking-widest">Feedback do Exercício</span>

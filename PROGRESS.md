@@ -1,4 +1,18 @@
+## Ajuste final de 04/11/2026: tutorial nas telas reais
+
+O tutorial utiliza as mesmas telas Dashboard, Selection e WorkoutExecution, MainLayout e modais do uso normal, preservando posições, tamanhos e ordem dos elementos. Apenas o destaque e o painel explicativo ficam sobrepostos. Fixtures em memória e guards impedem persistência ou efeitos reais. Painel final de feedback corrigido no celular. Validação atual: 241 testes, TypeScript e build aprovados; 114/114 verificações de navegador em 375, 768 e 1440 px, sem erros ou mutações remotas. Evidências consolidadas em docs/gauntlet/QA_REPORT_student_tutorial_real_surfaces.md. Revisão independente final interrompida por indisponibilidade do serviço de IA; resultados de navegador concluídos e inspecionados pelo agente principal. Usuário testou e aprovou localmente; publicação autorizada e envio ao GitHub em preparação. Produção ainda não confirmada.
 # PROGRESS — Fitcoach Pro
+
+## [2026-11-04] — Fase 17: Conclusão Automática e Tutorial do Aluno
+
+- **Validação final:** consolidação funcional do agente principal em `docs/gauntlet/QA_REPORT_student_tutorial_real_surfaces.md`; QA de navegador concluído, usuário testou e aprovou localmente. O PASS independente 2,67/3,00 em `QA_REPORT_student_tutorial.md` refere-se à primeira versão; a revisão independente final foi interrompida pelo serviço de IA, sem nova nota 6D.
+- **Entrega:** conclusão de todas as séries, drops e sub-séries abre automaticamente o modal original de avaliação; confirmação, comentário e salvamento permanecem no fluxo existente. Cancelar não provoca reabertura contínua.
+- **Tutorial:** botão nas Configurações do aluno inicia sete passos com alvo nítido e fundo borrado, monta as mesmas telas Dashboard, Selection, WorkoutExecution e MainLayout, nas mesmas posições/dimensões do uso normal; explica detalhes/vídeo, notas, ícones, sugestões por cor, registros/check e feedback. Somente overlay adicional; fixtures em memória e guards impedem persistência e efeitos reais.
+- **Arquivos centrais:** `App.tsx`, `pages/student/Profile.tsx`, `pages/student/WorkoutExecution.tsx`, `components/student/StudentTutorial.tsx`, `components/student/StudentTutorial.css`, `utils/studentTutorial.ts`, `utils/workoutCompletion.ts`, `components/student/StudentDemoContext.ts`, `utils/studentDemoFixtures.ts`, MainLayout, ExerciseHistoryModal e duas suítes de regressão. Resumo em `docs/gauntlet/SLICE_SUMMARY_student_tutorial.md`.
+- **Validação atual:** 241/241 testes em 25 arquivos; TypeScript e build aprovados; 114/114 verificações de navegador (375, 768 e 1440 px) em `.qatest/student-tutorial-real-results.json`, zero erros de página e zero mutações remotas nos cenários registrados; sessão/cache/fila preservados.
+- **Limites:** similaridade quantitativa, Lighthouse/FPS e auditoria WCAG completa não medidos; métricas globais de outubro não reutilizadas. Publicação autorizada pelo usuário; envio ao GitHub em preparação. Nenhum commit, push ou deploy registrado nesta atualização.
+
+---
 
 ## [2026-10-30] — Bugfix: Extração do Primeiro Nome do Aluno nas Notificações Push & Saneamento de Schema PostgREST (Fase 16 Refinamento — PASS 3.00/3.00)
 

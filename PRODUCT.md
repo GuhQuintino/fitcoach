@@ -1,3 +1,6 @@
+## Ajuste final de 04/11/2026: tutorial nas telas reais
+
+O tutorial utiliza as mesmas telas Dashboard, Selection e WorkoutExecution, MainLayout e modais do uso normal, preservando posições, tamanhos e ordem dos elementos. Apenas o destaque e o painel explicativo ficam sobrepostos. Fixtures em memória e guards impedem persistência ou efeitos reais. Painel final de feedback corrigido no celular. Validação atual: 241 testes, TypeScript e build aprovados; 114/114 verificações de navegador em 375, 768 e 1440 px, sem erros ou mutações remotas. Evidências consolidadas em docs/gauntlet/QA_REPORT_student_tutorial_real_surfaces.md. Revisão independente final interrompida por indisponibilidade do serviço de IA; resultados de navegador concluídos e inspecionados pelo agente principal. Usuário testou e aprovou localmente; publicação autorizada e envio ao GitHub em preparação. Produção ainda não confirmada.
 # PRODUCT.md: Fitcoach
 
 > Documento vivo de regras de negócio validadas com o coach (dono do produto). Cada feature registra as decisões tomadas no Discovery.
@@ -6,6 +9,14 @@
 - **Fitcoach:** Aplicativo exclusivo de prescrição e acompanhamento de treinos do treinador **Gustavo** (`role: 'admin' | 'coach'`, WhatsApp `5511992616777`) e seus alunos. Não há modelo SaaS multi-coach, não há limite `max_students` e não há planos de assinatura para coaches.
 - **Stack:** Vite + React 19 + TypeScript + Tailwind CSS + Supabase (Postgres, Auth, Storage, Edge Functions, RLS) + Service Worker PWA.
 - **Perfil Gauntlet:** `full-stack`. **Superfície:** Operate (ferramenta de trabalho esportiva de alta precisão), Light e Dark Mode adaptativos.
+
+---
+
+## Feature: Conclusão Automática e Tutorial do Aluno (2026-11-04)
+
+- Ao completar todas as séries principais, drops e sub-séries prescritas, abrir automaticamente a mesma avaliação do botão Concluir; esforço, comentário e confirmação de salvamento continuam no fluxo existente. Cancelar não reabre o modal continuamente.
+- Configurações do aluno contém Tutorial reiniciável em sete passos, com fundo borrado e alvo destacado: dashboard, seleção do Treino A, detalhes/vídeo, notas do coach, tipo de série, sugestões/registro/check e feedback do exercício.
+- Tutorial usa os próprios componentes Dashboard, Selection, WorkoutExecution, MainLayout e modais reais, nas mesmas posições e dimensões do uso normal; somente o destaque e a explicação ficam sobrepostos. Fixtures identificadas em memória e guards impedem persistência e efeitos, preservando cargas, histórico e sessão ativa. Preservar temas, navegação por teclado, saída e retorno ao perfil. Ajuste testado e aprovado localmente pelo treinador; publicação autorizada e envio ao GitHub em preparação.
 
 ---
 

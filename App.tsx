@@ -5,6 +5,7 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import LoadingScreen from './components/shared/LoadingScreen';
 import ErrorBoundary from './components/shared/ErrorBoundary';
 import { Toaster } from 'react-hot-toast';
+import { StudentTutorialSurface } from './components/student/StudentTutorial';
 
 // Auth Pages
 const Login = lazy(() => import('./pages/Login'));
@@ -162,10 +163,10 @@ const AppContent = () => {
                 <Route path="/student/*" element={
                     <RequireAuth allowedRole="student">
                         <Routes>
-                            <Route path="dashboard" element={<StudentDashboard />} />
-                            <Route path="selection" element={<Selection />} />
+                            <Route path="dashboard" element={<StudentTutorialSurface><StudentDashboard /></StudentTutorialSurface>} />
+                            <Route path="selection" element={<StudentTutorialSurface><Selection /></StudentTutorialSurface>} />
                             <Route path="workout" element={<Navigate to="/student/selection" replace />} />
-                            <Route path="workout/:id" element={<WorkoutExecution />} />
+                            <Route path="workout/:id" element={<StudentTutorialSurface><WorkoutExecution /></StudentTutorialSurface>} />
                             <Route path="history" element={<History />} />
                             <Route path="evolution" element={<Evolution />} />
                             <Route path="profile" element={<StudentProfile />} />

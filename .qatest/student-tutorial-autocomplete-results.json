@@ -1,0 +1,34 @@
+{
+  "assertions": [
+    {
+      "name": "Treino inicialmente incompleto não abre modal",
+      "pass": true
+    },
+    {
+      "name": "Mãe concluída com drops pendentes não abre modal",
+      "pass": true
+    },
+    {
+      "name": "Primeiro drop concluído ainda não abre modal",
+      "pass": true
+    },
+    {
+      "name": "Último drop abre mesmo modal da conclusão manual",
+      "pass": true
+    },
+    {
+      "name": "Cancelar não reabre automaticamente",
+      "pass": true
+    },
+    {
+      "name": "Conclusão manual continua disponível após cancelar",
+      "pass": true
+    },
+    {
+      "name": "Abrir avaliação não grava dados remotos",
+      "pass": true
+    }
+  ],
+  "errors": [],
+  "writes": []
+}

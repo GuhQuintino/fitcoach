@@ -18,22 +18,25 @@ import { ProfileCompletionBanner } from '../../components/student/ProfileComplet
 import { checkProfileCompleteness } from '../../utils/workoutHabitAnalyzer';
 import { runStudentSmartNotificationCheck } from '../../utils/smartNotificationDispatcher';
 import toast from 'react-hot-toast';
+import { useStudentDemo } from '../../components/student/StudentDemoContext';
+import { STUDENT_DEMO_ROUTINE } from '../../utils/studentDemoFixtures';
 
 const StudentDashboard: React.FC = () => {
+    const isDemo = useStudentDemo();
     const { user, expiresAt } = useAuth();
     const navigate = useNavigate();
-    const [loading, setLoading] = useState(true);
-    const [profile, setProfile] = useState<any>(null);
-    const [coach, setCoach] = useState<any>(null);
-    const [routine, setRoutine] = useState<any>(null);
-    const [studentData, setStudentData] = useState<any>(null);
+    const [loading, setLoading] = useState(!isDemo);
+    const [profile, setProfile] = useState<any>(isDemo ? { full_name: 'Aluno Demonstração', status: 'active' } : null);
+    const [coach, setCoach] = useState<any>(isDemo ? { full_name: 'Gustavo' } : null);
+    const [routine, setRoutine] = useState<any>(isDemo ? { routine_id: STUDENT_DEMO_ROUTINE.id, routines: STUDENT_DEMO_ROUTINE } : null);
+    const [studentData, setStudentData] = useState<any>(isDemo ? { weight: 70, height: 175, birth_date: '1995-01-01' } : null);
     const [workoutCount, setWorkoutCount] = useState(0);
     const [gamification, setGamification] = useState({ streak: 0, level: 1, current_xp: 0, next_level_xp: 1000 });
     const [activeWorkout, setActiveWorkout] = useState<any>(null);
     const [isDiscardModalOpen, setIsDiscardModalOpen] = useState(false);
 
     // Auto-finalização de treinos abandonados
-    const { result: autoFinalizeResult } = useStaleWorkoutDetector(user?.id);
+    const { result: autoFinalizeResult } = useStaleWorkoutDetector(isDemo ? undefined : user?.id);
 
     useEffect(() => {
         if (autoFinalizeResult?.success) {
@@ -46,6 +49,7 @@ const StudentDashboard: React.FC = () => {
     }, [autoFinalizeResult]);
 
     useEffect(() => {
+        if (isDemo) return;
         if (user?.id) {
             fetchStudentData();
             const saved = getActiveWorkout(user.id);
@@ -57,6 +61,7 @@ const StudentDashboard: React.FC = () => {
     }, [user?.id]);
 
     const handleConfirmDiscard = () => {
+        if (isDemo) return;
         removeActiveWorkout(user?.id);
         setActiveWorkout(null);
         setIsDiscardModalOpen(false);
@@ -64,6 +69,7 @@ const StudentDashboard: React.FC = () => {
     };
 
     const fetchStudentData = async () => {
+        if (isDemo) return;
         if (!user?.id) return;
         try {
             // 0. Hidrata imediatamente do cache local se existir (Zero Loading Screen!)
@@ -344,7 +350,7 @@ const StudentDashboard: React.FC = () => {
                             </div>
                         )}
                         <ThemeToggle />
-                        <NotificationBell userId={user?.id} />
+                        <NotificationBell userId={isDemo ? undefined : user?.id} />
                     </div>
                 </div>
 
@@ -391,9 +397,9 @@ const StudentDashboard: React.FC = () => {
             </header>
 
             <div className="px-6 -mt-4 space-y-4 pb-8 relative z-20">
-                <PWAInstallPrompt />
-                <OfflineSyncStatus />
-                <ProfileCompletionBanner completeness={profileCompleteness} />
+                {!isDemo && <PWAInstallPrompt />}
+                {!isDemo && <OfflineSyncStatus />}
+                {!isDemo && <ProfileCompletionBanner completeness={profileCompleteness} />}
                 {/* Active Workout Banner */}
                 {activeWorkout && (
                     <div className="bg-slate-900 dark:bg-slate-800 rounded-3xl p-5 shadow-xl border border-white/5 animate-slide-up">
@@ -434,6 +440,7 @@ const StudentDashboard: React.FC = () => {
                     <div className="snap-center shrink-0 w-full relative">
                         {routine ? (
                             <Link
+                                data-tutorial-target="0"
                                 to="/student/selection"
                                 aria-label={`Ver treinos da rotina ${routine.routines.name}`}
                                 className="bg-gradient-to-br from-primary to-primary-dark rounded-[2rem] p-6 text-white shadow-xl shadow-primary/20 relative overflow-hidden h-48 flex flex-col justify-between group cursor-pointer transition-transform active:scale-[0.98] block"

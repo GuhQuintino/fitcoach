@@ -12,6 +12,7 @@ import ConfirmDialog from '../../components/shared/ConfirmDialog';
 import ToggleSwitch from '../../components/shared/ToggleSwitch';
 import { formatToWhatsappUrl } from '../../utils/phoneUtils';
 import { getOptimizedImageUrl } from '../../utils/imageUtils';
+import { studentTutorialUrl } from '../../utils/studentTutorial';
 import {
     ACTIVITY_LEVEL_OPTIONS,
     calculateAgeFromBirthDate,
@@ -44,6 +45,12 @@ const StudentProfile: React.FC = () => {
     const [coachProfile, setCoachProfile] = useState<any>(null);
     const [weightHistory, setWeightHistory] = useState<any[]>([]);
     const [isEditing, setIsEditing] = useState(() => Boolean((location.state as any)?.autoEdit));
+
+    useEffect(() => {
+        if (!loading && (location.state as { tutorialReturn?: boolean } | null)?.tutorialReturn) {
+            document.querySelector<HTMLAnchorElement>('[data-testid="student-tutorial-start"]')?.focus();
+        }
+    }, [loading, location.state]);
 
     useEffect(() => {
         if (user?.id) {
@@ -767,6 +774,13 @@ const StudentProfile: React.FC = () => {
                     <div className="space-y-3">
                         <InstallTutorial />
                         <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-soft border border-slate-100 dark:border-slate-700 overflow-hidden divide-y divide-slate-100 dark:divide-slate-700">
+                            <Link to={studentTutorialUrl(0)} data-testid="student-tutorial-start" className="flex items-center justify-between p-4 min-h-[48px] hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary">
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 rounded-xl bg-sky-50 dark:bg-sky-900/20 text-primary"><span className="material-symbols-rounded" aria-hidden="true">help</span></div>
+                                    <div><p className="text-sm font-medium text-slate-900 dark:text-white">Tutorial</p><p className="text-xs text-slate-600 dark:text-slate-300">Aprenda a usar seus treinos, passo a passo</p></div>
+                                </div>
+                                <span className="material-symbols-rounded text-slate-400" aria-hidden="true">chevron_right</span>
+                            </Link>
                             <Link to="/student/settings/notifications" className="flex items-center justify-between p-4 min-h-[48px] hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors cursor-pointer group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary">
                                 <div className="flex items-center gap-3">
                                     <div className="p-2 rounded-xl bg-sky-50 dark:bg-sky-900/20 text-primary">

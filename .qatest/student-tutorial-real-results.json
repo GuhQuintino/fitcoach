@@ -1,0 +1,1628 @@
+{
+  "timestamp": "2026-11-04T21:21:22.665Z",
+  "results": [
+    {
+      "viewport": "375x667",
+      "theme": "light",
+      "assertions": [
+        {
+          "name": "Passo1: mesmo componente/layout da tela normal",
+          "pass": true,
+          "actual": {
+            "tag": "A",
+            "x": 24,
+            "y": 264.25,
+            "width": 327,
+            "height": 192,
+            "font": "\"DM Sans\", system-ui, sans-serif",
+            "main": true,
+            "nav": true
+          },
+          "expected": {
+            "tag": "A",
+            "x": 24,
+            "y": 264.25,
+            "width": 327,
+            "height": 192,
+            "font": "\"DM Sans\", system-ui, sans-serif",
+            "main": true,
+            "nav": true
+          },
+          "delta": {
+            "x": 0,
+            "y": 0,
+            "width": 0,
+            "height": 0
+          }
+        },
+        {
+          "name": "Passo1: spotlight e explicação visíveis sem sobrepor",
+          "pass": true,
+          "geometry": {
+            "target": {
+              "x": 24,
+              "y": 96.25,
+              "width": 327,
+              "height": 192
+            },
+            "panel": {
+              "x": 12,
+              "y": 424.75,
+              "width": 351,
+              "height": 230.25
+            },
+            "overlap": false,
+            "visible": true,
+            "panelVisible": true,
+            "overflow": false,
+            "blurMasks": true,
+            "focusNext": true
+          }
+        },
+        {
+          "name": "Passo1: fundo borrado e foco no Próximo",
+          "pass": true
+        },
+        {
+          "name": "Card real da dashboard é Link de treinos",
+          "pass": true
+        },
+        {
+          "name": "Passo2: mesmo componente/layout da tela normal",
+          "pass": true,
+          "actual": {
+            "tag": "A",
+            "x": 16,
+            "y": 365,
+            "width": 343,
+            "height": 108,
+            "font": "\"DM Sans\", system-ui, sans-serif",
+            "main": true,
+            "nav": true
+          },
+          "expected": {
+            "tag": "A",
+            "x": 16,
+            "y": 365,
+            "width": 343,
+            "height": 108,
+            "font": "\"DM Sans\", system-ui, sans-serif",
+            "main": true,
+            "nav": true
+          },
+          "delta": {
+            "x": 0,
+            "y": 0,
+            "width": 0,
+            "height": 0
+          }
+        },
+        {
+          "name": "Passo2: spotlight e explicação visíveis sem sobrepor",
+          "pass": true,
+          "geometry": {
+            "target": {
+              "x": 16,
+              "y": 111,
+              "width": 343,
+              "height": 108
+            },
+            "panel": {
+              "x": 12,
+              "y": 424.75,
+              "width": 351,
+              "height": 230.25
+            },
+            "overlap": false,
+            "visible": true,
+            "panelVisible": true,
+            "overflow": false,
+            "blurMasks": true,
+            "focusNext": true
+          }
+        },
+        {
+          "name": "Passo2: fundo borrado e foco no Próximo",
+          "pass": true
+        },
+        {
+          "name": "Passo3: mesmo componente/layout da tela normal",
+          "pass": true,
+          "actual": {
+            "tag": "DIV",
+            "x": 17,
+            "y": 208,
+            "width": 341,
+            "height": 214.5,
+            "font": "\"DM Sans\", system-ui, sans-serif",
+            "main": true,
+            "nav": true
+          },
+          "expected": {
+            "tag": "DIV",
+            "x": 17,
+            "y": 208,
+            "width": 341,
+            "height": 214.5,
+            "font": "\"DM Sans\", system-ui, sans-serif",
+            "main": true,
+            "nav": true
+          },
+          "delta": {
+            "x": 0,
+            "y": 0,
+            "width": 0,
+            "height": 0
+          }
+        },
+        {
+          "name": "Passo3: spotlight e explicação visíveis sem sobrepor",
+          "pass": true,
+          "geometry": {
+            "target": {
+              "x": 17,
+              "y": 88,
+              "width": 341,
+              "height": 214.5
+            },
+            "panel": {
+              "x": 12,
+              "y": 402,
+              "width": 351,
+              "height": 253
+            },
+            "overlap": false,
+            "visible": true,
+            "panelVisible": true,
+            "overflow": false,
+            "blurMasks": true,
+            "focusNext": true
+          }
+        },
+        {
+          "name": "Passo3: fundo borrado e foco no Próximo",
+          "pass": true
+        },
+        {
+          "name": "Detalhes reais do exercício expandem no player",
+          "pass": true
+        },
+        {
+          "name": "Vídeo usa modal real e esconde tutorial",
+          "pass": true
+        },
+        {
+          "name": "Escape fecha vídeo e mantém tutorial",
+          "pass": true
+        },
+        {
+          "name": "Passo4: mesmo componente/layout da tela normal",
+          "pass": true,
+          "actual": {
+            "tag": "DIV",
+            "x": 41,
+            "y": 292,
+            "width": 293,
+            "height": 101.5,
+            "font": "\"DM Sans\", system-ui, sans-serif",
+            "main": true,
+            "nav": true
+          },
+          "expected": {
+            "tag": "DIV",
+            "x": 41,
+            "y": 292,
+            "width": 293,
+            "height": 101.5,
+            "font": "\"DM Sans\", system-ui, sans-serif",
+            "main": true,
+            "nav": true
+          },
+          "delta": {
+            "x": 0,
+            "y": 0,
+            "width": 0,
+            "height": 0
+          }
+        },
+        {
+          "name": "Passo4: spotlight e explicação visíveis sem sobrepor",
+          "pass": true,
+          "geometry": {
+            "target": {
+              "x": 41,
+              "y": 88,
+              "width": 293,
+              "height": 101.5
+            },
+            "panel": {
+              "x": 12,
+              "y": 402,
+              "width": 351,
+              "height": 253
+            },
+            "overlap": false,
+            "visible": true,
+            "panelVisible": true,
+            "overflow": false,
+            "blurMasks": true,
+            "focusNext": true
+          }
+        },
+        {
+          "name": "Passo4: fundo borrado e foco no Próximo",
+          "pass": true
+        },
+        {
+          "name": "Passo5: mesmo componente/layout da tela normal",
+          "pass": true,
+          "actual": {
+            "tag": "DIV",
+            "x": 25,
+            "y": 474.5,
+            "width": 20,
+            "height": 24,
+            "font": "\"DM Sans\", system-ui, sans-serif",
+            "main": true,
+            "nav": true
+          },
+          "expected": {
+            "tag": "DIV",
+            "x": 25,
+            "y": 474.5,
+            "width": 20,
+            "height": 24,
+            "font": "\"DM Sans\", system-ui, sans-serif",
+            "main": true,
+            "nav": true
+          },
+          "delta": {
+            "x": 0,
+            "y": 0,
+            "width": 0,
+            "height": 0
+          }
+        },
+        {
+          "name": "Passo5: spotlight e explicação visíveis sem sobrepor",
+          "pass": true,
+          "geometry": {
+            "target": {
+              "x": 25,
+              "y": 87.5,
+              "width": 20,
+              "height": 24
+            },
+            "panel": {
+              "x": 12,
+              "y": 424.75,
+              "width": 351,
+              "height": 230.25
+            },
+            "overlap": false,
+            "visible": true,
+            "panelVisible": true,
+            "overflow": false,
+            "blurMasks": true,
+            "focusNext": true
+          }
+        },
+        {
+          "name": "Passo5: fundo borrado e foco no Próximo",
+          "pass": true
+        },
+        {
+          "name": "Ícone abre guia real de séries",
+          "pass": true
+        },
+        {
+          "name": "Passo6: mesmo componente/layout da tela normal",
+          "pass": true,
+          "actual": {
+            "tag": "DIV",
+            "x": 17,
+            "y": 458.5,
+            "width": 341,
+            "height": 57,
+            "font": "\"DM Sans\", system-ui, sans-serif",
+            "main": true,
+            "nav": true
+          },
+          "expected": {
+            "tag": "DIV",
+            "x": 17,
+            "y": 458.5,
+            "width": 341,
+            "height": 57,
+            "font": "\"DM Sans\", system-ui, sans-serif",
+            "main": true,
+            "nav": true
+          },
+          "delta": {
+            "x": 0,
+            "y": 0,
+            "width": 0,
+            "height": 0
+          }
+        },
+        {
+          "name": "Passo6: spotlight e explicação visíveis sem sobrepor",
+          "pass": true,
+          "geometry": {
+            "target": {
+              "x": 17,
+              "y": 95.5,
+              "width": 341,
+              "height": 57
+            },
+            "panel": {
+              "x": 12,
+              "y": 356.5,
+              "width": 351,
+              "height": 298.5
+            },
+            "overlap": false,
+            "visible": true,
+            "panelVisible": true,
+            "overflow": false,
+            "blurMasks": true,
+            "focusNext": true
+          }
+        },
+        {
+          "name": "Passo6: fundo borrado e foco no Próximo",
+          "pass": true
+        },
+        {
+          "name": "PSE usa seletor real em modal",
+          "pass": true
+        },
+        {
+          "name": "Check marca série real somente em memória",
+          "pass": true
+        },
+        {
+          "name": "Demo não inicia descanso",
+          "pass": true
+        },
+        {
+          "name": "Passo7: mesmo componente/layout da tela normal",
+          "pass": true,
+          "actual": {
+            "tag": "DIV",
+            "x": 17,
+            "y": 778.5,
+            "width": 341,
+            "height": 124,
+            "font": "\"DM Sans\", system-ui, sans-serif",
+            "main": true,
+            "nav": true
+          },
+          "expected": {
+            "tag": "DIV",
+            "x": 17,
+            "y": 778.5,
+            "width": 341,
+            "height": 124,
+            "font": "\"DM Sans\", system-ui, sans-serif",
+            "main": true,
+            "nav": true
+          },
+          "delta": {
+            "x": 0,
+            "y": 0,
+            "width": 0,
+            "height": 0
+          }
+        },
+        {
+          "name": "Passo7: spotlight e explicação visíveis sem sobrepor",
+          "pass": true,
+          "geometry": {
+            "target": {
+              "x": 17,
+              "y": 437.5,
+              "width": 341,
+              "height": 124
+            },
+            "panel": {
+              "x": 12,
+              "y": 64,
+              "width": 351,
+              "height": 298.5
+            },
+            "overlap": false,
+            "visible": true,
+            "panelVisible": true,
+            "overflow": false,
+            "blurMasks": true,
+            "focusNext": true
+          }
+        },
+        {
+          "name": "Passo7: fundo borrado e foco no Próximo",
+          "pass": true
+        },
+        {
+          "name": "Voltar preserva valores reais praticados",
+          "pass": true
+        },
+        {
+          "name": "Nenhuma escrita em cache, sessão, fila ou IndexedDB",
+          "pass": true,
+          "effects": {
+            "storageWrites": [
+              {
+                "method": "setItem",
+                "key": "theme"
+              },
+              {
+                "method": "setItem",
+                "key": "lswt-0.360921400332115950.2532943604411614"
+              },
+              {
+                "method": "removeItem",
+                "key": "lswt-0.360921400332115950.2532943604411614"
+              },
+              {
+                "method": "setItem",
+                "key": "theme"
+              },
+              {
+                "method": "setItem",
+                "key": "fc_auth_profile_11111111-1111-4111-8111-111111111111"
+              }
+            ],
+            "indexedWrites": [],
+            "audioCalls": [],
+            "notifications": [],
+            "vibrations": [],
+            "wakeLocks": []
+          }
+        },
+        {
+          "name": "Sem áudio, notificação, vibração ou wakelock na demo",
+          "pass": true
+        },
+        {
+          "name": "Nenhuma mutação remota durante tutorial",
+          "pass": true,
+          "writes": []
+        },
+        {
+          "name": "Treino stale, fila pendente e caches preservados byte a byte",
+          "pass": true
+        },
+        {
+          "name": "Tab circula para primeiro controle ativo do tutorial",
+          "pass": true
+        },
+        {
+          "name": "Shift+Tab circula para próximo",
+          "pass": true
+        },
+        {
+          "name": "Retorno ao Profile restaura foco",
+          "pass": true
+        },
+        {
+          "name": "Reiniciar e sair pelo Escape continuam disponíveis",
+          "pass": true
+        }
+      ],
+      "errors": [],
+      "effects": {
+        "storageWrites": [
+          {
+            "method": "setItem",
+            "key": "theme"
+          },
+          {
+            "method": "setItem",
+            "key": "lswt-0.360921400332115950.2532943604411614"
+          },
+          {
+            "method": "removeItem",
+            "key": "lswt-0.360921400332115950.2532943604411614"
+          },
+          {
+            "method": "setItem",
+            "key": "theme"
+          },
+          {
+            "method": "setItem",
+            "key": "fc_auth_profile_11111111-1111-4111-8111-111111111111"
+          }
+        ],
+        "indexedWrites": [],
+        "audioCalls": [],
+        "notifications": [],
+        "vibrations": [],
+        "wakeLocks": []
+      },
+      "writes": []
+    },
+    {
+      "viewport": "768x1024",
+      "theme": "dark",
+      "assertions": [
+        {
+          "name": "Passo1: mesmo componente/layout da tela normal",
+          "pass": true,
+          "actual": {
+            "tag": "A",
+            "x": 24,
+            "y": 249.125,
+            "width": 720,
+            "height": 192,
+            "font": "\"DM Sans\", system-ui, sans-serif",
+            "main": true,
+            "nav": true
+          },
+          "expected": {
+            "tag": "A",
+            "x": 24,
+            "y": 249.125,
+            "width": 720,
+            "height": 192,
+            "font": "\"DM Sans\", system-ui, sans-serif",
+            "main": true,
+            "nav": true
+          },
+          "delta": {
+            "x": 0,
+            "y": 0,
+            "width": 0,
+            "height": 0
+          }
+        },
+        {
+          "name": "Passo1: spotlight e explicação visíveis sem sobrepor",
+          "pass": true,
+          "geometry": {
+            "target": {
+              "x": 24,
+              "y": 249.125,
+              "width": 720,
+              "height": 192
+            },
+            "panel": {
+              "x": 164,
+              "y": 781.75,
+              "width": 440,
+              "height": 230.25
+            },
+            "overlap": false,
+            "visible": true,
+            "panelVisible": true,
+            "overflow": false,
+            "blurMasks": true,
+            "focusNext": true
+          }
+        },
+        {
+          "name": "Passo1: fundo borrado e foco no Próximo",
+          "pass": true
+        },
+        {
+          "name": "Card real da dashboard é Link de treinos",
+          "pass": true
+        },
+        {
+          "name": "Passo2: mesmo componente/layout da tela normal",
+          "pass": true,
+          "actual": {
+            "tag": "A",
+            "x": 16,
+            "y": 319,
+            "width": 736,
+            "height": 100,
+            "font": "\"DM Sans\", system-ui, sans-serif",
+            "main": true,
+            "nav": true
+          },
+          "expected": {
+            "tag": "A",
+            "x": 16,
+            "y": 319,
+            "width": 736,
+            "height": 100,
+            "font": "\"DM Sans\", system-ui, sans-serif",
+            "main": true,
+            "nav": true
+          },
+          "delta": {
+            "x": 0,
+            "y": 0,
+            "width": 0,
+            "height": 0
+          }
+        },
+        {
+          "name": "Passo2: spotlight e explicação visíveis sem sobrepor",
+          "pass": true,
+          "geometry": {
+            "target": {
+              "x": 16,
+              "y": 319,
+              "width": 736,
+              "height": 100
+            },
+            "panel": {
+              "x": 164,
+              "y": 781.75,
+              "width": 440,
+              "height": 230.25
+            },
+            "overlap": false,
+            "visible": true,
+            "panelVisible": true,
+            "overflow": false,
+            "blurMasks": true,
+            "focusNext": true
+          }
+        },
+        {
+          "name": "Passo2: fundo borrado e foco no Próximo",
+          "pass": true
+        },
+        {
+          "name": "Passo3: mesmo componente/layout da tela normal",
+          "pass": true,
+          "actual": {
+            "tag": "DIV",
+            "x": 17,
+            "y": 208,
+            "width": 734,
+            "height": 175.5,
+            "font": "\"DM Sans\", system-ui, sans-serif",
+            "main": true,
+            "nav": true
+          },
+          "expected": {
+            "tag": "DIV",
+            "x": 17,
+            "y": 208,
+            "width": 734,
+            "height": 175.5,
+            "font": "\"DM Sans\", system-ui, sans-serif",
+            "main": true,
+            "nav": true
+          },
+          "delta": {
+            "x": 0,
+            "y": 0,
+            "width": 0,
+            "height": 0
+          }
+        },
+        {
+          "name": "Passo3: spotlight e explicação visíveis sem sobrepor",
+          "pass": true,
+          "geometry": {
+            "target": {
+              "x": 17,
+              "y": 96,
+              "width": 734,
+              "height": 175.5
+            },
+            "panel": {
+              "x": 164,
+              "y": 781.75,
+              "width": 440,
+              "height": 230.25
+            },
+            "overlap": false,
+            "visible": true,
+            "panelVisible": true,
+            "overflow": false,
+            "blurMasks": true,
+            "focusNext": true
+          }
+        },
+        {
+          "name": "Passo3: fundo borrado e foco no Próximo",
+          "pass": true
+        },
+        {
+          "name": "Detalhes reais do exercício expandem no player",
+          "pass": true
+        },
+        {
+          "name": "Vídeo usa modal real e esconde tutorial",
+          "pass": true
+        },
+        {
+          "name": "Escape fecha vídeo e mantém tutorial",
+          "pass": true
+        },
+        {
+          "name": "Passo4: mesmo componente/layout da tela normal",
+          "pass": true,
+          "actual": {
+            "tag": "DIV",
+            "x": 41,
+            "y": 292,
+            "width": 686,
+            "height": 62.5,
+            "font": "\"DM Sans\", system-ui, sans-serif",
+            "main": true,
+            "nav": true
+          },
+          "expected": {
+            "tag": "DIV",
+            "x": 41,
+            "y": 292,
+            "width": 686,
+            "height": 62.5,
+            "font": "\"DM Sans\", system-ui, sans-serif",
+            "main": true,
+            "nav": true
+          },
+          "delta": {
+            "x": 0,
+            "y": 0,
+            "width": 0,
+            "height": 0
+          }
+        },
+        {
+          "name": "Passo4: spotlight e explicação visíveis sem sobrepor",
+          "pass": true,
+          "geometry": {
+            "target": {
+              "x": 41,
+              "y": 180,
+              "width": 686,
+              "height": 62.5
+            },
+            "panel": {
+              "x": 164,
+              "y": 781.75,
+              "width": 440,
+              "height": 230.25
+            },
+            "overlap": false,
+            "visible": true,
+            "panelVisible": true,
+            "overflow": false,
+            "blurMasks": true,
+            "focusNext": true
+          }
+        },
+        {
+          "name": "Passo4: fundo borrado e foco no Próximo",
+          "pass": true
+        },
+        {
+          "name": "Passo5: mesmo componente/layout da tela normal",
+          "pass": true,
+          "actual": {
+            "tag": "DIV",
+            "x": 29,
+            "y": 438.5,
+            "width": 36,
+            "height": 24,
+            "font": "\"DM Sans\", system-ui, sans-serif",
+            "main": true,
+            "nav": true
+          },
+          "expected": {
+            "tag": "DIV",
+            "x": 29,
+            "y": 438.5,
+            "width": 36,
+            "height": 24,
+            "font": "\"DM Sans\", system-ui, sans-serif",
+            "main": true,
+            "nav": true
+          },
+          "delta": {
+            "x": 0,
+            "y": 0,
+            "width": 0,
+            "height": 0
+          }
+        },
+        {
+          "name": "Passo5: spotlight e explicação visíveis sem sobrepor",
+          "pass": true,
+          "geometry": {
+            "target": {
+              "x": 29,
+              "y": 326.5,
+              "width": 36,
+              "height": 24
+            },
+            "panel": {
+              "x": 164,
+              "y": 781.75,
+              "width": 440,
+              "height": 230.25
+            },
+            "overlap": false,
+            "visible": true,
+            "panelVisible": true,
+            "overflow": false,
+            "blurMasks": true,
+            "focusNext": true
+          }
+        },
+        {
+          "name": "Passo5: fundo borrado e foco no Próximo",
+          "pass": true
+        },
+        {
+          "name": "Ícone abre guia real de séries",
+          "pass": true
+        },
+        {
+          "name": "Passo6: mesmo componente/layout da tela normal",
+          "pass": true,
+          "actual": {
+            "tag": "DIV",
+            "x": 17,
+            "y": 420.5,
+            "width": 734,
+            "height": 61,
+            "font": "\"DM Sans\", system-ui, sans-serif",
+            "main": true,
+            "nav": true
+          },
+          "expected": {
+            "tag": "DIV",
+            "x": 17,
+            "y": 420.5,
+            "width": 734,
+            "height": 61,
+            "font": "\"DM Sans\", system-ui, sans-serif",
+            "main": true,
+            "nav": true
+          },
+          "delta": {
+            "x": 0,
+            "y": 0,
+            "width": 0,
+            "height": 0
+          }
+        },
+        {
+          "name": "Passo6: spotlight e explicação visíveis sem sobrepor",
+          "pass": true,
+          "geometry": {
+            "target": {
+              "x": 17,
+              "y": 316.5,
+              "width": 734,
+              "height": 61
+            },
+            "panel": {
+              "x": 164,
+              "y": 759,
+              "width": 440,
+              "height": 253
+            },
+            "overlap": false,
+            "visible": true,
+            "panelVisible": true,
+            "overflow": false,
+            "blurMasks": true,
+            "focusNext": true
+          }
+        },
+        {
+          "name": "Passo6: fundo borrado e foco no Próximo",
+          "pass": true
+        },
+        {
+          "name": "PSE usa seletor real em modal",
+          "pass": true
+        },
+        {
+          "name": "Check marca série real somente em memória",
+          "pass": true
+        },
+        {
+          "name": "Demo não inicia descanso",
+          "pass": true
+        },
+        {
+          "name": "Passo7: mesmo componente/layout da tela normal",
+          "pass": true,
+          "actual": {
+            "tag": "DIV",
+            "x": 17,
+            "y": 726.5,
+            "width": 734,
+            "height": 132,
+            "font": "\"DM Sans\", system-ui, sans-serif",
+            "main": true,
+            "nav": true
+          },
+          "expected": {
+            "tag": "DIV",
+            "x": 17,
+            "y": 726.5,
+            "width": 734,
+            "height": 132,
+            "font": "\"DM Sans\", system-ui, sans-serif",
+            "main": true,
+            "nav": true
+          },
+          "delta": {
+            "x": 0,
+            "y": 0,
+            "width": 0,
+            "height": 0
+          }
+        },
+        {
+          "name": "Passo7: spotlight e explicação visíveis sem sobrepor",
+          "pass": true,
+          "geometry": {
+            "target": {
+              "x": 17,
+              "y": 639.5,
+              "width": 734,
+              "height": 132
+            },
+            "panel": {
+              "x": 164,
+              "y": 64,
+              "width": 440,
+              "height": 275.75
+            },
+            "overlap": false,
+            "visible": true,
+            "panelVisible": true,
+            "overflow": false,
+            "blurMasks": true,
+            "focusNext": true
+          }
+        },
+        {
+          "name": "Passo7: fundo borrado e foco no Próximo",
+          "pass": true
+        },
+        {
+          "name": "Voltar preserva valores reais praticados",
+          "pass": true
+        },
+        {
+          "name": "Nenhuma escrita em cache, sessão, fila ou IndexedDB",
+          "pass": true,
+          "effects": {
+            "storageWrites": [
+              {
+                "method": "setItem",
+                "key": "theme"
+              },
+              {
+                "method": "setItem",
+                "key": "lswt-0.56586956248613540.08007494013807737"
+              },
+              {
+                "method": "removeItem",
+                "key": "lswt-0.56586956248613540.08007494013807737"
+              },
+              {
+                "method": "setItem",
+                "key": "theme"
+              },
+              {
+                "method": "setItem",
+                "key": "fc_auth_profile_11111111-1111-4111-8111-111111111111"
+              }
+            ],
+            "indexedWrites": [],
+            "audioCalls": [],
+            "notifications": [],
+            "vibrations": [],
+            "wakeLocks": []
+          }
+        },
+        {
+          "name": "Sem áudio, notificação, vibração ou wakelock na demo",
+          "pass": true
+        },
+        {
+          "name": "Nenhuma mutação remota durante tutorial",
+          "pass": true,
+          "writes": []
+        },
+        {
+          "name": "Treino stale, fila pendente e caches preservados byte a byte",
+          "pass": true
+        },
+        {
+          "name": "Tab circula para primeiro controle ativo do tutorial",
+          "pass": true
+        },
+        {
+          "name": "Shift+Tab circula para próximo",
+          "pass": true
+        },
+        {
+          "name": "Retorno ao Profile restaura foco",
+          "pass": true
+        },
+        {
+          "name": "Reiniciar e sair pelo Escape continuam disponíveis",
+          "pass": true
+        }
+      ],
+      "errors": [],
+      "effects": {
+        "storageWrites": [
+          {
+            "method": "setItem",
+            "key": "theme"
+          },
+          {
+            "method": "setItem",
+            "key": "lswt-0.56586956248613540.08007494013807737"
+          },
+          {
+            "method": "removeItem",
+            "key": "lswt-0.56586956248613540.08007494013807737"
+          },
+          {
+            "method": "setItem",
+            "key": "theme"
+          },
+          {
+            "method": "setItem",
+            "key": "fc_auth_profile_11111111-1111-4111-8111-111111111111"
+          }
+        ],
+        "indexedWrites": [],
+        "audioCalls": [],
+        "notifications": [],
+        "vibrations": [],
+        "wakeLocks": []
+      },
+      "writes": []
+    },
+    {
+      "viewport": "1440x900",
+      "theme": "dark",
+      "assertions": [
+        {
+          "name": "Passo1: mesmo componente/layout da tela normal",
+          "pass": true,
+          "actual": {
+            "tag": "A",
+            "x": 232,
+            "y": 249.125,
+            "width": 976,
+            "height": 192,
+            "font": "\"DM Sans\", system-ui, sans-serif",
+            "main": true,
+            "nav": true
+          },
+          "expected": {
+            "tag": "A",
+            "x": 232,
+            "y": 249.125,
+            "width": 976,
+            "height": 192,
+            "font": "\"DM Sans\", system-ui, sans-serif",
+            "main": true,
+            "nav": true
+          },
+          "delta": {
+            "x": 0,
+            "y": 0,
+            "width": 0,
+            "height": 0
+          }
+        },
+        {
+          "name": "Passo1: spotlight e explicação visíveis sem sobrepor",
+          "pass": true,
+          "geometry": {
+            "target": {
+              "x": 232,
+              "y": 249.125,
+              "width": 976,
+              "height": 192
+            },
+            "panel": {
+              "x": 500,
+              "y": 657.75,
+              "width": 440,
+              "height": 230.25
+            },
+            "overlap": false,
+            "visible": true,
+            "panelVisible": true,
+            "overflow": false,
+            "blurMasks": true,
+            "focusNext": true
+          }
+        },
+        {
+          "name": "Passo1: fundo borrado e foco no Próximo",
+          "pass": true
+        },
+        {
+          "name": "Card real da dashboard é Link de treinos",
+          "pass": true
+        },
+        {
+          "name": "Passo2: mesmo componente/layout da tela normal",
+          "pass": true,
+          "actual": {
+            "tag": "A",
+            "x": 224,
+            "y": 319,
+            "width": 992,
+            "height": 100,
+            "font": "\"DM Sans\", system-ui, sans-serif",
+            "main": true,
+            "nav": true
+          },
+          "expected": {
+            "tag": "A",
+            "x": 224,
+            "y": 319,
+            "width": 992,
+            "height": 100,
+            "font": "\"DM Sans\", system-ui, sans-serif",
+            "main": true,
+            "nav": true
+          },
+          "delta": {
+            "x": 0,
+            "y": 0,
+            "width": 0,
+            "height": 0
+          }
+        },
+        {
+          "name": "Passo2: spotlight e explicação visíveis sem sobrepor",
+          "pass": true,
+          "geometry": {
+            "target": {
+              "x": 224,
+              "y": 319,
+              "width": 992,
+              "height": 100
+            },
+            "panel": {
+              "x": 500,
+              "y": 657.75,
+              "width": 440,
+              "height": 230.25
+            },
+            "overlap": false,
+            "visible": true,
+            "panelVisible": true,
+            "overflow": false,
+            "blurMasks": true,
+            "focusNext": true
+          }
+        },
+        {
+          "name": "Passo2: fundo borrado e foco no Próximo",
+          "pass": true
+        },
+        {
+          "name": "Passo3: mesmo componente/layout da tela normal",
+          "pass": true,
+          "actual": {
+            "tag": "DIV",
+            "x": 225,
+            "y": 208,
+            "width": 990,
+            "height": 175.5,
+            "font": "\"DM Sans\", system-ui, sans-serif",
+            "main": true,
+            "nav": true
+          },
+          "expected": {
+            "tag": "DIV",
+            "x": 225,
+            "y": 208,
+            "width": 990,
+            "height": 175.5,
+            "font": "\"DM Sans\", system-ui, sans-serif",
+            "main": true,
+            "nav": true
+          },
+          "delta": {
+            "x": 0,
+            "y": 0,
+            "width": 0,
+            "height": 0
+          }
+        },
+        {
+          "name": "Passo3: spotlight e explicação visíveis sem sobrepor",
+          "pass": true,
+          "geometry": {
+            "target": {
+              "x": 225,
+              "y": 88,
+              "width": 990,
+              "height": 175.5
+            },
+            "panel": {
+              "x": 500,
+              "y": 657.75,
+              "width": 440,
+              "height": 230.25
+            },
+            "overlap": false,
+            "visible": true,
+            "panelVisible": true,
+            "overflow": false,
+            "blurMasks": true,
+            "focusNext": true
+          }
+        },
+        {
+          "name": "Passo3: fundo borrado e foco no Próximo",
+          "pass": true
+        },
+        {
+          "name": "Detalhes reais do exercício expandem no player",
+          "pass": true
+        },
+        {
+          "name": "Vídeo usa modal real e esconde tutorial",
+          "pass": true
+        },
+        {
+          "name": "Escape fecha vídeo e mantém tutorial",
+          "pass": true
+        },
+        {
+          "name": "Passo4: mesmo componente/layout da tela normal",
+          "pass": true,
+          "actual": {
+            "tag": "DIV",
+            "x": 249,
+            "y": 292,
+            "width": 942,
+            "height": 62.5,
+            "font": "\"DM Sans\", system-ui, sans-serif",
+            "main": true,
+            "nav": true
+          },
+          "expected": {
+            "tag": "DIV",
+            "x": 249,
+            "y": 292,
+            "width": 942,
+            "height": 62.5,
+            "font": "\"DM Sans\", system-ui, sans-serif",
+            "main": true,
+            "nav": true
+          },
+          "delta": {
+            "x": 0,
+            "y": 0,
+            "width": 0,
+            "height": 0
+          }
+        },
+        {
+          "name": "Passo4: spotlight e explicação visíveis sem sobrepor",
+          "pass": true,
+          "geometry": {
+            "target": {
+              "x": 249,
+              "y": 88,
+              "width": 942,
+              "height": 62.5
+            },
+            "panel": {
+              "x": 500,
+              "y": 657.75,
+              "width": 440,
+              "height": 230.25
+            },
+            "overlap": false,
+            "visible": true,
+            "panelVisible": true,
+            "overflow": false,
+            "blurMasks": true,
+            "focusNext": true
+          }
+        },
+        {
+          "name": "Passo4: fundo borrado e foco no Próximo",
+          "pass": true
+        },
+        {
+          "name": "Passo5: mesmo componente/layout da tela normal",
+          "pass": true,
+          "actual": {
+            "tag": "DIV",
+            "x": 237,
+            "y": 438.5,
+            "width": 36,
+            "height": 24,
+            "font": "\"DM Sans\", system-ui, sans-serif",
+            "main": true,
+            "nav": true
+          },
+          "expected": {
+            "tag": "DIV",
+            "x": 237,
+            "y": 438.5,
+            "width": 36,
+            "height": 24,
+            "font": "\"DM Sans\", system-ui, sans-serif",
+            "main": true,
+            "nav": true
+          },
+          "delta": {
+            "x": 0,
+            "y": 0,
+            "width": 0,
+            "height": 0
+          }
+        },
+        {
+          "name": "Passo5: spotlight e explicação visíveis sem sobrepor",
+          "pass": true,
+          "geometry": {
+            "target": {
+              "x": 237,
+              "y": 222.5,
+              "width": 36,
+              "height": 24
+            },
+            "panel": {
+              "x": 500,
+              "y": 657.75,
+              "width": 440,
+              "height": 230.25
+            },
+            "overlap": false,
+            "visible": true,
+            "panelVisible": true,
+            "overflow": false,
+            "blurMasks": true,
+            "focusNext": true
+          }
+        },
+        {
+          "name": "Passo5: fundo borrado e foco no Próximo",
+          "pass": true
+        },
+        {
+          "name": "Ícone abre guia real de séries",
+          "pass": true
+        },
+        {
+          "name": "Passo6: mesmo componente/layout da tela normal",
+          "pass": true,
+          "actual": {
+            "tag": "DIV",
+            "x": 225,
+            "y": 420.5,
+            "width": 990,
+            "height": 61,
+            "font": "\"DM Sans\", system-ui, sans-serif",
+            "main": true,
+            "nav": true
+          },
+          "expected": {
+            "tag": "DIV",
+            "x": 225,
+            "y": 420.5,
+            "width": 990,
+            "height": 61,
+            "font": "\"DM Sans\", system-ui, sans-serif",
+            "main": true,
+            "nav": true
+          },
+          "delta": {
+            "x": 0,
+            "y": 0,
+            "width": 0,
+            "height": 0
+          }
+        },
+        {
+          "name": "Passo6: spotlight e explicação visíveis sem sobrepor",
+          "pass": true,
+          "geometry": {
+            "target": {
+              "x": 225,
+              "y": 208.5,
+              "width": 990,
+              "height": 61
+            },
+            "panel": {
+              "x": 500,
+              "y": 635,
+              "width": 440,
+              "height": 253
+            },
+            "overlap": false,
+            "visible": true,
+            "panelVisible": true,
+            "overflow": false,
+            "blurMasks": true,
+            "focusNext": true
+          }
+        },
+        {
+          "name": "Passo6: fundo borrado e foco no Próximo",
+          "pass": true
+        },
+        {
+          "name": "PSE usa seletor real em modal",
+          "pass": true
+        },
+        {
+          "name": "Check marca série real somente em memória",
+          "pass": true
+        },
+        {
+          "name": "Demo não inicia descanso",
+          "pass": true
+        },
+        {
+          "name": "Passo7: mesmo componente/layout da tela normal",
+          "pass": true,
+          "actual": {
+            "tag": "DIV",
+            "x": 225,
+            "y": 726.5,
+            "width": 990,
+            "height": 132,
+            "font": "\"DM Sans\", system-ui, sans-serif",
+            "main": true,
+            "nav": true
+          },
+          "expected": {
+            "tag": "DIV",
+            "x": 225,
+            "y": 726.5,
+            "width": 990,
+            "height": 132,
+            "font": "\"DM Sans\", system-ui, sans-serif",
+            "main": true,
+            "nav": true
+          },
+          "delta": {
+            "x": 0,
+            "y": 0,
+            "width": 0,
+            "height": 0
+          }
+        },
+        {
+          "name": "Passo7: spotlight e explicação visíveis sem sobrepor",
+          "pass": true,
+          "geometry": {
+            "target": {
+              "x": 225,
+              "y": 528.5,
+              "width": 990,
+              "height": 132
+            },
+            "panel": {
+              "x": 500,
+              "y": 64,
+              "width": 440,
+              "height": 275.75
+            },
+            "overlap": false,
+            "visible": true,
+            "panelVisible": true,
+            "overflow": false,
+            "blurMasks": true,
+            "focusNext": true
+          }
+        },
+        {
+          "name": "Passo7: fundo borrado e foco no Próximo",
+          "pass": true
+        },
+        {
+          "name": "Voltar preserva valores reais praticados",
+          "pass": true
+        },
+        {
+          "name": "Nenhuma escrita em cache, sessão, fila ou IndexedDB",
+          "pass": true,
+          "effects": {
+            "storageWrites": [
+              {
+                "method": "setItem",
+                "key": "theme"
+              },
+              {
+                "method": "setItem",
+                "key": "lswt-0.54911353238147860.8345071159544074"
+              },
+              {
+                "method": "removeItem",
+                "key": "lswt-0.54911353238147860.8345071159544074"
+              },
+              {
+                "method": "setItem",
+                "key": "theme"
+              },
+              {
+                "method": "setItem",
+                "key": "fc_auth_profile_11111111-1111-4111-8111-111111111111"
+              }
+            ],
+            "indexedWrites": [],
+            "audioCalls": [],
+            "notifications": [],
+            "vibrations": [],
+            "wakeLocks": []
+          }
+        },
+        {
+          "name": "Sem áudio, notificação, vibração ou wakelock na demo",
+          "pass": true
+        },
+        {
+          "name": "Nenhuma mutação remota durante tutorial",
+          "pass": true,
+          "writes": []
+        },
+        {
+          "name": "Treino stale, fila pendente e caches preservados byte a byte",
+          "pass": true
+        },
+        {
+          "name": "Tab circula para primeiro controle ativo do tutorial",
+          "pass": true
+        },
+        {
+          "name": "Shift+Tab circula para próximo",
+          "pass": true
+        },
+        {
+          "name": "Retorno ao Profile restaura foco",
+          "pass": true
+        },
+        {
+          "name": "Reiniciar e sair pelo Escape continuam disponíveis",
+          "pass": true
+        }
+      ],
+      "errors": [],
+      "effects": {
+        "storageWrites": [
+          {
+            "method": "setItem",
+            "key": "theme"
+          },
+          {
+            "method": "setItem",
+            "key": "lswt-0.54911353238147860.8345071159544074"
+          },
+          {
+            "method": "removeItem",
+            "key": "lswt-0.54911353238147860.8345071159544074"
+          },
+          {
+            "method": "setItem",
+            "key": "theme"
+          },
+          {
+            "method": "setItem",
+            "key": "fc_auth_profile_11111111-1111-4111-8111-111111111111"
+          }
+        ],
+        "indexedWrites": [],
+        "audioCalls": [],
+        "notifications": [],
+        "vibrations": [],
+        "wakeLocks": []
+      },
+      "writes": []
+    }
+  ]
+}

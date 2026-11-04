@@ -1,12 +1,25 @@
+## Ajuste final de 04/11/2026: tutorial nas telas reais
+
+O tutorial utiliza as mesmas telas Dashboard, Selection e WorkoutExecution, MainLayout e modais do uso normal, preservando posições, tamanhos e ordem dos elementos. Apenas o destaque e o painel explicativo ficam sobrepostos. Fixtures em memória e guards impedem persistência ou efeitos reais. Painel final de feedback corrigido no celular. Validação atual: 241 testes, TypeScript e build aprovados; 114/114 verificações de navegador em 375, 768 e 1440 px, sem erros ou mutações remotas. Evidências consolidadas em docs/gauntlet/QA_REPORT_student_tutorial_real_surfaces.md. Revisão independente final interrompida por indisponibilidade do serviço de IA; resultados de navegador concluídos e inspecionados pelo agente principal. Usuário testou e aprovou localmente; publicação autorizada e envio ao GitHub em preparação. Produção ainda não confirmada.
 # STATE — Fitcoach Pro
 
-**Última Atualização:** 30 de Outubro de 2026  
-**Fase Ativa:** Fase 16 — Webhook Serverless & Notificação Web Push "Treino Finalizado" para o Coach (`COMPLETE` — `PASS 3.00/3.00`, `23 suítes / 225 testes`, `0 erros tsc`, `Vite build OK`)  
-**Status Global:** Saúde excelente e blindada, 0 erros TypeScript (`tsc --noEmit`), build de produção Vite 100% aprovado (787 módulos), 225 testes automatizados Vitest passando (100% em 23 suítes de teste, incluindo as suítes `tests/unit/studentFirstName.regression.test.ts`, `tests/unit/apiWorkoutCompletedPush.test.ts`, `tests/unit/workoutCompletedPush.test.ts` e `tests/unit/timingSafeEqual.regression.test.ts`), Matriz de Similaridade Multidimensional em **94.4%**, 0 violações Anti-AI-Slop (`detect.mjs == []`), 0 violações P0 de acessibilidade (328 nós AXTree inspecionados), e Laudo de Auditoria Gauntlet Critic V5 com nota máxima **3.00 / 3.00 (Média 6D — PASS)** ([`QA_REPORT_workout-completed-push.md`](file:///c:/Users/Gustavo/Desktop/Fitcoach/docs/gauntlet/QA_REPORT_workout-completed-push.md)).
+**Última Atualização:** 4 de Novembro de 2026
+**Fase Ativa:** Fase 17 — Conclusão automática e tutorial do aluno; implementação e QA local concluídos, testados e aprovados pelo usuário. Publicação autorizada; envio ao GitHub em preparação.
+**Status Global:** Validação atual: 241/241 testes em 25 arquivos, TypeScript e build aprovados; navegador com 114/114 verificações em 375, 768 e 1440 px (`.qatest/student-tutorial-real-results.json`). Consolidação: `docs/gauntlet/QA_REPORT_student_tutorial_real_surfaces.md`. Revisão independente final interrompida por indisponibilidade do serviço de IA, sem nova nota 6D. Métricas de outubro abaixo são históricas; similaridade quantitativa, Lighthouse/FPS e WCAG completa não medidos nesta entrega. Nenhum commit, push ou deploy registrado até esta atualização.
 
 ---
 
-## 🎯 Marco Atual Concluído: Notificação Web Push "Treino Finalizado" para o Coach (Fase 16 — PASS 3.00/3.00)
+## Marco atual concluído: Fase 17 — Conclusão automática e tutorial (2026-11-04)
+
+- Todas as séries, drops e sub-séries prescritas completas abrem uma vez o mesmo modal manual de avaliação; confirmação e salvamento existentes preservados.
+- Configurações do perfil oferece Tutorial de sete passos sobre as mesmas telas Dashboard, Selection, WorkoutExecution e MainLayout, com as mesmas posições e dimensões. Overlay com destaque e explicações; fixtures em memória, guards e sessão real preservada.
+- Decisões: predicado puro em `utils/workoutCompletion.ts`; wrapper `StudentTutorialSurface` monta as mesmas telas reais sob contexto demo e protege seus efeitos. Nenhuma nova dependência ou migração.
+- Bloqueios desta fatia: nenhum; pendências anteriores permanecem no backlog. Próximos passos dependem da priorização do treinador.
+- Evidência atual: `docs/gauntlet/QA_REPORT_student_tutorial_real_surfaces.md` e `SLICE_SUMMARY_student_tutorial.md`. O laudo anterior `QA_REPORT_student_tutorial.md` é histórico da primeira versão.
+
+---
+
+## Marco anterior concluído: Notificação Web Push "Treino Finalizado" para o Coach (Fase 16 — PASS 3.00/3.00)
 - **Objetivo**: Implementação ponta a ponta do sistema de notificação Web Push instantânea para o Treinador Gustavo quando qualquer aluno conclui um treino, com arquitetura serverless na Vercel (`api/workout-completed-push.ts`), autenticação timing-safe via SHA-256 e `crypto.timingSafeEqual`, idempotência atômica com trava em `workout_completion_notifications`, trigger assíncrono via `pg_net` em `workout_logs`, branding oficial GQ (`/icon-gq.png`), expurgo automático de assinaturas expiradas (404/410), respeito a horários de silêncio (`quiet_hours`) e extração resiliente de primeiro nome do aluno sem erros de schema PostgREST.
 - **Entregáveis da Fatia Vertical (End-to-End)**:
   - **DDL Relacional, Idempotência & Extensão pg_net (`20261029000000_workout_completed_push.sql`)**:
