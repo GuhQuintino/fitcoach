@@ -188,6 +188,13 @@ Fitcoach Pro é uma plataforma progressiva (PWA Mobile-First com suporte a fallb
 
 ---
 
+### Fase 17 Refinamento / Bugfix: Sanitização e Primeiro Nome do Coach em Mensagens de WhatsApp e Contato (Concluída — PASS 3.00/3.00)
+- [x] **Sanitização Universal do Primeiro Nome (`getFirstName`):** Criação do helper puro `getFirstName` em `utils/textUtils.ts` com divisão por espaços em branco (`split(/\s+/)`) e fallbacks resilientes. [2026-11-04]
+- [x] **Comunicação Direta e Erradicação de Sobrenomes:** Atualização de `pages/student/Dashboard.tsx` (cards de contato e mensagens pré-configuradas), `pages/student/Profile.tsx` (botão de WhatsApp e texto de ajuda) e `pages/WaitingApproval.tsx` (mensagem de onboarding), padronizando saudações exclusivamente para "Gustavo" (ex: "Olá Gustavo! Você poderia me ajudar?"), erradicando sobrenomes como "Quintino" e "Santos". [2026-11-04]
+- [x] **Blindagem por Teste de Regressão & Qualidade:** 14 asserções em `tests/unit/coachNameFormatting.regression.test.ts` com validações negativas contra sobrenomes, 10 testes em `tests/unit/phoneAndTextUtils.test.ts`, 262/262 testes no Vitest (100% de sucesso em 27 arquivos), TypeScript e build limpos, e laudo formal PASS (3.00/3.00) do Gauntlet Critic em `docs/gauntlet/QA_REPORT_coach_name_formatting.md`. [2026-11-04]
+
+---
+
 ## 📋 Pendências / Backlog Futuro & Integrações Externas
 
 ### Pendências / Backlog Futuro (Produto Interno)

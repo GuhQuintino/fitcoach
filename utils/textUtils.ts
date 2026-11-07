@@ -18,3 +18,16 @@ export const matchesSearch = (target: string, search: string): boolean => {
     if (!target) return false;
     return normalizeText(target).includes(normalizeText(search));
 };
+
+/**
+ * Extracts the first name from a full name string with safe fallback.
+ * Trims leading/trailing whitespace, splits on whitespace, and returns the first token.
+ * Returns fallback if null, undefined, empty, or not a string.
+ */
+export const getFirstName = (fullName?: string | null, fallback = ''): string => {
+    if (!fullName || typeof fullName !== 'string') return fallback;
+    const trimmed = fullName.trim();
+    if (!trimmed) return fallback;
+    const [first] = trimmed.split(/\s+/);
+    return first || fallback;
+};

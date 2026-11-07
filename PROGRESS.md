@@ -3,6 +3,45 @@
 O tutorial utiliza as mesmas telas Dashboard, Selection e WorkoutExecution, MainLayout e modais do uso normal, preservando posições, tamanhos e ordem dos elementos. Apenas o destaque e o painel explicativo ficam sobrepostos. Fixtures em memória e guards impedem persistência ou efeitos reais. Painel final de feedback corrigido no celular. Validação atual: 241 testes, TypeScript e build aprovados; 114/114 verificações de navegador em 375, 768 e 1440 px, sem erros ou mutações remotas. Evidências consolidadas em docs/gauntlet/QA_REPORT_student_tutorial_real_surfaces.md. Revisão independente final interrompida por indisponibilidade do serviço de IA; resultados de navegador concluídos e inspecionados pelo agente principal. Usuário testou e aprovou localmente; Push funcional confirmado em `origin/main` (`1c8a02a1938d1c82e41a32acc10e6957171401f6`); produção confirmada pelo status Vercel/GitHub `success` (deployment `7558654813`, environment `Production`).
 # PROGRESS — Fitcoach Pro
 
+## [2026-11-04] — Sanitização e Primeiro Nome do Coach em Mensagens de WhatsApp e Contato (Fase 17 Refinamento / Bugfix — PASS 3.00/3.00)
+
+- **Identificador da Fatia:** `coach_name_formatting` / `coach-name-sanitization`
+- **Perfil Gauntlet:** `full-stack` (React 19, TypeScript 5.8, Tailwind CSS 4, Vite 6, Vitest 5)
+- **Subagente Executor:** `gauntlet-builder`
+- **Veredito do Gauntlet Critic:** **PASS (3.00 / 3.00 na Rubrica 6D | 27 suítes / 262 testes | 0 erros tsc | build Vite OK)** — [`QA_REPORT_coach_name_formatting.md`](file:///c:/Users/Gustavo/Desktop/Fitcoach/docs/gauntlet/QA_REPORT_coach_name_formatting.md)
+
+### Resumo do Valor Entregue (End-to-End)
+1. **Regra de Negócio & Comunicação Humanizada:**
+   - Padronização rigorosa da comunicação do aluno com o treinador Gustavo, eliminando o uso de sobrenomes ("Quintino", "Santos") ou formalidades excessivas em mensagens geradas automaticamente para o WhatsApp e em telas de contato/onboarding.
+   - Mensagem de WhatsApp pré-formatada padronizada para: `"Olá Gustavo! Você poderia me ajudar?"` (anteriormente exibia o sobrenome completo ou variações inconsistentes).
+   - Tela de pós-cadastro pendente (`WaitingApproval.tsx`) ajustada com copy direto e acolhedor: `"O treinador Gustavo liberará seu acesso em breve."` e mensagem de solicitação: `"Olá Gustavo! Meu nome é <nome> e acabei de criar minha conta no Fitcoach. Poderia liberar meu acesso?"`.
+2. **Utilitário Puro & Camada de Domínio (`utils/textUtils.ts`):**
+   - Criação da função pura `getFirstName(fullName?: string | null, fallback = ''): string` com divisão resiliente por espaços em branco (`split(/\s+/)`) e fallbacks estritos.
+   - Reuso desacoplado em todas as interfaces de contato e perfil, sem impacto no schema relacional de `profiles.full_name`.
+3. **Interfaces & Acessibilidade (`Dashboard.tsx`, `Profile.tsx`, `WaitingApproval.tsx`):**
+   - Card "Falar com Coach", tela de aprovação pendente e tela de renovação de acesso vencido no `Dashboard.tsx` atualizados para usar `coachFirstName` e URLs canônicas `https://wa.me/5511992616777?text=...` codificadas via `encodeURIComponent`.
+   - Botão e card de suporte em `Profile.tsx` atualizados com o primeiro nome ("Falar com Gustavo"), preservando conformidade de acessibilidade (aria-labels sem caracteres redundantes e touch targets >= 44px).
+4. **Bugfix Regression Test Mandate & Blindagem:**
+   - Criação de suíte de regressão dedicada [`tests/unit/coachNameFormatting.regression.test.ts`](file:///c:/Users/Gustavo/Desktop/Fitcoach/tests/unit/coachNameFormatting.regression.test.ts) com 14 asserções rigorosas:
+     - Validação de extração de primeiro nome em casos normais, nomes compostos, múltiplos espaços e caracteres especiais.
+     - Fallbacks seguros para strings vazias, valores nulos, indefinidos e tipos não-string.
+     - Validação negativa estrita contra o vazamento de sobrenomes nas URLs e payloads de mensagem gerados (`expect(url).not.toContain('Quintino')` e `expect(url).not.toContain('Santos')`).
+   - Atualização da suíte [`tests/unit/phoneAndTextUtils.test.ts`](file:///c:/Users/Gustavo/Desktop/Fitcoach/tests/unit/phoneAndTextUtils.test.ts) com 10 testes unitários cobrindo o helper `getFirstName`.
+5. **Arquivos Criados/Modificados:**
+   - `utils/textUtils.ts`
+   - `pages/student/Dashboard.tsx`
+   - `pages/student/Profile.tsx`
+   - `pages/WaitingApproval.tsx`
+   - `tests/unit/phoneAndTextUtils.test.ts`
+   - `tests/unit/coachNameFormatting.regression.test.ts`
+6. **Métricas de Qualidade:**
+   - Testes: 262/262 passing (27 suítes)
+   - TypeScript: 0 erros (`npx tsc --noEmit`)
+   - Build: Produção Vite limpa em 8.34s (795 módulos transformados)
+   - Linter/Acessibilidade: 0 violações Impeccable, touch targets $\ge 44\text{px}$
+
+---
+
 ## [2026-11-04] — Fase 17: Conclusão Automática e Tutorial do Aluno
 
 - **Validação final:** consolidação funcional do agente principal em `docs/gauntlet/QA_REPORT_student_tutorial_real_surfaces.md`; QA de navegador concluído, usuário testou e aprovou localmente. O PASS independente 2,67/3,00 em `QA_REPORT_student_tutorial.md` refere-se à primeira versão; a revisão independente final foi interrompida pelo serviço de IA, sem nova nota 6D.

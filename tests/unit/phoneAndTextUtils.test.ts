@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { normalizePhone, formatToWhatsappUrl } from '../../utils/phoneUtils';
-import { normalizeText, matchesSearch } from '../../utils/textUtils';
+import { normalizeText, matchesSearch, getFirstName } from '../../utils/textUtils';
 
 describe('UNIT TEST: phoneUtils & textUtils', () => {
     describe('phoneUtils', () => {
@@ -53,6 +53,20 @@ describe('UNIT TEST: phoneUtils & textUtils', () => {
             expect(matchesSearch('Qualquer Texto', '')).toBe(true);
             expect(matchesSearch('', 'busca')).toBe(false);
             expect(matchesSearch(null as any, 'busca')).toBe(false);
+        });
+
+        it('getFirstName deve extrair o primeiro nome ignorando sobrenomes e múltiplos espaços', () => {
+            expect(getFirstName('Gustavo Quintino A Santos')).toBe('Gustavo');
+            expect(getFirstName('  Gustavo   Santos  ')).toBe('Gustavo');
+            expect(getFirstName('Gustavo')).toBe('Gustavo');
+        });
+
+        it('getFirstName deve retornar fallback para valores vazios, nulos ou indefinidos', () => {
+            expect(getFirstName('', 'treinador')).toBe('treinador');
+            expect(getFirstName('   ', 'treinador')).toBe('treinador');
+            expect(getFirstName(null, 'treinador')).toBe('treinador');
+            expect(getFirstName(undefined, 'treinador')).toBe('treinador');
+            expect(getFirstName(null)).toBe('');
         });
     });
 });

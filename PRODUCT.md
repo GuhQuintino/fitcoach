@@ -1,3 +1,16 @@
+## Feature: Sanitização e Primeiro Nome do Coach em Mensagens de WhatsApp e Contato (2026-11-04)
+
+### Problema
+Mensagens pré-preenchidas para o WhatsApp pessoal do treinador (e textos informativos) estavam utilizando o nome completo cadastrado no perfil (`coach.full_name`, ex: `"Gustavo Quintino A Santos"`), resultando em saudações formais e prolixas (`"Olá Gustavo Quintino A Santos!..."`).
+
+### Decisões Validadas com o Treinador (Discovery Q&A)
+1. **Primeiro Nome Obrigatório:** Todas as mensagens automáticas de WhatsApp direcionadas ao coach, bem como os textos de instrução e contato visíveis ao aluno (`Dashboard.tsx`, `Profile.tsx`, `WaitingApproval.tsx`), devem utilizar exclusivamente o primeiro nome do treinador (`"Gustavo"`), extraído via utilitário `getFirstName(name, fallback)`.
+2. **Formato da Mensagem de Dúvida/Suporte:** Para os canais diretos de contato do aluno com o coach no Dashboard e no Perfil, padronizar a mensagem inicial conforme solicitado pelo treinador: `"Olá Gustavo! Você poderia me ajudar?"`.
+3. **Tela de Aguardando Aprovação (`WaitingApproval.tsx`):** Mensagem enviada pelo aluno recém-cadastrado deve iniciar com `"Olá Gustavo! Meu nome é ... e acabei de criar minha conta no Fitcoach. Poderia liberar meu acesso?"`, e o texto descritivo na UI deve exibir `"O treinador Gustavo liberará seu acesso em breve."` (em vez de nome completo).
+4. **Blindagem por Teste de Regressão:** Criação de suíte de testes de regressão dedicada garantindo que nomes completos como `"Gustavo Quintino A Santos"` sejam sanitizados para `"Gustavo"` e nunca vazem sobrenomes nas URLs e textos de contato.
+
+---
+
 ## Ajuste final de 04/11/2026: tutorial nas telas reais
 
 O tutorial utiliza as mesmas telas Dashboard, Selection e WorkoutExecution, MainLayout e modais do uso normal, preservando posições, tamanhos e ordem dos elementos. Apenas o destaque e o painel explicativo ficam sobrepostos. Fixtures em memória e guards impedem persistência ou efeitos reais. Painel final de feedback corrigido no celular. Validação atual: 241 testes, TypeScript e build aprovados; 114/114 verificações de navegador em 375, 768 e 1440 px, sem erros ou mutações remotas. Evidências consolidadas em docs/gauntlet/QA_REPORT_student_tutorial_real_surfaces.md. Revisão independente final interrompida por indisponibilidade do serviço de IA; resultados de navegador concluídos e inspecionados pelo agente principal. Usuário testou e aprovou localmente; Push funcional confirmado em `origin/main` (`1c8a02a1938d1c82e41a32acc10e6957171401f6`); produção confirmada pelo status Vercel/GitHub `success` (deployment `7558654813`, environment `Production`).

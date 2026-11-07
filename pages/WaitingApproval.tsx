@@ -3,6 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabaseClient';
 import { useNavigate } from 'react-router-dom';
 import { formatToWhatsappUrl } from '../utils/phoneUtils';
+import { getFirstName } from '../utils/textUtils';
 
 const WaitingApproval: React.FC = () => {
     const { signOut, role, user } = useAuth();
@@ -88,7 +89,8 @@ const WaitingApproval: React.FC = () => {
 
     const userName = user?.user_metadata?.full_name || 'Novo Usuário';
 
-    const whatsappMessage = `Olá ${contactName || ''}! Meu nome é ${userName} e acabei de criar minha conta no Fitcoach. Poderia liberar meu acesso?`;
+    const coachName = getFirstName(contactName, 'Gustavo');
+    const whatsappMessage = `Olá ${coachName}! Meu nome é ${userName} e acabei de criar minha conta no Fitcoach. Poderia liberar meu acesso?`;
 
     const whatsappLink = formatToWhatsappUrl(contactPhone, whatsappMessage);
 
@@ -107,7 +109,7 @@ const WaitingApproval: React.FC = () => {
                     Olá <strong>{userName.split(' ')[0]}</strong>! Sua conta está sendo revisada. <br />
                     {role === 'coach'
                         ? 'Um administrador liberará seu acesso em breve.'
-                        : `O treinador ${contactName || ''} liberará seu acesso em breve.`
+                        : `O treinador ${getFirstName(contactName, 'seu treinador')} liberará seu acesso em breve.`
                     }
                 </p>
 

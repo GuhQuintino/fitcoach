@@ -1,3 +1,6 @@
+## Ajuste final de 04/11/2026: tutorial nas telas reais
+
+O tutorial utiliza as mesmas telas Dashboard, Selection e WorkoutExecution, MainLayout e modais do uso normal, preservando posições, tamanhos e ordem dos elementos. Apenas o destaque e o painel explicativo ficam sobrepostos. Fixtures em memória e guards impedem persistência ou efeitos reais. Painel final de feedback corrigido no celular. Validação atual: 241 testes, TypeScript e build aprovados; 114/114 verificações de navegador em 375, 768 e 1440 px, sem erros ou mutações remotas. Evidências consolidadas em docs/gauntlet/QA_REPORT_student_tutorial_real_surfaces.md. Revisão independente final interrompida por indisponibilidade do serviço de IA; resultados de navegador concluídos e inspecionados pelo agente principal. Usuário testou e aprovou localmente; Push funcional confirmado em `origin/main` (`1c8a02a1938d1c82e41a32acc10e6957171401f6`); produção confirmada pelo status Vercel/GitHub `success` (deployment `7558654813`, environment `Production`).
 # ROADMAP — Fitcoach Pro
 
 ## Visão do Produto
@@ -174,6 +177,21 @@ Fitcoach Pro é uma plataforma progressiva (PWA Mobile-First com suporte a fallb
 - [x] **P5 — Configuração de Variáveis de Ambiente & Banco:** Configuração em `public.internal_push_config` da URL de produção (`https://fitcoach-five.vercel.app/api/workout-completed-push`) e segredo de webhook; sincronização completa de variáveis de ambiente na Vercel (`SUPABASE_SERVICE_ROLE_KEY`, `WORKOUT_PUSH_WEBHOOK_SECRET`, `VAPID_SUBJECT`, `VAPID_PRIVATE_KEY`, `VAPID_PUBLIC_KEY`, `VITE_VAPID_PUBLIC_KEY`) nos ambientes Production e Development. [2026-10-29]
 - [x] **P6 — Testes Automatizados & Laudo Gauntlet Critic:** 22 suítes de teste e 212 testes no Vitest (100% verdes em 2.65s, incluindo 12 testes em `apiWorkoutCompletedPush.test.ts`, 15 testes em `workoutCompletedPush.test.ts` e 6 testes em `timingSafeEqual.regression.test.ts`), 0 erros de tipagem TypeScript (`tsc --noEmit`), build Vite limpo (787 módulos) e Laudo Gauntlet Critic aprovado com nota máxima **3.00 / 3.00 (Média 6D — PASS)** em [`QA_REPORT_workout-completed-push.md`](file:///c:/Users/Gustavo/Desktop/Fitcoach/docs/gauntlet/QA_REPORT_workout-completed-push.md). [2026-10-29]
 - [x] **P7 — Bugfix & Blindagem: Extração do Primeiro Nome do Aluno & Saneamento de Schema PostgREST:** Remoção da coluna inexistente `name` na consulta a `profiles` em `api/workout-completed-push.ts` e `supabase/functions/workout-completed-push/index.ts` (eliminando erro HTTP 400 no PostgREST), algoritmo robusto `getFirstName` (primeiro nome normalizado com capitalização em pt-BR, fallback inteligente por prefixo de e-mail e fallback final seguro "Seu aluno"), blindagem por suíte de regressão `tests/unit/studentFirstName.regression.test.ts` (13 testes cobrindo 5 cenários críticos e prevenindo regressão de reintrodução de coluna inexistente), 225/225 testes aprovados (23 suítes) e laudo formal PASS (3.00/3.00) do Gauntlet Critic V5 em [`QA_REPORT_workout-completed-push.md`](file:///c:/Users/Gustavo/Desktop/Fitcoach/docs/gauntlet/QA_REPORT_workout-completed-push.md). [2026-10-30]
+
+---
+
+### Fase 17: Conclusão Automática e Tutorial do Aluno (Concluída localmente)
+
+- [x] Exigir séries principais e intensificações completas; abrir automaticamente o mesmo modal manual, sem reabertura ao cancelar. [2026-11-04]
+- [x] Tutorial reiniciável em Configurações, sete passos sobre as mesmas telas reais e MainLayout, posições/dimensões preservadas, destaque e fundo borrado; fixtures em memória e guards sem efeitos reais. [2026-11-04]
+- [x] Validação atual: 241/241 testes (25 arquivos), TypeScript/build aprovados, 114/114 verificações no navegador; consolidação `docs/gauntlet/QA_REPORT_student_tutorial_real_surfaces.md`, sem nova nota 6D independente por interrupção do serviço de IA. Usuário testou e aprovou localmente; Push funcional confirmado em `origin/main` (`1c8a02a1938d1c82e41a32acc10e6957171401f6`); produção confirmada pelo status Vercel/GitHub `success` (deployment `7558654813`, environment `Production`). [2026-11-04]
+
+---
+
+### Fase 17 Refinamento / Bugfix: Sanitização e Primeiro Nome do Coach em Mensagens de WhatsApp e Contato (Concluída — PASS 3.00/3.00)
+- [x] **Sanitização Universal do Primeiro Nome (`getFirstName`):** Criação do helper puro `getFirstName` em `utils/textUtils.ts` com divisão por espaços em branco (`split(/\s+/)`) e fallbacks resilientes. [2026-11-04]
+- [x] **Comunicação Direta e Erradicação de Sobrenomes:** Atualização de `pages/student/Dashboard.tsx` (cards de contato e mensagens pré-configuradas), `pages/student/Profile.tsx` (botão de WhatsApp e texto de ajuda) e `pages/WaitingApproval.tsx` (mensagem de onboarding), padronizando saudações exclusivamente para "Gustavo" (ex: "Olá Gustavo! Você poderia me ajudar?"), erradicando sobrenomes como "Quintino" e "Santos". [2026-11-04]
+- [x] **Blindagem por Teste de Regressão & Qualidade:** 14 asserções em `tests/unit/coachNameFormatting.regression.test.ts` com validações negativas contra sobrenomes, 10 testes em `tests/unit/phoneAndTextUtils.test.ts`, 262/262 testes no Vitest (100% de sucesso em 27 arquivos), TypeScript e build limpos, e laudo formal PASS (3.00/3.00) do Gauntlet Critic em `docs/gauntlet/QA_REPORT_coach_name_formatting.md`. [2026-11-04]
 
 ---
 

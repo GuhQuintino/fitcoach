@@ -2,7 +2,19 @@
 
 - **Projeto / Domínio:** Fitcoach Pro (Plataforma PWA Exclusiva de Prescrição e Acompanhamento de Treinos — Treinador Gustavo ↔ Alunos)
 - **Perfil Detectado:** `full-stack` / PWA (Vite 6 + React 19 + TypeScript 5.8 + Tailwind CSS 4 + Supabase Postgres/Auth/Storage/Edge Functions + Service Worker)
-- **Data da Pesquisa:** `2026-10-25T20:05:00-03:00`
+- **Data da Pesquisa:** `2026-11-04T21:03:00-03:00`
+
+---
+
+## Slice: Sanitização e Primeiro Nome do Coach em Mensagens de WhatsApp e Contato
+1. **Helper Canônico (`utils/textUtils.ts`):**
+   - Função pura `getFirstName(fullName?: string | null, fallback = ''): string` que faz trim, divide por espaços (`split(/\s+/)`) e retorna apenas o primeiro nome com fallback seguro.
+2. **Atualização das Telas de Contato Aluno -> Coach:**
+   - `pages/student/Dashboard.tsx`: Card "Falar com Coach" com link `formatToWhatsappUrl(coach.phone, `Olá ${getFirstName(coach.full_name, 'Gustavo')}! Você poderia me ajudar?`)`, e labels/instruções de texto usando `getFirstName`.
+   - `pages/student/Profile.tsx`: Botão de WhatsApp com mensagem `Olá ${getFirstName(coachProfile.full_name, 'Gustavo')}! Você poderia me ajudar?` e labels no botão usando primeiro nome.
+   - `pages/WaitingApproval.tsx`: Mensagem de liberação `Olá ${getFirstName(contactName, 'Gustavo')}! Meu nome é ${userName} e acabei de criar minha conta no Fitcoach. Poderia liberar meu acesso?` e texto da tela com `getFirstName`.
+3. **Teste de Regressão Obrigatório:**
+   - Criar `tests/unit/coachNameFormatting.regression.test.ts` cobrindo cenários com nomes compostos (ex: `"Gustavo Quintino A Santos"`), nomes com espaços extras, nulos, vazios e validação de que os sobrenomes nunca vazam na URL de WhatsApp.
 
 ---
 

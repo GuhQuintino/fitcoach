@@ -6,6 +6,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import ThemeToggle from '../../components/ThemeToggle';
 import PWAInstallPrompt from '../../components/shared/PWAInstallPrompt';
 import { formatToWhatsappUrl } from '../../utils/phoneUtils';
+import { getFirstName } from '../../utils/textUtils';
 import { getOptimizedImageUrl } from '../../utils/imageUtils';
 import { useStaleWorkoutDetector } from '../../utils/useStaleWorkoutDetector';
 import { cacheStudentDashboard, getCachedStudentDashboard } from '../../utils/offlineCacheService';
@@ -254,7 +255,7 @@ const StudentDashboard: React.FC = () => {
                     <div>
                         <h1 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Aguardando Aprovação</h1>
                         <p className="text-slate-500 dark:text-slate-400">
-                            Seu cadastro foi realizado com sucesso! Aguarde o coach <strong>{coach?.full_name || 'seu treinador'}</strong> ativar sua conta.
+                            Seu cadastro foi realizado com sucesso! Aguarde o coach <strong>{getFirstName(coach?.full_name, 'seu treinador')}</strong> ativar sua conta.
                         </p>
                     </div>
 
@@ -263,7 +264,7 @@ const StudentDashboard: React.FC = () => {
                             href={formatToWhatsappUrl(coach.phone)!}
                             target="_blank"
                             rel="noreferrer"
-                            aria-label={`Falar com coach ${coach?.full_name || ''} no WhatsApp`}
+                            aria-label={`Falar com coach ${getFirstName(coach?.full_name, '')} no WhatsApp`}
                             className="flex items-center gap-2 px-6 py-3 min-h-[44px] bg-whatsapp text-white font-bold rounded-xl shadow-lg shadow-whatsapp/20 hover:shadow-xl hover:bg-whatsapp-dark transition-all transform active:scale-95 whitespace-nowrap"
                         >
                             <span className="material-symbols-rounded" aria-hidden="true">chat</span>
@@ -287,7 +288,7 @@ const StudentDashboard: React.FC = () => {
                         <h1 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Acesso Vencido</h1>
                         <p className="text-slate-500 dark:text-slate-400">
                             Sua consultoria encerrou em <strong>{new Date(studentData.consultancy_expires_at).toLocaleDateString()}</strong>.
-                            <br />Entre em contato com <strong>{coach?.full_name || 'seu coach'}</strong> para renovar.
+                            <br />Entre em contato com <strong>{getFirstName(coach?.full_name, 'seu coach')}</strong> para renovar.
                         </p>
                     </div>
 
@@ -296,7 +297,7 @@ const StudentDashboard: React.FC = () => {
                             href={formatToWhatsappUrl(coach.phone)!}
                             target="_blank"
                             rel="noreferrer"
-                            aria-label={`Renovar acesso via WhatsApp com ${coach?.full_name || 'coach'}`}
+                            aria-label={`Renovar acesso via WhatsApp com ${getFirstName(coach?.full_name, 'coach')}`}
                             className="flex items-center gap-2 px-6 py-3 min-h-[44px] bg-whatsapp text-white font-bold rounded-xl shadow-lg shadow-whatsapp/20 hover:shadow-xl hover:bg-whatsapp-dark transition-all transform active:scale-95 whitespace-nowrap"
                         >
                             <span className="material-symbols-rounded" aria-hidden="true">chat</span>
@@ -506,10 +507,10 @@ const StudentDashboard: React.FC = () => {
                         {/* Card: Falar com Coach */}
                         {coach?.phone && formatToWhatsappUrl(coach.phone) && (
                             <a
-                                href={formatToWhatsappUrl(coach.phone, `Olá ${coach.full_name || 'Coach'}! Sou o(a) ${profile?.full_name?.split(' ')[0] || 'aluno(a)'}.`)!}
+                                href={formatToWhatsappUrl(coach.phone, `Olá ${getFirstName(coach.full_name, 'Gustavo')}! Você poderia me ajudar?`)!}
                                 target="_blank"
                                 rel="noreferrer"
-                                aria-label={`Conversar com coach ${coach.full_name || ''} no WhatsApp`}
+                                aria-label={`Conversar com coach ${getFirstName(coach.full_name, '')} no WhatsApp`}
                                 className="bg-gradient-to-br from-whatsapp/10 to-white dark:from-whatsapp/20 dark:to-slate-800 p-5 rounded-2xl shadow-sm border border-whatsapp/20 dark:border-whatsapp/30 active:scale-[0.98] transition-all hover:shadow-whatsapp/10 dark:hover:shadow-none group relative overflow-hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-whatsapp"
                             >
                                 <div className="absolute top-0 right-0 w-24 h-24 bg-whatsapp/10 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2" aria-hidden="true"></div>
@@ -519,7 +520,7 @@ const StudentDashboard: React.FC = () => {
                                     </svg>
                                 </div>
                                 <span className="font-bold text-lg text-slate-900 dark:text-white block mb-0.5 relative z-10">Falar com Coach</span>
-                                <span className="text-xs text-slate-600 dark:text-slate-300 font-medium relative z-10">{coach.full_name?.split(' ')[0] || 'WhatsApp'}</span>
+                                <span className="text-xs text-slate-600 dark:text-slate-300 font-medium relative z-10">{getFirstName(coach.full_name, 'WhatsApp')}</span>
                             </a>
                         )}
                     </div>
