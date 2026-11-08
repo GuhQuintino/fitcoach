@@ -1,3 +1,19 @@
+## Feature: Filtro de Feedbacks por Aluno no Coach Portal (`/coach/feedbacks`) (2026-11-08)
+
+### Problema
+Ao acessar `/coach/feedbacks`, o treinador precisava rolar ou paginar por todos os feedbacks da carteira para encontrar os registros de um aluno específico, sem um mecanismo direto para isolar as sessões de determinado aluno na fila.
+
+### Regras de Negócio Validadas com o Treinador (Discovery Q&A)
+| # | Regra |
+|---|---|
+| F1 | **Filtro por Aluno Específico:** Permitir filtrar a listagem de feedbacks por um aluno específico ou selecionar "Todos os alunos" para ver a lista geral. |
+| F2 | **Disponibilidade em Ambas as Abas:** O filtro por aluno fica disponível e ativo tanto na aba **"Não lidos"** quanto na aba **"Todos"** (permitindo ao coach auditar rapidamente pendências de um aluno específico ou rever todo o histórico de sessões dele). |
+| F3 | **Seletor Suspenso com Busca:** Campo seletor com busca/digitação do nome do aluno (autocomplete/pesquisa rápida) e opção limpa de "Todos os alunos", permitindo localizar qualquer aluno instantaneamente mesmo com dezenas de alunos na base. |
+| F4 | **Paginação e Performance:** A seleção de um aluno filtra diretamente a query de `workout_logs` (`eq('student_id', selectedStudentId)`), resetando o cursor temporal (`created_at`) e mantendo a paginação resiliente sem N+1 queries. |
+| F5 | **Acessibilidade & Padrão Operate:** Touch target seguro $\ge 44 \times 44\text{px}$, contraste WCAG AA/AAA, suporte a temas Claro e Escuro, fechamento ao clicar fora ou pressionar `Escape`. |
+
+---
+
 ## Feature: Sanitização e Primeiro Nome do Coach em Mensagens de WhatsApp e Contato (2026-11-04)
 
 ### Problema

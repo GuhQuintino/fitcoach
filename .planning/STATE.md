@@ -3,13 +3,46 @@
 O tutorial utiliza as mesmas telas Dashboard, Selection e WorkoutExecution, MainLayout e modais do uso normal, preservando posições, tamanhos e ordem dos elementos. Apenas o destaque e o painel explicativo ficam sobrepostos. Fixtures em memória e guards impedem persistência ou efeitos reais. Painel final de feedback corrigido no celular. Validação atual: 241 testes, TypeScript e build aprovados; 114/114 verificações de navegador em 375, 768 e 1440 px, sem erros ou mutações remotas. Evidências consolidadas em docs/gauntlet/QA_REPORT_student_tutorial_real_surfaces.md. Revisão independente final interrompida por indisponibilidade do serviço de IA; resultados de navegador concluídos e inspecionados pelo agente principal. Usuário testou e aprovou localmente; Push funcional confirmado em `origin/main` (`1c8a02a1938d1c82e41a32acc10e6957171401f6`); produção confirmada pelo status Vercel/GitHub `success` (deployment `7558654813`, environment `Production`).
 # STATE — Fitcoach Pro
 
-**Última Atualização:** 4 de Novembro de 2026
-**Fase Ativa:** Fase 17 Refinamento / Bugfix — Sanitização e Primeiro Nome do Coach em Mensagens de WhatsApp e Contato (PASS 3.00/3.00)
-**Status Global:** Validação atual: 262/262 testes em 27 arquivos de teste (100% de sucesso), TypeScript (`tsc --noEmit`) com 0 erros, build de produção Vite 100% aprovado em 8.34s (795 módulos); Laudo formal Gauntlet Critic emitido com veredito PASS (3.00/3.00) em `docs/gauntlet/QA_REPORT_coach_name_formatting.md`.
+**Última Atualização:** 8 de Novembro de 2026
+**Fase Ativa:** Fase 8 (PASS18) — Filtro de Feedbacks por Aluno no Coach Portal (`/coach/feedbacks`) (Concluída com Sucesso)
+**Status Global:** Validação atual: 283/283 testes em 28 arquivos de teste (100% de sucesso), TypeScript (`tsc --noEmit`) com 0 erros, build de produção Vite 100% aprovado em 8.23s (797 módulos); Laudo formal Gauntlet Critic emitido com veredito PASS (3.00/3.00) em `docs/gauntlet/QA_REPORT_PASS18.md`.
 
 ---
 
-## Marco atual concluído: Sanitização e Primeiro Nome do Coach em Mensagens de WhatsApp e Contato (PASS 3.00/3.00 - 2026-11-04)
+## Marco atual concluído: Filtro de Feedbacks por Aluno no Coach Portal (`/coach/feedbacks`) (Fase 8 / PASS18 — PASS 3.00/3.00 - 2026-11-08)
+
+- **Objetivo:** Permitir ao treinador Gustavo filtrar instantaneamente a listagem de feedbacks no Coach Portal (`/coach/feedbacks`) por aluno individual ou selecionar "Todos os alunos", com busca rápida em tempo real, suporte ortogonal em ambas as abas ("Não lidos" e "Todos"), reset determinístico do cursor temporal de paginação, empty states contextualizados e confirmação de "Marcar todos como lidos" com escopo estritamente isolado por aluno.
+- **Entregáveis da Fatia Vertical (End-to-End):**
+  - **Módulo de Lógica Pura & Contratos (`utils/coachFeedbackFilters.ts`):**
+    - `normalizeStudentsList(data)`: normalização resiliente de perfis de alunos recebidos do join Supabase (compatível tanto com array quanto objeto 1:1), eliminando nulos e ordenando alfabeticamente em pt-BR com sensibilidade base (`localeCompare(..., 'pt-BR', { sensitivity: 'base' })`).
+    - `filterStudentsBySearch(students, search)`: filtragem instantânea diacrítica e case-insensitive (`matchesSearch`) via decomposição unicode `normalize('NFD')`.
+    - `buildWorkoutLogsFilterScope(query, selectedStudentId, studentIds)`: comutação dinâmica e segura entre `.eq('student_id', selectedStudentId)` e `.in('student_id', studentIds)` prevenindo N+1 queries.
+    - `formatMarkAllAsReadPrompt` e `formatMarkAllSuccessToast`: textos contextuais para confirmação e feedback de marcação em lote isolados para o aluno selecionado.
+    - `getStudentFilterOption(students, selectedId)`: recuperação rápida da opção selecionada.
+  - **Componente Seletor Acessível (`components/coach/StudentFilterCombobox.tsx`):**
+    - Padrão WAI-ARIA completo (`role="combobox"`, `role="listbox"`, `role="option"`, `aria-expanded`, `aria-haspopup="listbox"`, `aria-controls="student-filter-listbox"`, `aria-selected`).
+    - Campo de busca em tempo real com `autoFocus` no painel suspenso.
+    - Touch targets seguros ($\ge 44 \times 44\text{px}$) em todos os botões e itens selecionáveis.
+    - Botão de limpeza rápida "X" em 1 clique.
+    - Fechamento com clique externo (`pointerdown`) e tecla `Escape` no teclado, preservando o foco.
+    - Cores e contraste WCAG AA/AAA alinhados à Superfície Operate do Impeccable nos modos Claro e Escuro.
+  - **Página de Feedbacks do Coach (`pages/coach/Feedbacks.tsx`):**
+    - Integração no cabeçalho ao lado dos filtros de status.
+    - Persistência ortogonal do aluno selecionado ao alternar entre abas "Não lidos" e "Todos".
+    - Reset estrito do cursor temporal de paginação (`lastCreatedAtRef.current = null`) ao selecionar aluno ou trocar de aba.
+    - Contadores e badges dinâmicos (`unreadCount`) no escopo do filtro ativo.
+    - Ação "Marcar todos como lidos" com confirmação e execução isoladas no escopo do aluno selecionado.
+    - Empty states contextualizados ("Nenhum feedback pendente para {Aluno}" e "Nenhum feedback registrado para {Aluno}") com botão de ação rápida "Ver todos os alunos".
+  - **Garantia de Qualidade & Testes de Regressão Dedicados:**
+    - Suíte de regressão automatizada `tests/unit/coachFeedbackFilters.regression.test.ts` com 21/21 testes aprovados cobrindo normalização, acentuação, busca, escopos de query, prompts/toasts e marcação ARIA.
+    - 283/283 testes Vitest passando (100% de sucesso em 28 arquivos).
+    - 0 erros TypeScript estritos (`tsc --noEmit`).
+    - Build Vite de produção concluído com sucesso em 8.23s (797 módulos transformados).
+- **Evidências:** `docs/gauntlet/QA_REPORT_PASS18.md` (PASS 3.00/3.00), `docs/gauntlet/SLICE_SUMMARY.md`.
+
+---
+
+## Marco anterior concluído: Sanitização e Primeiro Nome do Coach em Mensagens de WhatsApp e Contato (PASS 3.00/3.00 - 2026-11-04)
 
 - **Objetivo:** Padronizar rigorosamente a comunicação de contato e onboarding entre aluno e treinador Gustavo, eliminando qualquer vazamento de sobrenomes ("Quintino", "Santos") ou saudações excessivamente formais/inconsistentes no WhatsApp e na interface.
 - **Entregáveis da Fatia Vertical (End-to-End):**
@@ -69,6 +102,7 @@ O tutorial utiliza as mesmas telas Dashboard, Selection e WorkoutExecution, Main
 ---
 
 ## 🔒 Decisões Travadas (Locked Decisions)
+- **ADR-027: Filtro de Feedbacks por Aluno com Combobox Acessível, Normalização Resiliente e Reset Temporal de Cursor (Fase 8 / PASS18):** A listagem de feedbacks em `/coach/feedbacks` implementa filtragem granular por aluno ativo na carteira do treinador através do componente `StudentFilterCombobox`. A normalização de dados (`normalizeStudentsList`) tolera formatos de resposta do Supabase tanto em objeto direto quanto em array 1:1, ordenando alfabeticamente em pt-BR com sensibilidade base (`localeCompare(..., 'pt-BR', { sensitivity: 'base' })`). A busca opera de forma diacrítica e case-insensitive sem regex complexo. A query em `workout_logs` alterna dinamicamente entre `.eq('student_id', selectedStudentId)` e `.in('student_id', studentIds)` sem N+1 queries. O cursor temporal de paginação (`lastCreatedAtRef.current`) é compulsoriamente resetado para `null` a cada troca de aluno ou aba, impedindo que timestamps residuais corrompam a paginação. As ações em lote ("Marcar todos como lidos") e os empty states são estritamente isolados no escopo do aluno selecionado com atalho para restaurar todos os alunos. Blindado permanentemente pela suíte de regressão `tests/unit/coachFeedbackFilters.regression.test.ts`.
 - **ADR-026: Sanitização do Primeiro Nome em Comunicações e Mensagens de WhatsApp (Fase 17 Refinamento / Bugfix):** Toda mensagem gerada pelo sistema para contato com o treinador Gustavo, telas de aprovação pendente (`WaitingApproval.tsx`), cards de suporte no Dashboard e botões de contato no Perfil utilizam estritamente o primeiro nome extraído por `getFirstName` (`utils/textUtils.ts`). A função opera de forma pura e determinística com divisão por espaços em branco (`split(/\s+/)`) e fallbacks controlados (`'Gustavo'`, `'Coach'`, `'WhatsApp'`, `'seu treinador'`), erradicando o vazamento de sobrenomes ("Quintino", "Santos") e formalidades inadequadas. Coberto por teste de regressão estrito com asserções negativas em `tests/unit/coachNameFormatting.regression.test.ts`.
 - **ADR-025: Sanitização de Schema em Consultas PostgREST e Extração Determinística de Nome (Fase 16 Refinamento / Bugfix):** As consultas a `profiles` para montagem de payloads de notificação consultam estritamente colunas canônicas existentes no banco (`full_name, email`), erradicando a tentativa de seleção da coluna inexistente `name` que causava HTTP 400 no PostgREST. A resolução do primeiro nome do aluno (`getFirstName`) implementa normalização de capitalização em pt-BR da primeira palavra de `full_name`, com fallback determinístico pelo prefixo de `email` (descartando provedor e caracteres após separadores `.` ou `_`) e fallback final seguro para `"Seu aluno"`. Blindado permanentemente contra regressões de schema por `tests/unit/studentFirstName.regression.test.ts`.
 - **ADR-023: Endpoint Serverless Vercel Node.js para Notificação Push de Treino Concluído com Idempotência Estrita e Timing-Safe Auth (Fase 16):** Rota `/api/workout-completed-push` em Node.js runtime da Vercel desacoplada da SPA (`vercel.json`), validação de webhook via SHA-256 e `crypto.timingSafeEqual`, revalidação de `finished_at` em `workout_logs`, deduplicação atômica via `push_sent_at IS NULL` em `workout_completion_notifications`, personalização com branding oficial GQ (`/icon-gq.png`), respeito a `quiet_hours` e preferências do coach, e expurgo automático de endpoints expirados (404/410 Gone).
@@ -109,7 +143,8 @@ O tutorial utiliza as mesmas telas Dashboard, Selection e WorkoutExecution, Main
 
 ## 📊 Métricas de Qualidade
 - **TypeScript:** 0 erros de tipagem estática (`tsc --noEmit`)
-- **Testes Automatizados (Vitest):** 262 passed / 262 total (100% de sucesso em 27 suítes de teste)
+- **Testes Automatizados (Vitest):** 283 passed / 283 total (100% de sucesso em 28 suítes de teste)
+  - `tests/unit/coachFeedbackFilters.regression.test.ts`: 21/21 passed
   - `tests/unit/coachNameFormatting.regression.test.ts`: 14/14 passed
   - `tests/unit/studentFirstName.regression.test.ts`: 13/13 passed
   - `tests/unit/timingSafeEqual.regression.test.ts`: 6/6 passed
@@ -134,11 +169,12 @@ O tutorial utiliza as mesmas telas Dashboard, Selection e WorkoutExecution, Main
   - `tests/unit/staleWorkoutService.test.ts`: 8/8 passed
   - `tests/unit/pushNotificationService.test.ts`: 4/4 passed
   - `tests/background-lifecycle-timer.regression.test.ts`: 10/10 passed
-- **Build de Produção:** Vite build 100% concluído gerando 795 módulos em 8.34s sem erros ou warnings (`npm run build`)
+- **Build de Produção:** Vite build 100% concluído gerando 797 módulos em 8.23s sem erros ou warnings (`npm run build`)
 - **Matriz de Similaridade Multidimensional (UI Operate):** **94.4%** global ponderado (Layout 95%, Tipografia 94%, Mídia 92%, Componentes 96%, Copy 96%)
 - **Acessibilidade:** 0 violações críticas P0 em 328 nós AXTree inspecionados (WAI-ARIA `role="dialog"`, touch targets $\ge 44\text{px}$, suporte a tecla `Escape` em 100% dos modais)
 - **Conformidade Anti-AI-Slop:** 0 violações (`detect.mjs == []`, zero travessões longos `—` em botões/títulos, `tabular-nums` em todas as métricas numéricas)
 - **Laudos Gauntlet Critic:**
+  - **3.00 / 3.00 (Média 6D — PASS)** em [`QA_REPORT_PASS18.md`](file:///c:/Users/Gustavo/Desktop/Fitcoach/docs/gauntlet/QA_REPORT_PASS18.md)
   - **3.00 / 3.00 (Média 6D — PASS)** em [`QA_REPORT_coach_name_formatting.md`](file:///c:/Users/Gustavo/Desktop/Fitcoach/docs/gauntlet/QA_REPORT_coach_name_formatting.md)
   - **3.00 / 3.00 (Média 6D — PASS)** em [`QA_REPORT_workout-completed-push.md`](file:///c:/Users/Gustavo/Desktop/Fitcoach/docs/gauntlet/QA_REPORT_workout-completed-push.md)
   - **3.00 / 3.00 (Média 6D — PASS)** em [`QA_REPORT_SINGLE_COACH_CONSOLIDATION.md`](file:///c:/Users/Gustavo/Desktop/Fitcoach/docs/gauntlet/QA_REPORT_SINGLE_COACH_CONSOLIDATION.md)

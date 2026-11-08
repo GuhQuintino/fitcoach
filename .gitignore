@@ -54,6 +54,9 @@ workspace/
 hevy_user_data/
 tools/
 Brainstorm/
+.qatest/
+.cache/
+scratch/
 
 # Backup files
 *.bak

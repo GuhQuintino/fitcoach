@@ -3,6 +3,69 @@
 O tutorial utiliza as mesmas telas Dashboard, Selection e WorkoutExecution, MainLayout e modais do uso normal, preservando posições, tamanhos e ordem dos elementos. Apenas o destaque e o painel explicativo ficam sobrepostos. Fixtures em memória e guards impedem persistência ou efeitos reais. Painel final de feedback corrigido no celular. Validação atual: 241 testes, TypeScript e build aprovados; 114/114 verificações de navegador em 375, 768 e 1440 px, sem erros ou mutações remotas. Evidências consolidadas em docs/gauntlet/QA_REPORT_student_tutorial_real_surfaces.md. Revisão independente final interrompida por indisponibilidade do serviço de IA; resultados de navegador concluídos e inspecionados pelo agente principal. Usuário testou e aprovou localmente; Push funcional confirmado em `origin/main` (`1c8a02a1938d1c82e41a32acc10e6957171401f6`); produção confirmada pelo status Vercel/GitHub `success` (deployment `7558654813`, environment `Production`).
 # PROGRESS — Fitcoach Pro
 
+## [2026-11-08] — Filtro de Feedbacks por Aluno no Coach Portal (`/coach/feedbacks`) (Fase 8 / PASS18 — PASS 3.00/3.00)
+
+- **Identificador da Fatia:** `coach-feedback-student-filter` / `PASS18`
+- **Perfil Gauntlet:** `full-stack` / PWA (React 19 + TypeScript 5.8 + Vite 6 + Tailwind CSS 4 + Supabase Postgres/Auth + Vitest 5)
+- **Subagente Executor:** `gauntlet-builder`
+- **Sumário da Fatia:** [`docs/gauntlet/SLICE_SUMMARY.md`](file:///c:/Users/Gustavo/Desktop/Fitcoach/docs/gauntlet/SLICE_SUMMARY.md)
+- **Veredito do Gauntlet Critic:** **PASS (3.00 / 3.00 na Rubrica 6D | 28 suítes / 283 testes | 0 erros tsc | build Vite OK)** — [`QA_REPORT_PASS18.md`](file:///c:/Users/Gustavo/Desktop/Fitcoach/docs/gauntlet/QA_REPORT_PASS18.md)
+
+### Resumo do Valor Entregue (End-to-End)
+1. **Regras de Negócio & Triagem Acelerada (F1 a F5):**
+   - Implementação de filtro por aluno na fila de feedbacks do treinador Gustavo (`/coach/feedbacks`), permitindo isolar instantaneamente o histórico ou pendências de um aluno específico ou manter a visão geral com "Todos os alunos".
+   - Persistência ortogonal do filtro selecionado ao alternar entre as abas "Não lidos" e "Todos", recalculando contadores (`unreadCount`) no escopo do aluno.
+   - Ação "Marcar todos como lidos" com confirmação contextualizada e execução restrita exclusivamente aos treinos do aluno selecionado.
+   - Empty states inteligentes ("Nenhum feedback pendente para {Aluno}" e "Nenhum feedback registrado para {Aluno}") com atalho em 1 clique para "Ver todos os alunos".
+2. **Camada de Domínio & Lógica Pura (`utils/coachFeedbackFilters.ts`):**
+   - `normalizeStudentsList`: normalização de dados resiliente tratando respostas do Supabase tanto como objeto (`profiles`) quanto array 1:1 (`profiles[]`), com descarte de itens nulos e ordenação alfabética em pt-BR com sensibilidade base (`localeCompare(..., 'pt-BR', { sensitivity: 'base' })`).
+   - `filterStudentsBySearch`: busca em tempo real com normalização diacrítica/sem acentos (`normalize('NFD')`) e insensível a maiúsculas/minúsculas.
+   - `buildWorkoutLogsFilterScope`: montagem do escopo de query em `workout_logs` alternando entre `.eq('student_id', selectedStudentId)` e `.in('student_id', studentIds)` sem queries N+1.
+   - Helpers puros de formatação de mensagens de confirmação e toasts de sucesso.
+3. **Interface & Acessibilidade WAI-ARIA (`components/coach/StudentFilterCombobox.tsx`):**
+   - Seletor suspenso com marcação semântica completa: `role="combobox"`, `role="listbox"`, `role="option"`, `aria-expanded`, `aria-haspopup="listbox"`, `aria-controls="student-filter-listbox"`, `aria-selected`.
+   - Campo de busca instantânea com `autoFocus` ao abrir o painel.
+   - Botão de limpeza rápida "X" em 1 clique (`min-h-[44px] min-w-[44px]`).
+   - Fechamento seguro com clique externo (`pointerdown`) e tecla `Escape`, preservando o foco do teclado.
+   - Touch targets $\ge 44 \times 44\text{px}$ e contraste em temas Claro e Escuro aderentes à Superfície Operate do Impeccable.
+4. **Resiliência de Estado & Performance (`pages/coach/Feedbacks.tsx`):**
+   - Reset explícito do cursor temporal de paginação (`lastCreatedAtRef.current = null`) ao trocar de aluno ou aba, impedindo que o timestamp residual de outro escopo corrompa a busca de páginas subsequentes.
+   - Consulta em lote dos alunos da carteira com join `students_data` e `profiles` sem N+1.
+5. **Blindagem por Teste de Regressão (Bugfix Regression Test Mandate):**
+   - Criação da suíte [`tests/unit/coachFeedbackFilters.regression.test.ts`](file:///c:/Users/Gustavo/Desktop/Fitcoach/tests/unit/coachFeedbackFilters.regression.test.ts) com 21 testes automatizados cobrindo os 4 riscos mapeados (cursor residual, mutação em lote fora de escopo, acessibilidade e queries N+1).
+   - Suíte Vitest: 28 arquivos, 283/283 testes aprovados (100% de sucesso).
+   - TypeScript: 0 erros (`npx tsc --noEmit`).
+   - Build: Produção Vite limpa em 8.23s (797 módulos transformados).
+
+### Métricas da Rubrica 6D
+| Dimensão | Nota | Status |
+|---|:---:|:---:|
+| **D1. Funcionalidade & Requisitos** | 3.0 / 3.0 | Aprovado |
+| **D2. Robustez & Estabilidade** | 3.0 / 3.0 | Aprovado |
+| **D3. Qualidade de Implementação & Anti-Slop** | 3.0 / 3.0 | Aprovado |
+| **D4. Consistência Arquitetural & Stack Nativa** | 3.0 / 3.0 | Aprovado |
+| **D5. Performance & Eficiência** | 3.0 / 3.0 | Aprovado |
+| **D6. Testabilidade, Segurança & Conformidade** | 3.0 / 3.0 | Aprovado |
+| **Média Consolidada** | **3.00 / 3.00** | **PASS** |
+
+### Arquivos Criados e Modificados
+- **Criados:**
+  - `utils/coachFeedbackFilters.ts`
+  - `components/coach/StudentFilterCombobox.tsx`
+  - `tests/unit/coachFeedbackFilters.regression.test.ts`
+  - `docs/gauntlet/QA_REPORT_PASS18.md`
+- **Modificados:**
+  - `pages/coach/Feedbacks.tsx`
+  - `docs/gauntlet/SLICE_SUMMARY.md`
+  - `PRODUCT.md`
+  - `.planning/STATE.md`
+  - `.planning/ROADMAP.md`
+  - `ROADMAP.md`
+  - `.planning/PROGRESS.md`
+  - `PROGRESS.md`
+
+---
+
 ## [2026-11-04] — Sanitização e Primeiro Nome do Coach em Mensagens de WhatsApp e Contato (Fase 17 Refinamento / Bugfix — PASS 3.00/3.00)
 
 - **Identificador da Fatia:** `coach_name_formatting` / `coach-name-sanitization`

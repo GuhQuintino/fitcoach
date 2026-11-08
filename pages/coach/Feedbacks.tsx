@@ -1,10 +1,18 @@
-import React, { useEffect, useState, useCallback, useRef } from 'react';
+import React, { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import MainLayout from '../../components/Layout/MainLayout';
 import { supabase } from '../../lib/supabaseClient';
 import { useAuth } from '../../contexts/AuthContext';
 import { Link, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { compareSessions, SessionComparisonResult } from '../../utils/sessionComparison';
+import StudentFilterCombobox from '../../components/coach/StudentFilterCombobox';
+import {
+    normalizeStudentsList,
+    formatMarkAllAsReadPrompt,
+    formatMarkAllSuccessToast,
+    getStudentFilterOption,
+    StudentFilterOption,
+} from '../../utils/coachFeedbackFilters';
 
 const formatTime = (seconds: number | string | null | undefined) => {
     if (seconds === null || seconds === undefined) return '-';
@@ -24,6 +32,10 @@ const Feedbacks: React.FC = () => {
     const navigate = useNavigate();
 
     const [filter, setFilter] = useState<FeedbackFilter>('unread');
+    const [selectedStudentId, setSelectedStudentId] = useState<string | 'all'>('all');
+    const [students, setStudents] = useState<StudentFilterOption[]>([]);
+    const [loadingStudents, setLoadingStudents] = useState<boolean>(true);
+
     const [feedbacks, setFeedbacks] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [loadingMore, setLoadingMore] = useState(false);
@@ -37,27 +49,71 @@ const Feedbacks: React.FC = () => {
     const studentIdsRef = useRef<string[]>([]);
     const lastCreatedAtRef = useRef<string | null>(null);
 
-    // Carregar contagem de treinos não lidos
-    const fetchUnreadCount = useCallback(async (studentIds: string[]) => {
-        if (!studentIds || studentIds.length === 0) {
-            setUnreadCount(0);
-            return;
-        }
+    const selectedStudentOption = useMemo(
+        () => getStudentFilterOption(selectedStudentId, students),
+        [selectedStudentId, students]
+    );
 
-        try {
-            const { count, error } = await supabase
-                .from('workout_logs')
-                .select('id', { count: 'exact', head: true })
-                .in('student_id', studentIds)
-                .eq('read_by_coach', false);
+    // Carregar contagem de treinos não lidos (com suporte ao escopo de aluno)
+    const fetchUnreadCount = useCallback(
+        async (targetStudentId: string | 'all', allStudentIds: string[]) => {
+            try {
+                let query = supabase
+                    .from('workout_logs')
+                    .select('id', { count: 'exact', head: true })
+                    .eq('read_by_coach', false);
 
-            if (!error && count !== null) {
-                setUnreadCount(count);
+                if (targetStudentId !== 'all') {
+                    query = query.eq('student_id', targetStudentId);
+                } else if (allStudentIds.length > 0) {
+                    query = query.in('student_id', allStudentIds);
+                } else {
+                    setUnreadCount(0);
+                    return;
+                }
+
+                const { count, error } = await query;
+                if (!error && count !== null) {
+                    setUnreadCount(count);
+                }
+            } catch (err) {
+                // Silencioso para não poluir UI
             }
+        },
+        []
+    );
+
+    // Carregar lista de alunos do coach com profiles (id, full_name, avatar_url)
+    const loadStudents = useCallback(async () => {
+        if (!user?.id) return [];
+        try {
+            setLoadingStudents(true);
+            const { data, error } = await supabase
+                .from('students_data')
+                .select(`
+                    id,
+                    profiles!students_data_id_fkey!inner (
+                        id,
+                        full_name,
+                        avatar_url
+                    )
+                `)
+                .eq('coach_id', user.id);
+
+            if (error) throw error;
+
+            const normalized = normalizeStudentsList(data || []);
+            setStudents(normalized);
+            const ids = normalized.map((s) => s.id);
+            studentIdsRef.current = ids;
+            return ids;
         } catch (err) {
-            // Silencioso para não poluir UI
+            toast.error('Erro ao carregar lista de alunos.');
+            return [];
+        } finally {
+            setLoadingStudents(false);
         }
-    }, []);
+    }, [user?.id]);
 
     // Buscar treinos anteriores em lote para comparar volume e melhor série
     const fetchPreviousSessionsInBatch = async (logs: any[]) => {
@@ -134,7 +190,7 @@ const Feedbacks: React.FC = () => {
         }
     };
 
-    // Buscar lista de feedbacks (com suporte a filtro e cursor)
+    // Buscar lista de feedbacks (com suporte a filtro por aluno, aba e cursor)
     const fetchFeedbacks = useCallback(
         async (isInitial = false) => {
             if (!user) return;
@@ -150,14 +206,7 @@ const Feedbacks: React.FC = () => {
                 // 1. Obter alunos do coach
                 let studentIds = studentIdsRef.current;
                 if (studentIds.length === 0) {
-                    const { data: students, error: sError } = await supabase
-                        .from('students_data')
-                        .select('id')
-                        .eq('coach_id', user.id);
-
-                    if (sError) throw sError;
-                    studentIds = students?.map((s) => s.id) || [];
-                    studentIdsRef.current = studentIds;
+                    studentIds = await loadStudents();
                 }
 
                 if (studentIds.length === 0) {
@@ -169,7 +218,7 @@ const Feedbacks: React.FC = () => {
 
                 // Atualizar contador em segundo plano
                 if (isInitial) {
-                    fetchUnreadCount(studentIds);
+                    fetchUnreadCount(selectedStudentId, studentIds);
                 }
 
                 // 2. Query de feedbacks
@@ -212,8 +261,14 @@ const Feedbacks: React.FC = () => {
                             sentiment,
                             created_at
                         )
-                    `)
-                    .in('student_id', studentIds);
+                    `);
+
+                // Filtro de aluno: específico vs todos
+                if (selectedStudentId !== 'all') {
+                    query = query.eq('student_id', selectedStudentId);
+                } else {
+                    query = query.in('student_id', studentIds);
+                }
 
                 if (filter === 'unread') {
                     query = query.eq('read_by_coach', false);
@@ -253,14 +308,20 @@ const Feedbacks: React.FC = () => {
                 setLoadingMore(false);
             }
         },
-        [user?.id, filter, fetchUnreadCount]
+        [user?.id, filter, selectedStudentId, loadStudents, fetchUnreadCount]
     );
 
     useEffect(() => {
         if (user?.id) {
             fetchFeedbacks(true);
         }
-    }, [user?.id, filter, fetchFeedbacks]);
+    }, [user?.id, filter, selectedStudentId, fetchFeedbacks]);
+
+    const handleSelectStudent = (studentId: string | 'all') => {
+        setSelectedStudentId(studentId);
+        lastCreatedAtRef.current = null;
+        setShowMarkAllConfirm(false);
+    };
 
     // Marcar item como lido (otimista)
     const handleMarkAsRead = async (logId: string) => {
@@ -309,7 +370,7 @@ const Feedbacks: React.FC = () => {
         navigate(`/coach/editor?workout_id=${log.workout_id}&student_id=${log.student_id}`);
     };
 
-    // Marcar todos como lidos em lote
+    // Marcar todos como lidos em lote no escopo do filtro ativo
     const handleMarkAllAsRead = async () => {
         const studentIds = studentIdsRef.current;
         if (studentIds.length === 0 || unreadCount === 0) {
@@ -320,19 +381,34 @@ const Feedbacks: React.FC = () => {
         try {
             setMarkingAll(true);
 
-            const { error } = await supabase
+            let updateQuery = supabase
                 .from('workout_logs')
                 .update({ read_by_coach: true })
-                .in('student_id', studentIds)
                 .eq('read_by_coach', false);
 
+            if (selectedStudentId !== 'all') {
+                updateQuery = updateQuery.eq('student_id', selectedStudentId);
+            } else {
+                updateQuery = updateQuery.in('student_id', studentIds);
+            }
+
+            const { error } = await updateQuery;
             if (error) throw error;
 
             // Atualizar estado local
-            setFeedbacks((prev) => prev.map((f) => ({ ...f, read_by_coach: true })));
+            if (selectedStudentId !== 'all') {
+                setFeedbacks((prev) =>
+                    prev.map((f) =>
+                        f.student_id === selectedStudentId ? { ...f, read_by_coach: true } : f
+                    )
+                );
+            } else {
+                setFeedbacks((prev) => prev.map((f) => ({ ...f, read_by_coach: true })));
+            }
+
             setUnreadCount(0);
             setShowMarkAllConfirm(false);
-            toast.success('Todos os feedbacks foram marcados como lidos.');
+            toast.success(formatMarkAllSuccessToast(selectedStudentOption?.full_name));
         } catch (err) {
             toast.error('Erro ao marcar todos como lidos.');
         } finally {
@@ -343,7 +419,7 @@ const Feedbacks: React.FC = () => {
     return (
         <MainLayout>
             {/* Header */}
-            <header className="px-5 py-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <header className="px-5 py-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div className="flex items-center gap-4">
                     <Link
                         to="/coach/dashboard"
@@ -372,7 +448,15 @@ const Feedbacks: React.FC = () => {
                 </div>
 
                 {/* Ações do cabeçalho */}
-                <div className="flex items-center gap-3">
+                <div className="flex flex-wrap items-center gap-3">
+                    {/* Seletor Suspenso de Aluno com Busca Instantânea */}
+                    <StudentFilterCombobox
+                        students={students}
+                        selectedStudentId={selectedStudentId}
+                        onSelectStudent={handleSelectStudent}
+                        disabled={loadingStudents}
+                    />
+
                     {/* Botão Marcar Todos Como Lidos com Confirmação Inline */}
                     {unreadCount > 0 && (
                         <div>
@@ -380,17 +464,17 @@ const Feedbacks: React.FC = () => {
                                 <button
                                     type="button"
                                     onClick={() => setShowMarkAllConfirm(true)}
-                                    className="min-h-[44px] px-3.5 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold hover:border-sky-500 hover:text-sky-500 transition-all flex items-center gap-1.5 shadow-sm active:scale-95"
+                                    className="min-h-[44px] px-3.5 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold hover:border-sky-500 hover:text-sky-500 transition-all flex items-center gap-1.5 shadow-sm active:scale-95 cursor-pointer"
                                 >
                                     <span className="material-symbols-rounded text-base" aria-hidden="true">
                                         done_all
                                     </span>
-                                    Marcar todos como lidos
+                                    {selectedStudentId !== 'all' ? 'Marcar lidos' : 'Marcar todos como lidos'}
                                 </button>
                             ) : (
                                 <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 p-1.5 rounded-2xl border border-slate-200 dark:border-slate-700 animate-fade-in text-xs">
                                     <span className="font-bold text-slate-700 dark:text-slate-300 pl-2">
-                                        Marcar {unreadCount} como lidos?
+                                        {formatMarkAllAsReadPrompt(unreadCount, selectedStudentOption?.full_name)}
                                     </span>
                                     <button
                                         type="button"
@@ -426,7 +510,7 @@ const Feedbacks: React.FC = () => {
                                 role="tab"
                                 aria-selected={filter === f}
                                 onClick={() => setFilter(f)}
-                                className={`px-4 sm:px-5 py-2 min-h-[44px] text-xs font-bold rounded-xl transition-all uppercase tracking-widest flex items-center justify-center gap-2 ${
+                                className={`px-4 sm:px-5 py-2 min-h-[44px] text-xs font-bold rounded-xl transition-all uppercase tracking-widest flex items-center justify-center gap-2 cursor-pointer ${
                                     filter === f
                                         ? 'bg-sky-500 text-white shadow-lg shadow-sky-500/25'
                                         : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'
@@ -465,13 +549,35 @@ const Feedbacks: React.FC = () => {
                             {filter === 'unread' ? 'check_circle' : 'chat_bubble_outline'}
                         </span>
                         <h3 className="text-base font-bold text-slate-800 dark:text-slate-200 mb-1">
-                            {filter === 'unread' ? 'Nenhum feedback pendente!' : 'Nenhum treino registrado.'}
+                            {selectedStudentId !== 'all'
+                                ? filter === 'unread'
+                                    ? `Nenhum feedback pendente para ${selectedStudentOption?.full_name || 'este aluno'}!`
+                                    : `Nenhum treino registrado para ${selectedStudentOption?.full_name || 'este aluno'}.`
+                                : filter === 'unread'
+                                ? 'Nenhum feedback pendente!'
+                                : 'Nenhum treino registrado.'}
                         </h3>
-                        <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm mx-auto">
-                            {filter === 'unread'
+                        <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm mx-auto mb-4">
+                            {selectedStudentId !== 'all'
+                                ? filter === 'unread'
+                                    ? 'Todas as revisões de treinos deste aluno já foram concluídas.'
+                                    : 'Assim que este aluno concluir treinos, eles aparecerão aqui.'
+                                : filter === 'unread'
                                 ? 'Você está em dia com todas as revisões de treinos dos seus alunos.'
                                 : 'Quando seus alunos concluírem treinos, eles aparecerão nesta lista.'}
                         </p>
+                        {selectedStudentId !== 'all' && (
+                            <button
+                                type="button"
+                                onClick={() => handleSelectStudent('all')}
+                                className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 transition-colors min-h-[44px] cursor-pointer"
+                            >
+                                <span className="material-symbols-rounded text-base" aria-hidden="true">
+                                    groups
+                                </span>
+                                Ver todos os alunos
+                            </button>
+                        )}
                     </div>
                 ) : (
                     <>

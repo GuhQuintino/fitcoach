@@ -108,4 +108,11 @@
 - **Contexto:** Em viewports mobile compactos (~360px), o título do banner de completude de perfil sofria truncamento para "Co..." devido à classe `truncate` e layout rígido horizontal, além de ocupar espaço vertical desproporcional caso todos os detalhes fossem exibidos de forma estática permanente.
 - **Decisão:** O componente foi arquitetado em padrão de acordeão expansível (`isExpanded` padrão `false`), mantendo o estado recolhido enxuto com título legível sem truncar (`whitespace-nowrap`, remoção de `truncate`), percentual em pill e botão tátil expansor ("Ver mais" / "Ver menos" com chevron animado e touch target >= 44x44px). Ao expandir, exibe chips visuais dos campos pendentes (Foto, Peso, Idade, Altura) com ícones dedicados e botões ergonômicos de ação, preservando a lógica de adiamento (snooze de 3 dias via `localStorage` e Supabase) e cobrindo integralmente o comportamento com teste de regressão dedicado passando 100%.
 
+## ADR-027: Filtro de Feedbacks por Aluno no Coach Portal com Combobox Acessível, Normalização Resiliente e Reset Temporal de Cursor (Fase 8 / PASS18)
+- **Data:** 08/11/2026
+- **Status:** Aceito e Implementado
+- **Contexto:** Na fila de feedbacks do treinador (`/coach/feedbacks`), a triagem de um aluno específico exigia rolagem contínua pela carteira inteira sem mecanismo de isolamento. Além disso, mutações em lote ("Marcar todos como lidos") e paginação temporal podiam sofrer de vazamento de escopo e timestamps residuais.
+- **Decisão:** Criado o componente `StudentFilterCombobox` com padrão WAI-ARIA completo (`combobox`, `listbox`, `option`), busca em tempo real com `autoFocus` e fechamento por `Escape`/clique externo. A normalização de perfis em `coachFeedbackFilters.ts` aceita formatos de join do Supabase tanto como objeto quanto array 1:1, com ordenação alfabética em pt-BR e busca diacrítica. A query alterna entre `.eq('student_id', selectedStudentId)` e `.in('student_id', studentIds)` sem N+1. O cursor temporal de paginação (`lastCreatedAtRef.current`) é compulsoriamente zerado a cada troca de aluno ou aba, e ações em lote e empty states são estritamente isolados por aluno. Suíte de regressão dedicada `tests/unit/coachFeedbackFilters.regression.test.ts` (21 testes) aprovada com 100% de sucesso.
+
+
 

@@ -195,6 +195,16 @@ Fitcoach Pro é uma plataforma progressiva (PWA Mobile-First com suporte a fallb
 
 ---
 
+### Fase 8: Filtro de Feedbacks por Aluno no Coach Portal (`/coach/feedbacks`) (Concluída — PASS18)
+- [x] **F1 — Filtro por Aluno Específico:** Filtro na listagem de feedbacks por aluno individual ou "Todos os alunos" com seletor inteligente ([`StudentFilterCombobox.tsx`](file:///c:/Users/Gustavo/Desktop/Fitcoach/components/coach/StudentFilterCombobox.tsx), [`Feedbacks.tsx`](file:///c:/Users/Gustavo/Desktop/Fitcoach/pages/coach/Feedbacks.tsx)). [2026-11-08]
+- [x] **F2 — Persistência Ortogonal nas Abas:** Filtro por aluno disponível e mantido ao alternar entre as abas "Não lidos" e "Todos", com contadores reativos no escopo ativo ([`Feedbacks.tsx`](file:///c:/Users/Gustavo/Desktop/Fitcoach/pages/coach/Feedbacks.tsx)). [2026-11-08]
+- [x] **F3 — Seletor Suspenso com Busca em Tempo Real:** Combobox com campo de busca em tempo real (`autoFocus`), ordenação alfabética pt-BR (`localeCompare`), normalização diacrítica/case-insensitive e botão de limpeza rápida em 1 clique "X" ([`coachFeedbackFilters.ts`](file:///c:/Users/Gustavo/Desktop/Fitcoach/utils/coachFeedbackFilters.ts), [`StudentFilterCombobox.tsx`](file:///c:/Users/Gustavo/Desktop/Fitcoach/components/coach/StudentFilterCombobox.tsx)). [2026-11-08]
+- [x] **F4 — Paginação sem N+1 & Reset Temporal de Cursor:** Comutação dinâmica de query de `workout_logs` (`.eq('student_id', selectedStudentId)` vs `.in('student_id', studentIds)`), reset seguro do cursor temporal de paginação (`lastCreatedAtRef.current = null`) e isolamento das ações em lote ("Marcar todos como lidos") por aluno ([`coachFeedbackFilters.ts`](file:///c:/Users/Gustavo/Desktop/Fitcoach/utils/coachFeedbackFilters.ts), [`Feedbacks.tsx`](file:///c:/Users/Gustavo/Desktop/Fitcoach/pages/coach/Feedbacks.tsx)). [2026-11-08]
+- [x] **F5 — Acessibilidade WAI-ARIA & Padrão Operate:** Touch targets seguros $\ge 44 \times 44\text{px}$, marcação semântica (`role="combobox"`, `role="listbox"`, `role="option"`, `aria-expanded`, `aria-selected`), fechamento por clique externo (`pointerdown`) e tecla `Escape`, e empty states contextualizados com botão de restauração "Ver todos os alunos". [2026-11-08]
+- [x] **Garantia de Qualidade & Testes de Regressão:** Suíte de regressão dedicada [`tests/unit/coachFeedbackFilters.regression.test.ts`](file:///c:/Users/Gustavo/Desktop/Fitcoach/tests/unit/coachFeedbackFilters.regression.test.ts) com 21/21 testes aprovados, 283/283 testes no Vitest (100% de sucesso em 28 arquivos), 0 erros TypeScript (`tsc --noEmit`), build Vite limpo em 8.23s e Laudo Gauntlet Critic aprovado com nota máxima **3.00 / 3.00 (Média 6D — PASS)** em [`QA_REPORT_PASS18.md`](file:///c:/Users/Gustavo/Desktop/Fitcoach/docs/gauntlet/QA_REPORT_PASS18.md). [2026-11-08]
+
+---
+
 ## 📋 Pendências / Backlog Futuro & Integrações Externas
 
 ### Pendências / Backlog Futuro (Produto Interno)
