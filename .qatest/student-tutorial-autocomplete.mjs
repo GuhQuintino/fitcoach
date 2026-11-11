@@ -20,7 +20,7 @@ try {
  await page.waitForSelector('[aria-label="Finalizar e avaliar treino"]');
  await check('Último drop abre mesmo modal da conclusão manual',await modalVisible());
  await page.screenshot({path:'.qatest/student-tutorial-autocomplete-modal.png'});
- await clickText(page,'Continuar treinando');
+ await clickText(page,'Voltar ao treino');
  await new Promise(resolve=>setTimeout(resolve,1200));
  await check('Cancelar não reabre automaticamente',!await modalVisible());
  await clickText(page,'Concluir treino e abrir resumo');

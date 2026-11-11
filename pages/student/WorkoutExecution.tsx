@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import MainLayout from '../../components/Layout/MainLayout';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '../../lib/supabaseClient';
@@ -37,6 +38,12 @@ import { getActiveWorkout, setActiveWorkout as persistActiveWorkout, removeActiv
 import { createCompletionTransition, isWorkoutComplete } from '../../utils/workoutCompletion';
 import { useStudentDemo } from '../../components/student/StudentDemoContext';
 import { createStudentDemoExercises, STUDENT_DEMO_WORKOUTS } from '../../utils/studentDemoFixtures';
+import {
+    clearWorkoutReviewField, DROP_FIELDS, EFFORT_FIELDS, getWorkoutReviewFields,
+    STRENGTH_FIELDS, SUB_SET_FIELDS, WorkoutReviewField
+} from '../../utils/workoutFieldReview';
+
+const reviewFieldClass = 'bg-amber-50 dark:bg-amber-950 border-amber-500 dark:border-amber-500 text-amber-950 dark:text-amber-100 placeholder:text-amber-800 dark:placeholder:text-amber-200';
 
 const getYouTubeId = (url: string) => {
     if (!url) return null;
@@ -53,6 +60,7 @@ interface TriggerSet {
     rpe: string;
     rest_seconds: number;
     completed: boolean;
+    reviewFields?: WorkoutReviewField[];
     weight_target?: number | null;
     reps_target?: string | null;
     rpe_target?: string | null;
@@ -90,6 +98,7 @@ interface TriggerSet {
         weight: string;
         reps: string;
         completed: boolean;
+        reviewFields?: WorkoutReviewField[];
     }>;
 
     // Sub-séries de intensificação (Rest-Pause, Cluster, Myo-Reps, Muscle Round, Método 3/7):
@@ -97,6 +106,7 @@ interface TriggerSet {
         index: number;
         reps: string;
         completed: boolean;
+        reviewFields?: WorkoutReviewField[];
     }>;
 }
 
@@ -286,6 +296,7 @@ const WorkoutExecution: React.FC = () => {
     });
 
     const [finishModalOpen, setFinishModalOpen] = useState(false);
+    const finishButtonRef = useRef<HTMLButtonElement>(null);
     const [workoutComment, setWorkoutComment] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const isSubmittingRef = useRef(false);
@@ -755,6 +766,7 @@ const WorkoutExecution: React.FC = () => {
                                             weight: savedSet.weight,
                                             reps: savedSet.reps,
                                             rpe: savedSet.rpe,
+                                            reviewFields: savedSet.reviewFields,
                                             completed: savedSet.completed,
                                             completed_at: savedSet.completed_at || undefined,
                                             time_completed: savedSet.time_completed || '',
@@ -861,7 +873,8 @@ const WorkoutExecution: React.FC = () => {
         const newExercises = [...exercises];
         newExercises[exIndex].sets[setIndex] = {
             ...newExercises[exIndex].sets[setIndex],
-            [field]: value
+            [field]: value,
+            reviewFields: clearWorkoutReviewField(newExercises[exIndex].sets[setIndex], field)
         };
         setExercises(newExercises);
         saveToLocalStorage(newExercises);
@@ -902,7 +915,8 @@ const WorkoutExecution: React.FC = () => {
 
         currentDrops[dropIndex] = {
             ...currentDrops[dropIndex],
-            [field]: value
+            [field]: value,
+            reviewFields: clearWorkoutReviewField(currentDrops[dropIndex], field)
         };
 
         currentSet.drops = currentDrops;
@@ -951,6 +965,9 @@ const WorkoutExecution: React.FC = () => {
 
         currentDrops[dropIndex] = {
             ...currentDrops[dropIndex],
+            reviewFields: isNowCompleted
+                ? getWorkoutReviewFields(currentDrops[dropIndex], DROP_FIELDS)
+                : currentDrops[dropIndex].reviewFields,
             weight: dropWeight,
             reps: dropReps,
             completed: isNowCompleted
@@ -1004,7 +1021,8 @@ const WorkoutExecution: React.FC = () => {
 
         currentSubs[subIndex] = {
             ...currentSubs[subIndex],
-            [field]: value
+            [field]: value,
+            reviewFields: clearWorkoutReviewField(currentSubs[subIndex], field)
         };
 
         currentSet.sub_sets_records = currentSubs;
@@ -1049,6 +1067,9 @@ const WorkoutExecution: React.FC = () => {
 
         currentSubs[subIndex] = {
             ...currentSubs[subIndex],
+            reviewFields: isNowCompleted
+                ? getWorkoutReviewFields(currentSubs[subIndex], SUB_SET_FIELDS)
+                : currentSubs[subIndex].reviewFields,
             reps: subReps,
             completed: isNowCompleted
         };
@@ -1104,6 +1125,8 @@ const WorkoutExecution: React.FC = () => {
 
         // Implicit Logging: Fill with target/previous if empty when checking
         if (!wasCompleted) {
+            currentSet.reviewFields = getWorkoutReviewFields(currentSet,
+                newExercises[exIndex].exercise_type === 'reps' ? STRENGTH_FIELDS : EFFORT_FIELDS);
             if (newExercises[exIndex].exercise_type === 'reps') {
                 // WEIGHT: First try previous session, then target
                 if (!currentSet.weight || currentSet.weight === '') {
@@ -1127,7 +1150,6 @@ const WorkoutExecution: React.FC = () => {
                 // REPS: More complex - handle ranges and previous logs
                 if (!currentSet.reps || currentSet.reps === '' || currentSet.reps === '-') {
                     const repsTarget = currentSet.reps_target ? String(currentSet.reps_target) : '';
-                    const isRange = repsTarget.includes('-');
 
                     // Try to get reps from previous log first (format: "50kg x 10 @8")
                     let prevReps: number | null = null;
@@ -1961,6 +1983,16 @@ const WorkoutExecution: React.FC = () => {
     const renderExerciseCard = (exercise: TriggerExercise, exIndex: number, inGroup = false, groupBadge?: string) => {
         const isFocused = currentExerciseIndex === exIndex;
         const shouldFocus = preferences.focusMode;
+        const reviewHintId = `set-review-hint-${exIndex}`;
+        const hasReviewFields = exercise.sets.some(set =>
+            (set.completed && getWorkoutReviewFields(set, exercise.exercise_type === 'reps' ? STRENGTH_FIELDS : EFFORT_FIELDS).length > 0) ||
+            set.drops?.some(drop => drop.completed && getWorkoutReviewFields(drop, DROP_FIELDS).length > 0) ||
+            set.sub_sets_records?.some(sub => sub.completed && getWorkoutReviewFields(sub, SUB_SET_FIELDS).length > 0)
+        );
+        const reviewAttributes = (needsReview: boolean) => ({
+            'data-review-needed': needsReview || undefined,
+            'aria-describedby': needsReview ? reviewHintId : undefined
+        });
 
         return (
             <div
@@ -2077,6 +2109,11 @@ const WorkoutExecution: React.FC = () => {
 
                     {/* Sets Flow */}
                     <div className="divide-y divide-slate-50 dark:divide-slate-700/50">
+                        {hasReviewFields && (
+                            <p id={reviewHintId} className="px-3 py-2 text-xs bg-amber-50 dark:bg-amber-950/60 text-amber-900 dark:text-amber-100">
+                                Confira os campos em amarelo que ficaram com a sugestão ou em branco.
+                            </p>
+                        )}
                         {(() => {
                             const hasHiitAny = exercise.sets.some(s => !!(s.hiit_cycles || s.hiit_work_seconds));
                             return renderTableHeader(exercise.exercise_type, hasHiitAny);
@@ -2085,6 +2122,9 @@ const WorkoutExecution: React.FC = () => {
                         {(() => {
                             let workingSetCount = 0;
                             return exercise.sets.map((set, setIndex) => {
+                                const reviewFields = set.completed
+                                    ? getWorkoutReviewFields(set, exercise.exercise_type === 'reps' ? STRENGTH_FIELDS : EFFORT_FIELDS)
+                                    : [];
                                 const isWarmup = set.type === 'warmup';
                                 const isFailure = set.type === 'failure';
                                 const isDropset = set.type === 'dropset';
@@ -2285,7 +2325,8 @@ const WorkoutExecution: React.FC = () => {
                                                             type="number"
                                                             inputMode="decimal"
                                                             aria-label={`Carga em kg para série ${setIndex + 1}`}
-                                                            className={`w-full min-h-[44px] h-11 text-center text-xs sm:text-sm font-bold bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl focus:border-sky-500 focus:ring-1 focus:ring-sky-500 px-1 text-slate-900 dark:text-white transition-all shadow-sm ${set.completed ? 'opacity-60' : ''}`}
+                                                            {...reviewAttributes(reviewFields.includes('weight'))}
+                                                            className={`w-full min-h-[44px] h-11 text-center text-xs sm:text-sm font-bold border rounded-xl focus:border-sky-500 focus:ring-1 focus:ring-sky-500 px-1 transition-all shadow-sm ${reviewFields.includes('weight') ? reviewFieldClass : 'bg-white dark:bg-slate-700 border-slate-200 dark:border-slate-600 text-slate-900 dark:text-white'}`}
                                                             placeholder={set.prev_log !== '-' ? set.prev_log.split('kg')[0] : (set.weight_target ? String(set.weight_target) : '-')}
                                                             value={set.weight}
                                                             onChange={(e) => handleInputChange(exIndex, setIndex, 'weight', e.target.value)}
@@ -2296,7 +2337,8 @@ const WorkoutExecution: React.FC = () => {
                                                             type="number"
                                                             inputMode="numeric"
                                                             aria-label={`Repetições para série ${setIndex + 1}`}
-                                                            className={`w-full min-h-[44px] h-11 text-center text-xs sm:text-sm font-bold bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl focus:border-sky-500 focus:ring-1 focus:ring-sky-500 p-0 text-slate-900 dark:text-white transition-all shadow-sm ${set.completed ? 'opacity-60' : ''}`}
+                                                            {...reviewAttributes(reviewFields.includes('reps'))}
+                                                            className={`w-full min-h-[44px] h-11 text-center text-xs sm:text-sm font-bold border rounded-xl focus:border-sky-500 focus:ring-1 focus:ring-sky-500 p-0 transition-all shadow-sm ${reviewFields.includes('reps') ? reviewFieldClass : 'bg-white dark:bg-slate-700 border-slate-200 dark:border-slate-600 text-slate-900 dark:text-white'}`}
                                                             placeholder={(() => {
                                                                 if (set.prev_log && set.prev_log !== '-') {
                                                                     const parts = set.prev_log.split('x');
@@ -2443,12 +2485,13 @@ const WorkoutExecution: React.FC = () => {
                                                     type="button"
                                                     onClick={() => setPseModal({ open: true, exerciseIndex: exIndex, setIndex: setIndex })}
                                                     aria-label={`Definir PSE para série ${setIndex + 1}`}
-                                                    className={`w-full min-h-[44px] h-9 sm:h-10 px-0.5 rounded-lg sm:rounded-xl flex items-center justify-center text-[10px] sm:text-[11px] font-black tracking-tight whitespace-nowrap overflow-hidden transition-all border shrink-0 ${set.rpe
+                                                    {...reviewAttributes(reviewFields.includes('rpe'))}
+                                                    className={`w-full min-h-[44px] h-9 sm:h-10 px-0.5 rounded-lg sm:rounded-xl flex items-center justify-center text-[10px] sm:text-[11px] font-black tracking-tight whitespace-nowrap overflow-hidden transition-all border shrink-0 ${reviewFields.includes('rpe') ? reviewFieldClass : set.rpe
                                                         ? 'bg-sky-50 dark:bg-sky-950/60 text-sky-700 dark:text-sky-300 border-sky-300 dark:border-sky-700/60 shadow-sm ring-1 ring-sky-400/20'
                                                         : set.rpe_target
                                                             ? 'bg-slate-50 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-sky-300 dark:hover:border-sky-600'
                                                             : 'bg-slate-50/80 dark:bg-slate-800/40 text-slate-400 dark:text-slate-500 border-dashed border-slate-200 dark:border-slate-700/80 hover:text-sky-500 hover:border-sky-300 dark:hover:border-sky-600'
-                                                        } ${set.completed ? 'opacity-60' : ''}`}
+                                                        }`}
                                                 >
                                                     {set.rpe ? `@${set.rpe}` : (set.rpe_target ? `@${set.rpe_target}` : '@')}
                                                 </button>
@@ -2476,6 +2519,7 @@ const WorkoutExecution: React.FC = () => {
                                             <div className="space-y-0.5 border-t border-slate-100/80 dark:border-slate-800/80">
                                                 {set.drops.map((drop, dropIndex) => {
                                                     const isDropDone = drop.completed;
+                                                    const dropReview = isDropDone ? getWorkoutReviewFields(drop, DROP_FIELDS) : [];
                                                     const dropRowBg = isDropDone
                                                         ? 'bg-emerald-100/70 dark:bg-emerald-900/30'
                                                         : 'bg-purple-50/60 dark:bg-purple-950/20';
@@ -2498,6 +2542,7 @@ const WorkoutExecution: React.FC = () => {
                                                                     type="number"
                                                                     inputMode="decimal"
                                                                     aria-label={`Carga do Drop ${dropIndex + 1}`}
+                                                                    {...reviewAttributes(dropReview.includes('weight'))}
                                                                     placeholder={(() => {
                                                                         const baseWeight = dropIndex > 0 && set.drops?.[dropIndex - 1]?.weight
                                                                             ? parseFloat(set.drops[dropIndex - 1].weight)
@@ -2506,7 +2551,7 @@ const WorkoutExecution: React.FC = () => {
                                                                     })()}
                                                                     value={drop.weight}
                                                                     onChange={(e) => handleDropChange(exIndex, setIndex, dropIndex, 'weight', e.target.value)}
-                                                                    className={`w-full min-h-[44px] h-11 text-center text-xs sm:text-sm font-bold bg-white dark:bg-slate-700 border border-purple-200 dark:border-purple-800 rounded-xl focus:border-purple-500 focus:ring-1 focus:ring-purple-500 p-0 text-slate-900 dark:text-white transition-all shadow-sm ${isDropDone ? 'opacity-60' : ''}`}
+                                                                    className={`w-full min-h-[44px] h-11 text-center text-xs sm:text-sm font-bold border rounded-xl focus:border-purple-500 focus:ring-1 focus:ring-purple-500 p-0 transition-all shadow-sm ${dropReview.includes('weight') ? reviewFieldClass : 'bg-white dark:bg-slate-700 border-purple-200 dark:border-purple-800 text-slate-900 dark:text-white'}`}
                                                                 />
                                                             </div>
                                                             <div>
@@ -2514,10 +2559,11 @@ const WorkoutExecution: React.FC = () => {
                                                                     type="number"
                                                                     inputMode="numeric"
                                                                     aria-label={`Repetições do Drop ${dropIndex + 1}`}
+                                                                    {...reviewAttributes(dropReview.includes('reps'))}
                                                                     placeholder={set.reps || '8'}
                                                                     value={drop.reps}
                                                                     onChange={(e) => handleDropChange(exIndex, setIndex, dropIndex, 'reps', e.target.value)}
-                                                                    className={`w-full min-h-[44px] h-11 text-center text-xs sm:text-sm font-bold bg-white dark:bg-slate-700 border border-purple-200 dark:border-purple-800 rounded-xl focus:border-purple-500 focus:ring-1 focus:ring-purple-500 p-0 text-slate-900 dark:text-white transition-all shadow-sm ${isDropDone ? 'opacity-60' : ''}`}
+                                                                    className={`w-full min-h-[44px] h-11 text-center text-xs sm:text-sm font-bold border rounded-xl focus:border-purple-500 focus:ring-1 focus:ring-purple-500 p-0 transition-all shadow-sm ${dropReview.includes('reps') ? reviewFieldClass : 'bg-white dark:bg-slate-700 border-purple-200 dark:border-purple-800 text-slate-900 dark:text-white'}`}
                                                                 />
                                                             </div>
                                                             <div className="flex items-center justify-center">
@@ -2548,6 +2594,7 @@ const WorkoutExecution: React.FC = () => {
                                             <div className="space-y-0.5 border-t border-slate-100/80 dark:border-slate-800/80">
                                                 {set.sub_sets_records.map((sub, subIndex) => {
                                                     const isSubDone = sub.completed;
+                                                    const subNeedsReview = isSubDone && getWorkoutReviewFields(sub, SUB_SET_FIELDS).length > 0;
                                                     const subRowBg = isSubDone
                                                         ? 'bg-emerald-100/70 dark:bg-emerald-900/30'
                                                         : methodTheme.rowBg;
@@ -2586,10 +2633,11 @@ const WorkoutExecution: React.FC = () => {
                                                                     type="number"
                                                                     inputMode="numeric"
                                                                     aria-label={`Repetições da Sub-série ${sub.index}`}
+                                                                    {...reviewAttributes(subNeedsReview)}
                                                                     placeholder={sub.reps || (set.set_method === 'muscle_round' ? '4' : set.set_method === 'method_3_7' ? String(sub.index + 2) : '4')}
                                                                     value={sub.reps}
                                                                     onChange={(e) => handleSubSetChange(exIndex, setIndex, subIndex, 'reps', e.target.value)}
-                                                                    className={`w-full min-h-[44px] h-11 text-center text-xs sm:text-sm font-bold bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl focus:border-sky-500 focus:ring-1 focus:ring-sky-500 p-0 text-slate-900 dark:text-white transition-all shadow-sm ${isSubDone ? 'opacity-60' : ''}`}
+                                                                    className={`w-full min-h-[44px] h-11 text-center text-xs sm:text-sm font-bold border rounded-xl focus:border-sky-500 focus:ring-1 focus:ring-sky-500 p-0 transition-all shadow-sm ${subNeedsReview ? reviewFieldClass : 'bg-white dark:bg-slate-700 border-slate-200 dark:border-slate-600 text-slate-900 dark:text-white'}`}
                                                                 />
                                                             </div>
 
@@ -2690,6 +2738,7 @@ const WorkoutExecution: React.FC = () => {
 
                             <button
                                 type="button"
+                                ref={finishButtonRef}
                                 onClick={handleFinishWorkout}
                                 aria-label="Concluir treino e abrir resumo"
                                 className="min-h-[44px] bg-primary hover:bg-sky-600 text-white font-bold px-5 py-2.5 rounded-2xl transition-all shadow-md shadow-primary/20 hover:shadow-glow active:scale-95 text-sm"
@@ -3127,7 +3176,10 @@ const WorkoutExecution: React.FC = () => {
                 <FinishWorkoutModal
                     isOpen={finishModalOpen}
                     onClose={() => {
-                        if (!isSubmitting) setFinishModalOpen(false);
+                        if (!isSubmitting) {
+                            setFinishModalOpen(false);
+                            finishButtonRef.current?.focus({ preventScroll: true });
+                        }
                     }}
                     onConfirm={confirmFinishWorkout}
                     comment={workoutComment}
@@ -3151,28 +3203,37 @@ const FinishWorkoutModal: React.FC<{
 
     if (!isOpen) return null;
 
-    return (
+    return createPortal(
         <div
             role="dialog"
             aria-modal="true"
             aria-label="Finalizar e avaliar treino"
-            className="fixed inset-0 z-[300] bg-black/80 flex items-end sm:items-center justify-center p-0 sm:p-4"
+            className="fixed inset-0 z-[10000] bg-black/80 flex items-end sm:items-center justify-center p-0 sm:p-4"
+            onKeyDown={event => {
+                if (event.key === 'Escape' && !isSubmitting) onClose();
+            }}
             onClick={() => {
                 if (!isSubmitting) onClose();
             }}
         >
-            <div className="bg-white dark:bg-slate-800 w-full max-w-md rounded-t-[32px] sm:rounded-3xl p-6 shadow-xl" onClick={e => e.stopPropagation()}>
-                <div className="w-12 h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full mx-auto mb-6 sm:hidden"></div>
+            <div className="bg-white dark:bg-slate-800 w-full max-w-md max-h-[100dvh] sm:max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain rounded-t-[32px] sm:rounded-3xl p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] shadow-xl" onClick={e => e.stopPropagation()}>
+                <button
+                    type="button"
+                    autoFocus
+                    disabled={isSubmitting}
+                    onClick={onClose}
+                    className="min-h-11 inline-flex items-center gap-2 px-3 rounded-xl text-sm font-semibold bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-100 hover:bg-slate-200 dark:hover:bg-slate-600 focus-visible:outline-2 focus-visible:outline-sky-600"
+                >
+                    <span className="material-symbols-rounded text-lg" aria-hidden="true">arrow_back</span>
+                    Voltar ao treino
+                </button>
 
-                <div className="text-center mb-8">
-                    <div className="w-16 h-16 bg-sky-50 dark:bg-sky-900/20 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-sky-100 dark:border-sky-500/10">
-                        <span className="material-symbols-rounded text-3xl text-sky-500" aria-hidden="true">task_alt</span>
-                    </div>
+                <div className="text-center mt-4 mb-5">
                     <h3 className="text-2xl font-bold text-slate-900 dark:text-white">Finalizar Treino?</h3>
                     <p className="text-sm text-slate-600 dark:text-slate-400 mt-2">Como você avalia o esforço total deste treino?</p>
                 </div>
 
-                <div className="space-y-6 mb-8">
+                <div className="space-y-4 mb-5">
                     <div className="flex justify-between items-end px-2">
                         <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Leve</span>
                         <span className="text-4xl font-black text-sky-500 tabular-nums">{effort}</span>
@@ -3214,7 +3275,7 @@ const FinishWorkoutModal: React.FC<{
                         ))}
                     </div>
 
-                    <div className="mt-6">
+                    <div>
                         <label htmlFor="workout-comment" className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest block mb-2 px-1">Comentários Adicionais</label>
                         <textarea
                             id="workout-comment"
@@ -3247,18 +3308,10 @@ const FinishWorkoutModal: React.FC<{
                             </>
                         )}
                     </button>
-                    <button
-                        type="button"
-                        disabled={isSubmitting}
-                        onClick={onClose}
-                        aria-label="Continuar treinando"
-                        className="w-full min-h-[44px] bg-slate-100 dark:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed text-slate-700 dark:text-slate-300 font-bold py-4 rounded-2xl transition-all active:scale-[0.98] flex items-center justify-center"
-                    >
-                        Continuar Treinando
-                    </button>
                 </div>
             </div>
-        </div>
+        </div>,
+        document.body
     );
 });
 
