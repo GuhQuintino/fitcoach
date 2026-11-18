@@ -383,6 +383,72 @@ describe('WhatsApp Web + Gemini Audio Dossier Sync (Regras W1 a W5)', () => {
       expect(matched.anamnese?.id).toBe('anam-victor-short');
       expect(matched.phone).toBe('(21) 99965-3320');
     });
+
+    it('REGRESSÃO anti-homônimo: prioriza telefone (últimos 8 dígitos) sobre nome idêntico e bloqueia colisão quando telefone ou aluno_id diverge', () => {
+      const crmAlunos = [
+        {
+          id: 'aluno-rafa-1',
+          nome: 'Rafael Borges',
+          telefone: '(11) 91111-2222',
+          fitcoach_student_id: 'fc-outro-rafa',
+        },
+        {
+          id: 'aluno-rafa-2',
+          nome: 'Rafael Borges',
+          telefone: '(11) 98888-9999',
+          fitcoach_student_id: null,
+        },
+      ];
+
+      const anamneses = [
+        {
+          id: 'anam-rafa-1',
+          aluno_id: 'aluno-rafa-1',
+          content: {
+            fullName: 'Rafael Borges',
+            whatsapp: '11911112222',
+            fitcoachEmail: 'rafael1@fitcoach.com',
+          },
+        },
+        {
+          id: 'anam-rafa-2',
+          aluno_id: 'aluno-rafa-2',
+          content: {
+            fullName: 'Rafael Borges',
+            whatsapp: '11988889999',
+            fitcoachEmail: 'rafael2@fitcoach.com',
+          },
+        },
+      ];
+
+      // 1) Mesmo nome exato: telefone seleciona o segundo homônimo corretamente
+      const matchedRight = matchStudentAnamneseAndCrm(
+        {
+          fitcoachId: 'fc-rafa-2',
+          name: 'Rafael Borges',
+          email: 'rafael2@fitcoach.com',
+          phone: '11988889999',
+        },
+        crmAlunos,
+        anamneses,
+      );
+      expect(matchedRight.crmAluno?.id).toBe('aluno-rafa-2');
+      expect(matchedRight.anamnese?.id).toBe('anam-rafa-2');
+
+      // 2) Homônimo com telefone totalmente diferente NÃO sequestra cadastro nem anamnese do outro aluno
+      const unmatchedHomonym = matchStudentAnamneseAndCrm(
+        {
+          fitcoachId: 'fc-rafa-3',
+          name: 'Rafael Borges',
+          email: 'rafael3@fitcoach.com',
+          phone: '11977773333',
+        },
+        crmAlunos,
+        anamneses,
+      );
+      expect(unmatchedHomonym.crmAluno).toBeNull();
+      expect(unmatchedHomonym.anamnese).toBeNull();
+    });
   });
 });
 
