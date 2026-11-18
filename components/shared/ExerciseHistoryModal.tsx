@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabaseClient';
 import { groupExerciseSessions, GroupedExerciseSession } from '../../utils/workoutHistoryGrouper';
 import { getSetTypeToken, getMethodToken, getExecutionModeToken } from '../../utils/specialSetTokens';
+import { formatDateBR, formatTimeBR, getDayOfMonthSP } from '../../utils/dateTime';
 import { useStudentDemo } from '../student/StudentDemoContext';
 
 const formatTime = (seconds: number | string | null | undefined) => {
@@ -71,11 +72,13 @@ const ExerciseHistoryModal: React.FC<ExerciseHistoryModalProps> = ({
                     .from('workout_logs')
                     .select(`
                         id,
+                        started_at,
                         finished_at,
                         workout:workouts (name),
                         set_logs!inner (
                             id,
                             exercise_id,
+                            set_order,
                             weight_kg,
                             reps_completed,
                             rpe_actual,
@@ -219,13 +222,13 @@ const ExerciseHistoryModal: React.FC<ExerciseHistoryModalProps> = ({
                                             <div className="flex items-center gap-2.5 min-w-0">
                                                 <div className="w-8 h-8 rounded-lg bg-sky-500/10 dark:bg-sky-500/20 flex items-center justify-center shrink-0">
                                                     <span className="text-xs font-black text-sky-600 dark:text-sky-400">
-                                                        {sessionDate ? sessionDate.getDate() : '-'}
+                                                        {sessionDate ? (getDayOfMonthSP(sessionDate) ?? '-') : '-'}
                                                     </span>
                                                 </div>
                                                 <div className="min-w-0">
                                                     <span className="text-xs font-bold text-slate-700 dark:text-slate-200 capitalize block truncate">
                                                         {sessionDate
-                                                            ? sessionDate.toLocaleDateString('pt-BR', {
+                                                            ? formatDateBR(sessionDate, {
                                                                   weekday: 'long',
                                                                   day: 'numeric',
                                                                   month: 'short',
@@ -239,11 +242,15 @@ const ExerciseHistoryModal: React.FC<ExerciseHistoryModalProps> = ({
                                             </div>
 
                                             {sessionDate && (
-                                                <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 shrink-0">
-                                                    {sessionDate.toLocaleTimeString('pt-BR', {
-                                                        hour: '2-digit',
-                                                        minute: '2-digit',
-                                                    })}
+                                                <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 shrink-0 tabular-nums">
+                                                    {!session.hasPerExerciseTime &&
+                                                    session.startedAt &&
+                                                    session.finishedAt &&
+                                                    formatTimeBR(session.startedAt) &&
+                                                    formatTimeBR(session.finishedAt) &&
+                                                    formatTimeBR(session.startedAt) !== formatTimeBR(session.finishedAt)
+                                                        ? `${formatTimeBR(session.startedAt)} - ${formatTimeBR(session.finishedAt)}`
+                                                        : formatTimeBR(session.finishedAt)}
                                                 </span>
                                             )}
                                         </div>

@@ -3,6 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabaseClient';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { formatToWhatsappUrl } from '../utils/phoneUtils';
+import { formatDateBR } from '../utils/dateTime';
 
 const SubscriptionExpired: React.FC = () => {
     const { role, expiresAt, coachExpiresAt, signOut, user } = useAuth();
@@ -61,13 +62,8 @@ const SubscriptionExpired: React.FC = () => {
     const formattedDate = (() => {
         const dateToFormat = isCoachBlock ? coachExpiresAt : expiresAt;
         if (!dateToFormat) return 'Data Indisponível';
-        try {
-            const date = new Date(dateToFormat);
-            if (isNaN(date.getTime())) return 'Data Inválida';
-            return date.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' });
-        } catch (e) {
-            return 'Erro na Data';
-        }
+        const formatted = formatDateBR(dateToFormat, { day: '2-digit', month: 'long', year: 'numeric' });
+        return formatted || 'Data Inválida';
     })();
 
     return (

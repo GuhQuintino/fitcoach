@@ -10,6 +10,7 @@ import WorkoutImportModal from '../../components/coach/editor/WorkoutImportModal
 import toast from 'react-hot-toast';
 import ExerciseFormModal from '../../components/coach/exercises/ExerciseFormModal';
 import MethodGuideModal from '../../components/shared/MethodGuideModal';
+import { formatTimeBR } from '../../utils/dateTime';
 
 export interface WorkoutData {
     id: string;
@@ -841,7 +842,7 @@ const Editor: React.FC = () => {
                             ) : lastSaved ? (
                                 <span className="bg-emerald-50 dark:bg-emerald-900/20 text-emerald-500 text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 border border-emerald-100 dark:border-emerald-500/20">
                                     <span className="material-symbols-rounded text-[12px]" aria-hidden="true">done</span>
-                                    Sincronizado {lastSaved.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                    Sincronizado {formatTimeBR(lastSaved)}
                                 </span>
                             ) : null}
                         </div>

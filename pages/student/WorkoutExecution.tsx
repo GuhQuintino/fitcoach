@@ -1453,6 +1453,7 @@ const WorkoutExecution: React.FC = () => {
             exercises.forEach(ex => {
                 ex.sets.forEach((set, i) => {
                     if (set.completed) {
+                        const setCompletedAt = set.completed_at || realFinishedAt.toISOString();
                         setsToInsert.push({
                             workout_log_id: logData.id,
                             exercise_id: ex.id,
@@ -1461,6 +1462,7 @@ const WorkoutExecution: React.FC = () => {
                             weight_kg: parseFloat(set.weight) || 0,
                             reps_completed: parseInt(set.reps) || 0,
                             rpe_actual: parseInt(set.rpe) || null,
+                            completed_at: setCompletedAt,
                             // Novas colunas correspondentes à migração do milestone 1:
                             time_completed: parseInt(set.time_completed || '') || null,
                             distance_completed: parseFloat(set.distance_completed || '') || null,
@@ -1486,6 +1488,7 @@ const WorkoutExecution: React.FC = () => {
                                         weight_kg: parseFloat(drop.weight) || 0,
                                         reps_completed: parseInt(drop.reps) || 0,
                                         rpe_actual: null,
+                                        completed_at: setCompletedAt,
                                         time_completed: null,
                                         distance_completed: null,
                                         speed_actual: null,
@@ -1513,6 +1516,7 @@ const WorkoutExecution: React.FC = () => {
                                         weight_kg: parseFloat(set.weight) || 0,
                                         reps_completed: parseInt(sub.reps) || 0,
                                         rpe_actual: null,
+                                        completed_at: setCompletedAt,
                                         time_completed: null,
                                         distance_completed: null,
                                         speed_actual: null,
@@ -1609,6 +1613,7 @@ const WorkoutExecution: React.FC = () => {
                 exercises.forEach(ex => {
                     ex.sets.forEach((set, i) => {
                         if (set.completed) {
+                            const setCompletedAt = set.completed_at || realFinishedAt.toISOString();
                             setsToQueue.push({
                                 exercise_id: ex.id,
                                 set_type: sanitizeSetType(set.type),
@@ -1616,6 +1621,7 @@ const WorkoutExecution: React.FC = () => {
                                 weight_kg: parseFloat(set.weight) || 0,
                                 reps_completed: parseInt(set.reps) || 0,
                                 rpe_actual: parseInt(set.rpe) || null,
+                                completed_at: setCompletedAt,
                                 time_completed: parseInt(set.time_completed || '') || null,
                                 distance_completed: parseFloat(set.distance_completed || '') || null,
                                 speed_actual: parseFloat(set.speed_actual || '') || null,
@@ -1638,6 +1644,7 @@ const WorkoutExecution: React.FC = () => {
                                             weight_kg: parseFloat(drop.weight) || 0,
                                             reps_completed: parseInt(drop.reps) || 0,
                                             rpe_actual: null,
+                                            completed_at: setCompletedAt,
                                             time_completed: null,
                                             distance_completed: null,
                                             speed_actual: null,
@@ -1663,6 +1670,7 @@ const WorkoutExecution: React.FC = () => {
                                             weight_kg: parseFloat(set.weight) || 0,
                                             reps_completed: parseInt(sub.reps) || 0,
                                             rpe_actual: null,
+                                            completed_at: setCompletedAt,
                                             time_completed: null,
                                             distance_completed: null,
                                             speed_actual: null,
@@ -2995,6 +3003,7 @@ const WorkoutExecution: React.FC = () => {
                             currentSet.hiit_cycles_completed = String(cyclesCompleted);
                             currentSet.time_completed = String(totalSeconds);
                             currentSet.completed = true;
+                            currentSet.completed_at = new Date().toISOString();
 
                             newExercises[exIdx].sets[setIdx] = currentSet;
                             setExercises(newExercises);

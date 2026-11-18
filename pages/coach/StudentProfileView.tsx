@@ -8,6 +8,7 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { formatToWhatsappUrl } from '../../utils/phoneUtils';
 import { SUB_MUSCLE_LABELS, normalizeMuscleWeights } from '../../utils/muscleUtils';
 import { calculateAgeFromBirthDate, calculateMetabolicProfile, sanitizeHeightCm } from '../../utils/metabolicCalculator';
+import { formatDateBR, formatMonthShortSP, formatWorkoutStartAndDuration, getDayOfMonthSP, toLocalDateKeySP } from '../../utils/dateTime';
 
 const StudentProfileView: React.FC = () => {
     const { id } = useParams<{ id: string }>();
@@ -100,7 +101,7 @@ const StudentProfileView: React.FC = () => {
             setStudentData(sData);
 
             if (sData?.consultancy_expires_at) {
-                setNewExpirationDate(sData.consultancy_expires_at.split('T')[0]);
+                setNewExpirationDate(toLocalDateKeySP(sData.consultancy_expires_at));
             }
 
             // Fetch Active Routine
@@ -440,11 +441,11 @@ const StudentProfileView: React.FC = () => {
                                 <button
                                     type="button"
                                     onClick={() => setIsEditingExpiration(true)}
-                                    aria-label={`Editar validade do plano do aluno (Ativo até ${new Date(studentData?.consultancy_expires_at).toLocaleDateString()})`}
+                                    aria-label={`Editar validade do plano do aluno (Ativo até ${formatDateBR(studentData?.consultancy_expires_at)})`}
                                     className="inline-flex items-center gap-1.5 px-4 py-2 min-h-[44px] rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 text-xs font-bold uppercase tracking-wider hover:bg-emerald-200 transition-colors border border-emerald-200 dark:border-emerald-800 cursor-pointer"
                                 >
                                     <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" aria-hidden="true"></span>
-                                    Ativo até {new Date(studentData?.consultancy_expires_at).toLocaleDateString()}
+                                    Ativo até {formatDateBR(studentData?.consultancy_expires_at)}
                                 </button>
                             )}
                         </div>
@@ -628,7 +629,7 @@ const StudentProfileView: React.FC = () => {
                                     <ResponsiveContainer width="100%" height="100%">
                                         <LineChart data={weightHistory.map(h => ({
                                             weight: h.weight_kg,
-                                            date: new Date(h.recorded_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })
+                                            date: formatDateBR(h.recorded_at, { day: '2-digit', month: '2-digit' })
                                         }))}>
                                             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-slate-100, #f1f5f9)" />
                                             <XAxis dataKey="date" hide />
@@ -903,15 +904,15 @@ const StudentProfileView: React.FC = () => {
                                             <div className="flex items-center justify-between">
                                                 <div className="flex items-center gap-4">
                                                     <div className="w-12 h-12 rounded-2xl bg-primary/5 dark:bg-primary/10 flex flex-col items-center justify-center text-primary">
-                                                        <span className="text-[9px] font-black uppercase leading-none">{new Date(log.started_at).toLocaleString('pt-BR', { month: 'short' }).replace('.', '')}</span>
-                                                        <span className="text-lg font-black leading-tight">{new Date(log.started_at).getDate()}</span>
+                                                        <span className="text-[9px] font-black uppercase leading-none">{formatMonthShortSP(log.started_at)}</span>
+                                                        <span className="text-lg font-black leading-tight">{getDayOfMonthSP(log.started_at) ?? '-'}</span>
                                                     </div>
                                                     <div>
                                                         <h4 className="font-bold text-slate-900 dark:text-white text-base line-clamp-1">{log.workout?.name || 'Treino s/ nome'}</h4>
                                                         <div className="flex items-center gap-3 text-[10px] font-bold text-slate-600 dark:text-slate-300 uppercase tracking-widest mt-0.5 tabular-nums">
                                                             <span className="flex items-center gap-1">
                                                                 <span className="material-symbols-rounded text-sm" aria-hidden="true">schedule</span>
-                                                                {Math.floor((new Date(log.finished_at).getTime() - new Date(log.started_at).getTime()) / 60000)} min
+                                                                {formatWorkoutStartAndDuration(log.started_at, log.finished_at)}
                                                             </span>
                                                             <span className="flex items-center gap-1 text-primary">
                                                                 <span className="material-symbols-rounded text-sm" aria-hidden="true">bolt</span>

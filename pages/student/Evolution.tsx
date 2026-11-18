@@ -5,6 +5,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, BarChart, Bar, Cell, ReferenceLine } from 'recharts';
+import { formatDateBR, toLocalDateKeySP } from '../../utils/dateTime';
 
 // --- Types ---
 interface SetLogEntry {
@@ -184,7 +185,7 @@ const Evolution: React.FC = () => {
                 l.weight_kg > 0
             )
             .forEach(l => {
-                const dateKey = l.finished_at.split('T')[0]; // YYYY-MM-DD
+                const dateKey = toLocalDateKeySP(l.finished_at); // YYYY-MM-DD em America/Sao_Paulo
                 const existing = sessionMap.get(dateKey);
                 if (!existing || l.weight_kg > existing.maxWeight) {
                     sessionMap.set(dateKey, { date: l.finished_at, maxWeight: l.weight_kg });
@@ -202,7 +203,7 @@ const Evolution: React.FC = () => {
             if (isPR) currentPR = entry.maxWeight;
             return {
                 date: entry.date,
-                dateLabel: new Date(entry.date).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }),
+                dateLabel: formatDateBR(entry.date, { day: '2-digit', month: '2-digit' }),
                 maxWeight: entry.maxWeight,
                 isPR,
             };
@@ -229,7 +230,7 @@ const Evolution: React.FC = () => {
 
         // Determine which PRs are "new" (set in the last session of this exercise)
         const lastSessionDate = exerciseLogs.length > 0
-            ? exerciseLogs[exerciseLogs.length - 1].finished_at.split('T')[0]
+            ? toLocalDateKeySP(exerciseLogs[exerciseLogs.length - 1].finished_at)
             : '';
 
         return Array.from(prMap.entries())
@@ -237,7 +238,7 @@ const Evolution: React.FC = () => {
                 reps,
                 weight: data.weight,
                 date: data.date,
-                isNew: data.date.split('T')[0] === lastSessionDate,
+                isNew: toLocalDateKeySP(data.date) === lastSessionDate,
             }))
             .sort((a, b) => a.reps - b.reps);
     }, [setLogs, selectedExercise]);
@@ -289,7 +290,7 @@ const Evolution: React.FC = () => {
             const data = payload[0].payload as ProgressionPoint;
             return (
                 <div className="bg-white dark:bg-slate-800 px-3 py-2 rounded-xl shadow-lg border border-slate-100 dark:border-slate-700 text-sm">
-                    <p className="text-slate-500 text-xs">{new Date(data.date).toLocaleDateString('pt-BR')}</p>
+                    <p className="text-slate-500 text-xs">{formatDateBR(data.date)}</p>
                     <p className="font-bold text-slate-900 dark:text-white">
                         {data.maxWeight}kg × {selectedReps} reps
                     </p>
@@ -396,7 +397,7 @@ const Evolution: React.FC = () => {
                                                 </p>
                                             </div>
                                             <span className="text-[10px] text-slate-400 flex-shrink-0">
-                                                {new Date(pr.date).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}
+                                                {formatDateBR(pr.date, { day: '2-digit', month: '2-digit' })}
                                             </span>
                                         </div>
                                     ))}
@@ -584,7 +585,7 @@ const Evolution: React.FC = () => {
                                                                 {pr.weight}kg × {pr.reps} reps
                                                             </p>
                                                             <p className="text-[10px] text-slate-400">
-                                                                {new Date(pr.date).toLocaleDateString('pt-BR')}
+                                                                {formatDateBR(pr.date)}
                                                             </p>
                                                         </div>
                                                     </div>

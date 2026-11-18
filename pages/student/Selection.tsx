@@ -11,6 +11,7 @@ import ConfirmDialog from '../../components/shared/ConfirmDialog';
 import { getActiveWorkout, removeActiveWorkout } from '../../utils/activeWorkoutStorage';
 import { useStudentDemo } from '../../components/student/StudentDemoContext';
 import { STUDENT_DEMO_ROUTINE, STUDENT_DEMO_WORKOUTS } from '../../utils/studentDemoFixtures';
+import { formatTimeBR } from '../../utils/dateTime';
 
 export interface ParsedRoutineMeta {
     isJson: boolean;
@@ -290,7 +291,7 @@ const Selection: React.FC = () => {
                             </div>
                             <div className="flex-1">
                                 <h4 className="text-white font-bold">Treino em andamento!</h4>
-                                <p className="text-slate-400 text-xs text-left">Você tem um treino iniciado {new Date(activeWorkout.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}.</p>
+                                <p className="text-slate-400 text-xs text-left">Você tem um treino iniciado {formatTimeBR(activeWorkout.startTime)}.</p>
                             </div>
                         </div>
                         <div className="grid grid-cols-2 gap-3 mt-4">

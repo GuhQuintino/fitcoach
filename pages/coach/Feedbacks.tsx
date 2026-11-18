@@ -13,6 +13,7 @@ import {
     getStudentFilterOption,
     StudentFilterOption,
 } from '../../utils/coachFeedbackFilters';
+import { formatDateBR } from '../../utils/dateTime';
 
 const formatTime = (seconds: number | string | null | undefined) => {
     if (seconds === null || seconds === undefined) return '-';
@@ -635,7 +636,7 @@ const Feedbacks: React.FC = () => {
                                                         )}
                                                     </div>
                                                     <p className="text-xs text-slate-500 dark:text-slate-400 capitalize">
-                                                        {new Date(log.created_at).toLocaleDateString('pt-BR', {
+                                                        {formatDateBR(log.created_at, {
                                                             weekday: 'long',
                                                             day: 'numeric',
                                                             month: 'long',

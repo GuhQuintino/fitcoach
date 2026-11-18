@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabaseClient';
 import { useAuth } from '../../contexts/AuthContext';
 import { toast } from 'react-hot-toast';
+import { formatDateBR } from '../../utils/dateTime';
 
 interface Photo {
     id: string;
@@ -172,19 +173,19 @@ const EvolutionGallery: React.FC<{ studentId?: string; isCoachView?: boolean }> 
                         <div key={photo.id} className="group relative aspect-[3/4] rounded-2xl overflow-hidden bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
                             <img
                                 src={photo.image_url}
-                                alt={`Foto de progresso registrada em ${new Date(photo.created_at).toLocaleDateString('pt-BR')}`}
+                                alt={`Foto de progresso registrada em ${formatDateBR(photo.created_at)}`}
                                 loading="lazy"
                                 className="w-full h-full object-cover"
                             />
                             <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity flex flex-col justify-end p-4">
                                 <p className="text-[10px] text-white/90 font-medium tabular-nums">
-                                    {new Date(photo.created_at).toLocaleDateString('pt-BR')}
+                                    {formatDateBR(photo.created_at)}
                                 </p>
                                 {!isCoachView && (
                                     <button
                                         type="button"
                                         onClick={() => deletePhoto(photo.id, photo.image_url)}
-                                        aria-label={`Excluir foto do dia ${new Date(photo.created_at).toLocaleDateString('pt-BR')}`}
+                                        aria-label={`Excluir foto do dia ${formatDateBR(photo.created_at)}`}
                                         className="absolute top-2 right-2 w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center bg-red-500/80 text-white rounded-xl hover:bg-red-500 transition-colors shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
                                     >
                                         <span className="material-symbols-rounded text-base" aria-hidden="true">delete</span>

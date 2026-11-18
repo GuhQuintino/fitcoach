@@ -15,6 +15,7 @@ import {
     getStatusBadgeConfig,
     StudentClassification
 } from '../../utils/studentStatus';
+import { addDaysDateKeySP, toLocalDateKeySP } from '../../utils/dateTime';
 
 interface StudentProfile {
     id: string;
@@ -197,25 +198,21 @@ const CoachStudents: React.FC = () => {
         setModalStudent(student);
 
         if (student.consultancy_expires_at) {
-            // Preenche com a data atual cadastrada
-            const existingDate = new Date(student.consultancy_expires_at);
-            if (!isNaN(existingDate.getTime())) {
-                setExpirationDate(existingDate.toISOString().split('T')[0]);
+            // Preenche com a data atual cadastrada em America/Sao_Paulo
+            const existingKey = toLocalDateKeySP(student.consultancy_expires_at);
+            if (existingKey) {
+                setExpirationDate(existingKey);
                 return;
             }
         }
 
         // Padrão de +30 dias
-        const defaultDate = new Date();
-        defaultDate.setDate(defaultDate.getDate() + 30);
-        setExpirationDate(defaultDate.toISOString().split('T')[0]);
+        setExpirationDate(addDaysDateKeySP(30));
     };
 
     // Aplica atalho rápido de dias no modal (+30, +60, +90, +365)
     const handleApplyQuickDays = (days: number) => {
-        const targetDate = new Date();
-        targetDate.setDate(targetDate.getDate() + days);
-        setExpirationDate(targetDate.toISOString().split('T')[0]);
+        setExpirationDate(addDaysDateKeySP(days));
     };
 
     // Confirma aprovação de novo aluno ou atualização de data

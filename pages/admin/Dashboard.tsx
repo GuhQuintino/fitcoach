@@ -3,6 +3,7 @@ import { supabase } from '../../lib/supabaseClient';
 import { toast } from 'react-hot-toast';
 import { useAuth } from '../../contexts/AuthContext';
 import ThemeToggle from '../../components/ThemeToggle';
+import { addDaysDateKeySP, toLocalDateKeySP } from '../../utils/dateTime';
 
 interface CoachProfile {
     id: string;
@@ -169,11 +170,9 @@ const AdminDashboard: React.FC = () => {
         const cData = Array.isArray(coach.coaches_data) ? coach.coaches_data[0] : coach.coaches_data;
         const currentExp = cData?.subscription_expires_at;
         if (currentExp) {
-            setNewExpirationDate(new Date(currentExp).toISOString().split('T')[0]);
+            setNewExpirationDate(toLocalDateKeySP(currentExp));
         } else {
-            const defaultDate = new Date();
-            defaultDate.setDate(defaultDate.getDate() + 30);
-            setNewExpirationDate(defaultDate.toISOString().split('T')[0]);
+            setNewExpirationDate(addDaysDateKeySP(30));
         }
     };
 

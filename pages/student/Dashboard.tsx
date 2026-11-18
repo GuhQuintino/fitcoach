@@ -21,6 +21,7 @@ import { runStudentSmartNotificationCheck } from '../../utils/smartNotificationD
 import toast from 'react-hot-toast';
 import { useStudentDemo } from '../../components/student/StudentDemoContext';
 import { STUDENT_DEMO_ROUTINE } from '../../utils/studentDemoFixtures';
+import { formatDateBR, formatTimeBR } from '../../utils/dateTime';
 
 const StudentDashboard: React.FC = () => {
     const isDemo = useStudentDemo();
@@ -287,7 +288,7 @@ const StudentDashboard: React.FC = () => {
                     <div>
                         <h1 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Acesso Vencido</h1>
                         <p className="text-slate-500 dark:text-slate-400">
-                            Sua consultoria encerrou em <strong>{new Date(studentData.consultancy_expires_at).toLocaleDateString()}</strong>.
+                            Sua consultoria encerrou em <strong>{formatDateBR(studentData.consultancy_expires_at)}</strong>.
                             <br />Entre em contato com <strong>{getFirstName(coach?.full_name, 'seu coach')}</strong> para renovar.
                         </p>
                     </div>
@@ -310,7 +311,7 @@ const StudentDashboard: React.FC = () => {
     }
 
     const formattedExpirationDate = expiresAt
-        ? new Date(expiresAt).toLocaleDateString('pt-BR')
+        ? formatDateBR(expiresAt)
         : null;
 
     // ACTIVE DASHBOARD
@@ -411,7 +412,7 @@ const StudentDashboard: React.FC = () => {
                             </div>
                             <div className="flex-1">
                                 <h4 className="text-white font-bold">Treino em andamento!</h4>
-                                <p className="text-slate-400 text-xs">Você tem um treino iniciado {new Date(activeWorkout.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}.</p>
+                                <p className="text-slate-400 text-xs">Você tem um treino iniciado {formatTimeBR(activeWorkout.startTime)}.</p>
                             </div>
                         </div>
                         <div className="grid grid-cols-2 gap-3 mt-4">

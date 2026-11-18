@@ -4,6 +4,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabaseClient';
 import toast from 'react-hot-toast';
 import ToggleSwitch from '../../components/shared/ToggleSwitch';
+import { formatDateBR } from '../../utils/dateTime';
 import {
     isPushSupported,
     isIOS,
@@ -565,7 +566,7 @@ const NotificationsSettings: React.FC = () => {
                                         <div className="pt-2.5 border-t border-slate-100 dark:border-slate-700/60 flex items-center justify-between text-xs">
                                             <span className="text-slate-600 dark:text-slate-300 flex items-center gap-1.5 tabular-nums">
                                                 <span className="material-symbols-rounded text-sm text-amber-500" aria-hidden="true">schedule</span>
-                                                Adiado por 3 dias (até {new Date(notifPrefs.profile_completion_snoozed_until!).toLocaleDateString('pt-BR')})
+                                                Adiado por 3 dias (até {formatDateBR(notifPrefs.profile_completion_snoozed_until!)})
                                             </span>
                                             <button
                                                 type="button"
@@ -658,7 +659,7 @@ const NotificationsSettings: React.FC = () => {
                         <div className="space-y-2.5">
                             {recentNotifs.map((notif) => {
                                 const isUnread = !notif.read_at;
-                                const dateFormatted = new Date(notif.created_at).toLocaleDateString('pt-BR', {
+                                const dateFormatted = formatDateBR(notif.created_at, {
                                     day: '2-digit',
                                     month: 'short',
                                     hour: '2-digit',

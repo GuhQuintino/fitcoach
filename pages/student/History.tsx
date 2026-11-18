@@ -4,6 +4,15 @@ import { supabase } from '../../lib/supabaseClient';
 import { useAuth } from '../../contexts/AuthContext';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { SUB_MUSCLE_LABELS, normalizeMuscleWeights } from '../../utils/muscleUtils';
+import {
+    parseDateSafe,
+    toLocalDateKeySP,
+    getDatePartsSP,
+    getDayOfMonthSP,
+    formatMonthShortSP,
+    formatMonthYearSP,
+    formatWorkoutStartAndDuration,
+} from '../../utils/dateTime';
 
 const formatTime = (seconds: number | string | null | undefined) => {
     if (seconds === null || seconds === undefined) return '-';
@@ -15,11 +24,7 @@ const formatTime = (seconds: number | string | null | undefined) => {
 };
 
 const formatLocalDateKey = (dateInput: string | Date): string => {
-    const d = typeof dateInput === 'string' ? new Date(dateInput) : dateInput;
-    const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
+    return toLocalDateKeySP(dateInput);
 };
 
 const History: React.FC = () => {
@@ -94,18 +99,19 @@ const History: React.FC = () => {
     };
 
     // Calendar logic
-    const daysInMonth = (year: number, month: number) => new Date(year, month + 1, 0).getDate();
-    const firstDayOfMonth = (year: number, month: number) => new Date(year, month, 1).getDay();
+    const daysInMonth = (year: number, month: number) => new Date(Date.UTC(year, month + 1, 0, 12, 0, 0)).getUTCDate();
+    const firstDayOfMonth = (year: number, month: number) => new Date(Date.UTC(year, month, 1, 12, 0, 0)).getUTCDay();
 
-    const currentYear = selectedDate.getFullYear();
-    const currentMonth = selectedDate.getMonth();
+    const selectedParts = getDatePartsSP(selectedDate);
+    const currentYear = selectedParts ? selectedParts.year : selectedDate.getFullYear();
+    const currentMonth = selectedParts ? selectedParts.month - 1 : selectedDate.getMonth();
     const totalDays = daysInMonth(currentYear, currentMonth);
     const startOffset = firstDayOfMonth(currentYear, currentMonth);
 
     const findLogForDay = (day: number) => {
         return logs.find(log => {
-            const d = new Date(log.started_at);
-            return d.getFullYear() === currentYear && d.getMonth() === currentMonth && d.getDate() === day;
+            const parts = getDatePartsSP(log.started_at);
+            return parts !== null && parts.year === currentYear && parts.month === currentMonth + 1 && parts.day === day;
         });
     };
 
@@ -118,7 +124,7 @@ const History: React.FC = () => {
         setExpandedLog(targetLog.id);
         setHighlightedLogId(targetLog.id);
 
-        const dateStr = formatLocalDateKey(new Date(currentYear, currentMonth, day));
+        const dateStr = formatLocalDateKey(targetLog.started_at);
         const el = document.getElementById(`history-log-${dateStr}`) || document.getElementById(`workout-log-card-${targetLog.id}`);
         if (el) {
             el.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -207,18 +213,19 @@ const History: React.FC = () => {
         }
 
         const monthLogs = logs.filter(log => {
-            const d = new Date(log.started_at);
-            return d.getFullYear() === currentYear && d.getMonth() === currentMonth;
+            const parts = getDatePartsSP(log.started_at);
+            return parts !== null && parts.year === currentYear && parts.month === currentMonth + 1;
         });
 
         const activeWeeks = new Set<string>();
 
         monthLogs.forEach(log => {
-            const date = new Date(log.started_at);
-            const oneJan = new Date(date.getFullYear(), 0, 1);
+            const date = parseDateSafe(toLocalDateKeySP(log.started_at));
+            if (!date) return;
+            const oneJan = new Date(Date.UTC(date.getUTCFullYear(), 0, 1, 12, 0, 0));
             const numberOfDays = Math.floor((date.getTime() - oneJan.getTime()) / (24 * 60 * 60 * 1000));
-            const weekNum = Math.ceil((date.getDay() + 1 + numberOfDays) / 7);
-            activeWeeks.add(`${date.getFullYear()}-W${weekNum}`);
+            const weekNum = Math.ceil((date.getUTCDay() + 1 + numberOfDays) / 7);
+            activeWeeks.add(`${date.getUTCFullYear()}-W${weekNum}`);
         });
 
         const divisor = activeWeeks.size > 0 ? activeWeeks.size : 1;
@@ -365,14 +372,14 @@ const History: React.FC = () => {
                     <div className="flex items-center justify-between mb-6 px-1">
                         <div>
                             <h2 className="font-bold text-slate-800 dark:text-white capitalize">
-                                {selectedDate.toLocaleString('pt-BR', { month: 'long', year: 'numeric' })}
+                                {formatMonthYearSP(selectedDate)}
                             </h2>
                             <p className="text-[11px] text-slate-600 dark:text-slate-300">Toque em um dia com treino para abrir o registro</p>
                         </div>
                         <div className="flex gap-2">
                             <button
                                 type="button"
-                                onClick={() => setSelectedDate(new Date(currentYear, currentMonth - 1, 1))}
+                                onClick={() => setSelectedDate(new Date(Date.UTC(currentYear, currentMonth - 1, 1, 12, 0, 0)))}
                                 aria-label="Mês anterior"
                                 className="w-11 h-11 min-w-[44px] min-h-[44px] rounded-xl bg-slate-50 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:text-primary transition-colors flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                             >
@@ -380,7 +387,7 @@ const History: React.FC = () => {
                             </button>
                             <button
                                 type="button"
-                                onClick={() => setSelectedDate(new Date(currentYear, currentMonth + 1, 1))}
+                                onClick={() => setSelectedDate(new Date(Date.UTC(currentYear, currentMonth + 1, 1, 12, 0, 0)))}
                                 aria-label="Próximo mês"
                                 className="w-11 h-11 min-w-[44px] min-h-[44px] rounded-xl bg-slate-50 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:text-primary transition-colors flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                             >
@@ -402,7 +409,8 @@ const History: React.FC = () => {
                         {Array.from({ length: totalDays }).map((_, i) => {
                             const day = i + 1;
                             const active = hasWorkout(day);
-                            const isToday = day === new Date().getDate() && currentMonth === new Date().getMonth() && currentYear === new Date().getFullYear();
+                            const todayParts = getDatePartsSP(new Date());
+                            const isToday = todayParts !== null && day === todayParts.day && currentMonth === todayParts.month - 1 && currentYear === todayParts.year;
 
                             const dayThemeClass = isToday
                                 ? 'bg-primary text-white shadow-lg shadow-primary/30'
@@ -475,8 +483,8 @@ const History: React.FC = () => {
                                         className="w-full p-5 flex items-center gap-4 text-left cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                                     >
                                         <div className="w-12 h-12 rounded-2xl bg-slate-50 dark:bg-slate-900 flex flex-col items-center justify-center text-slate-600 dark:text-slate-300">
-                                            <span className="text-[10px] font-black uppercase leading-none">{new Date(log.started_at).toLocaleString('pt-BR', { month: 'short' }).replace('.', '')}</span>
-                                            <span className="text-lg font-black leading-tight text-slate-900 dark:text-white tabular-nums">{new Date(log.started_at).getDate()}</span>
+                                            <span className="text-[10px] font-black uppercase leading-none">{formatMonthShortSP(log.started_at)}</span>
+                                            <span className="text-lg font-black leading-tight text-slate-900 dark:text-white tabular-nums">{getDayOfMonthSP(log.started_at) ?? '-'}</span>
                                         </div>
 
                                         <div className="flex-1 min-w-0">
@@ -484,9 +492,7 @@ const History: React.FC = () => {
                                             <div className="flex items-center gap-3 mt-1 text-[10px] font-bold text-slate-600 dark:text-slate-300 uppercase tracking-widest tabular-nums">
                                                 <span className="flex items-center gap-1">
                                                     <span className="material-symbols-rounded text-[14px]" aria-hidden="true">schedule</span>
-                                                    {log.finished_at && log.started_at
-                                                        ? `${Math.floor((new Date(log.finished_at).getTime() - new Date(log.started_at).getTime()) / 60000)} min`
-                                                        : '-'}
+                                                    {formatWorkoutStartAndDuration(log.started_at, log.finished_at)}
                                                 </span>
                                                 <span className="flex items-center gap-1">
                                                     <span className="material-symbols-rounded text-[14px]" aria-hidden="true">fitness_center</span>

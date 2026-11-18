@@ -182,5 +182,165 @@ describe('workoutHistoryGrouper utils', () => {
         expect(set2.group_round).toBe(1);
         expect(set2.micro_set_index).toBe(1);
     });
+
+    it('deve ordenar set_logs por set_order e micro_set_index mesmo quando completed_at é idêntico (caso legado do banco)', () => {
+        const batchInsertedAt = '2026-10-15T20:45:00.000Z';
+        const mockLogs: RawWorkoutLogWithSets[] = [
+            {
+                id: 'log-legado-ordem',
+                started_at: '2026-10-15T20:00:00.000Z',
+                finished_at: '2026-10-15T20:44:00.000Z',
+                workout: { name: 'Treino A - Peito' },
+                set_logs: [
+                    {
+                        id: 'set-order-2',
+                        exercise_id: 'supino-reto',
+                        set_order: 2,
+                        weight_kg: 90,
+                        reps_completed: 6,
+                        completed_at: batchInsertedAt,
+                    },
+                    {
+                        id: 'set-order-1-drop-2',
+                        exercise_id: 'supino-reto',
+                        set_order: 1,
+                        micro_set_index: 2,
+                        set_method: 'dropset',
+                        set_type: 'drop',
+                        weight_kg: 50,
+                        reps_completed: 10,
+                        completed_at: batchInsertedAt,
+                    },
+                    {
+                        id: 'set-order-1-main',
+                        exercise_id: 'supino-reto',
+                        set_order: 1,
+                        micro_set_index: null,
+                        set_method: 'dropset',
+                        set_type: 'working',
+                        weight_kg: 80,
+                        reps_completed: 8,
+                        completed_at: batchInsertedAt,
+                    },
+                    {
+                        id: 'set-order-1-drop-1',
+                        exercise_id: 'supino-reto',
+                        set_order: 1,
+                        micro_set_index: 1,
+                        set_method: 'dropset',
+                        set_type: 'drop',
+                        weight_kg: 65,
+                        reps_completed: 8,
+                        completed_at: batchInsertedAt,
+                    },
+                    {
+                        id: 'set-order-0',
+                        exercise_id: 'supino-reto',
+                        set_order: 0,
+                        weight_kg: 70,
+                        reps_completed: 12,
+                        completed_at: batchInsertedAt,
+                    },
+                ],
+            },
+        ];
+
+        const result = groupExerciseSessions(mockLogs, 'supino-reto');
+        expect(result).toHaveLength(1);
+        expect(result[0].sets.map((s) => s.id)).toEqual([
+            'set-order-0',
+            'set-order-1-main',
+            'set-order-1-drop-1',
+            'set-order-1-drop-2',
+            'set-order-2',
+        ]);
+        expect(result[0].sets.map((s) => s.set_order)).toEqual([0, 1, 1, 1, 2]);
+    });
+
+    it('deve preservar completed_at específico do exercício (hasPerExerciseTime = true) quando gravado durante o treino', () => {
+        const mockLogs: RawWorkoutLogWithSets[] = [
+            {
+                id: 'log-real-per-set',
+                started_at: '2026-10-16T18:00:00.000Z',
+                finished_at: '2026-10-16T18:50:00.000Z',
+                workout: { name: 'Treino B - Costas' },
+                set_logs: [
+                    {
+                        id: 's-1',
+                        exercise_id: 'remada-curvada',
+                        set_order: 0,
+                        weight_kg: 70,
+                        reps_completed: 10,
+                        completed_at: '2026-10-16T18:12:00.000Z',
+                    },
+                    {
+                        id: 's-2',
+                        exercise_id: 'remada-curvada',
+                        set_order: 1,
+                        weight_kg: 75,
+                        reps_completed: 8,
+                        completed_at: '2026-10-16T18:15:30.000Z',
+                    },
+                ],
+            },
+        ];
+
+        const result = groupExerciseSessions(mockLogs, 'remada-curvada');
+        expect(result).toHaveLength(1);
+        expect(result[0].hasPerExerciseTime).toBe(true);
+        expect(result[0].startedAt).toBe('2026-10-16T18:00:00.000Z');
+        expect(result[0].finishedAt).toBe('2026-10-16T18:12:00.000Z');
+    });
+
+    it('deve fazer fallback para startedAt/finishedAt do workout_log (hasPerExerciseTime = false) em logs legados com DEFAULT now()', () => {
+        const mockLogs: RawWorkoutLogWithSets[] = [
+            {
+                id: 'log-legado-default-now',
+                started_at: '2026-10-16T18:00:00.000Z',
+                finished_at: '2026-10-16T18:50:00.000Z',
+                workout: { name: 'Treino C - Pernas' },
+                set_logs: [
+                    {
+                        id: 's-legado-1',
+                        exercise_id: 'agachamento',
+                        set_order: 0,
+                        weight_kg: 100,
+                        reps_completed: 8,
+                        // Simula DEFAULT now() no insert em lote > finished_at + 1000ms
+                        completed_at: '2026-10-16T18:50:02.000Z',
+                    },
+                ],
+            },
+            {
+                id: 'log-sem-completed-at',
+                started_at: '2026-10-14T18:00:00.000Z',
+                finished_at: '2026-10-14T18:45:00.000Z',
+                workout: { name: 'Treino C - Pernas' },
+                set_logs: [
+                    {
+                        id: 's-legado-2',
+                        exercise_id: 'agachamento',
+                        set_order: 0,
+                        weight_kg: 95,
+                        reps_completed: 8,
+                        completed_at: null,
+                    },
+                ],
+            },
+        ];
+
+        const result = groupExerciseSessions(mockLogs, 'agachamento');
+        expect(result).toHaveLength(2);
+
+        expect(result[0].sessionId).toBe('log-legado-default-now');
+        expect(result[0].hasPerExerciseTime).toBe(false);
+        expect(result[0].startedAt).toBe('2026-10-16T18:00:00.000Z');
+        expect(result[0].finishedAt).toBe('2026-10-16T18:50:00.000Z');
+
+        expect(result[1].sessionId).toBe('log-sem-completed-at');
+        expect(result[1].hasPerExerciseTime).toBe(false);
+        expect(result[1].startedAt).toBe('2026-10-14T18:00:00.000Z');
+        expect(result[1].finishedAt).toBe('2026-10-14T18:45:00.000Z');
+    });
 });
 

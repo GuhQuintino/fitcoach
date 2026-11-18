@@ -12,6 +12,7 @@ export interface OfflineSetLog {
     weight_kg: number;
     reps_completed: number;
     rpe_actual: number | null;
+    completed_at?: string | null;
     time_completed?: number | null;
     distance_completed?: number | null;
     speed_actual?: number | null;
@@ -203,6 +204,7 @@ export async function flushOfflineQueue(): Promise<{ syncedCount: number; failed
                         weight_kg: s.weight_kg,
                         reps_completed: s.reps_completed,
                         rpe_actual: s.rpe_actual,
+                        completed_at: s.completed_at || workoutLog.finished_at,
                         time_completed: s.time_completed ?? null,
                         distance_completed: s.distance_completed ?? null,
                         speed_actual: s.speed_actual ?? null,

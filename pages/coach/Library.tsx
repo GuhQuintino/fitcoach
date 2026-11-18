@@ -5,6 +5,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { Link, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { matchesSearch } from '../../utils/textUtils';
+import { toLocalDateKeySP } from '../../utils/dateTime';
 
 const Library: React.FC = () => {
     const { user } = useAuth();
@@ -248,7 +249,7 @@ const Library: React.FC = () => {
                     student_id: studentId,
                     routine_id: newRoutine.id,
                     is_active: true,
-                    started_at: new Date().toISOString().split('T')[0]
+                    started_at: toLocalDateKeySP(new Date())
                 }]);
 
             if (aError) throw aError;

@@ -163,6 +163,7 @@ export async function autoFinalizeWorkout(
         saved.exercises.forEach(ex => {
             ex.sets.forEach((set: any, i) => {
                 if (set.completed) {
+                    const setCompletedAt = set.completed_at || realFinishedAt.toISOString();
                     setsToInsert.push({
                         workout_log_id: logData.id,
                         exercise_id: ex.id,
@@ -171,6 +172,7 @@ export async function autoFinalizeWorkout(
                         weight_kg: parseFloat(set.weight) || 0,
                         reps_completed: parseInt(set.reps) || 0,
                         rpe_actual: parseInt(set.rpe) || null,
+                        completed_at: setCompletedAt,
                         time_completed: parseInt(set.time_completed || '') || null,
                         distance_completed: parseFloat(set.distance_completed || '') || null,
                         speed_actual: parseFloat(set.speed_actual || '') || null,
@@ -194,6 +196,7 @@ export async function autoFinalizeWorkout(
                                     weight_kg: parseFloat(d.weight) || 0,
                                     reps_completed: parseInt(d.reps) || 0,
                                     rpe_actual: null,
+                                    completed_at: setCompletedAt,
                                     time_completed: null,
                                     distance_completed: null,
                                     speed_actual: null,
@@ -220,6 +223,7 @@ export async function autoFinalizeWorkout(
                                     weight_kg: parseFloat(set.weight) || 0,
                                     reps_completed: parseInt(sub.reps) || 0,
                                     rpe_actual: null,
+                                    completed_at: setCompletedAt,
                                     time_completed: null,
                                     distance_completed: null,
                                     speed_actual: null,
@@ -309,6 +313,7 @@ export async function autoFinalizeWorkout(
             saved.exercises.forEach(ex => {
                 ex.sets.forEach((set, i) => {
                     if (set.completed) {
+                        const setCompletedAt = set.completed_at || realFinishedAt.toISOString();
                         setsToQueue.push({
                             exercise_id: ex.id,
                             set_type: sanitizeSetType(set.type),
@@ -316,6 +321,7 @@ export async function autoFinalizeWorkout(
                             weight_kg: parseFloat(set.weight) || 0,
                             reps_completed: parseInt(set.reps) || 0,
                             rpe_actual: parseInt(set.rpe) || null,
+                            completed_at: setCompletedAt,
                             time_completed: parseInt(set.time_completed || '') || null,
                             distance_completed: parseFloat(set.distance_completed || '') || null,
                             speed_actual: parseFloat(set.speed_actual || '') || null,
@@ -338,6 +344,7 @@ export async function autoFinalizeWorkout(
                                         weight_kg: parseFloat(d.weight) || 0,
                                         reps_completed: parseInt(d.reps) || 0,
                                         rpe_actual: null,
+                                        completed_at: setCompletedAt,
                                         time_completed: null,
                                         distance_completed: null,
                                         speed_actual: null,
@@ -363,6 +370,7 @@ export async function autoFinalizeWorkout(
                                         weight_kg: parseFloat(set.weight) || 0,
                                         reps_completed: parseInt(sub.reps) || 0,
                                         rpe_actual: null,
+                                        completed_at: setCompletedAt,
                                         time_completed: null,
                                         distance_completed: null,
                                         speed_actual: null,

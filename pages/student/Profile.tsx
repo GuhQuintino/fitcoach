@@ -13,6 +13,7 @@ import ToggleSwitch from '../../components/shared/ToggleSwitch';
 import { formatToWhatsappUrl } from '../../utils/phoneUtils';
 import { getFirstName } from '../../utils/textUtils';
 import { getOptimizedImageUrl } from '../../utils/imageUtils';
+import { formatDateBR } from '../../utils/dateTime';
 import { studentTutorialUrl } from '../../utils/studentTutorial';
 import {
     ACTIVITY_LEVEL_OPTIONS,
@@ -402,7 +403,7 @@ const StudentProfile: React.FC = () => {
                         </button>
                     </div>
                     <h2 className="font-display text-2xl font-bold text-slate-900 dark:text-white">{profile?.full_name || 'Usuário'}</h2>
-                    <p className="text-slate-600 dark:text-slate-300 text-sm mt-1">Aluno desde {new Date(profile?.created_at).toLocaleDateString(undefined, { month: 'short', year: 'numeric' })}</p>
+                    <p className="text-slate-600 dark:text-slate-300 text-sm mt-1">Aluno desde {formatDateBR(profile?.created_at, { month: 'short', year: 'numeric' })}</p>
 
                     {coachProfile && (
                         <div className="mt-6 w-full max-w-xs">
@@ -690,7 +691,7 @@ const StudentProfile: React.FC = () => {
                             <ResponsiveContainer width="100%" height="100%">
                                 <LineChart data={weightHistory.map(h => ({
                                     weight: h.weight_kg,
-                                    date: new Date(h.recorded_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })
+                                    date: formatDateBR(h.recorded_at, { day: '2-digit', month: '2-digit' })
                                 }))}>
                                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-slate-200, #E2E8F0)" />
                                     <XAxis
